@@ -103,3 +103,4 @@ The primary user is a detail-oriented, privacy-conscious individual who wants to
 *   **Secondary Metric:** The dashboard accurately reflects the user's financial data in real-time, providing a correct Net Worth calculation.
 *   **User Feedback:** Positive qualitative feedback on the ease of use, speed of data entry, and the quality of the financial insights provided.
 
+## Something Changed
