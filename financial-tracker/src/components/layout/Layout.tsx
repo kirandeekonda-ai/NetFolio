@@ -1,4 +1,5 @@
 import { FC, ReactNode, useState } from 'react';
+import Head from 'next/head';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -19,6 +20,11 @@ export const Layout: FC<LayoutProps> = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-neutral-light-gray">
+      <Head>
+        <title>NetFolio</title>
+        <meta name="description" content="Personal finance tracker" />
+        <link rel="icon" href="/favicon.ico" />
+      </Head>
       {/* Desktop Navigation */}
       <nav className="hidden md:flex fixed left-0 top-0 h-screen w-64 bg-white shadow-card p-6">
         <div className="w-full">
