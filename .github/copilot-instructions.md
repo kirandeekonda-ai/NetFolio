@@ -68,6 +68,22 @@ IMPORTANT: Read the entire file. Failure to do so will result in a bad rating fo
 
 1. Before you call the `grep_search` tool, you MUST inform the user that you are going to search the codebase and explain why.
 
+### Development Server
+
+When running the development server:
+
+1. ALWAYS ensure you are in the correct directory before starting the server:
+   - The working directory MUST be the financial-tracker folder
+   - Check the current working directory in the context information
+   - If needed, use `cd financial-tracker` before running any commands
+
+2. Only after confirming the correct directory, start the development server:
+   ```bash
+   cd financial-tracker && npm run dev
+   ```
+
+3. NEVER run the development server from outside the financial-tracker directory
+
 ### Searching the web
 
 You can use the `functions.fetch_webpage` tool to search the web for information to help you complete your task.

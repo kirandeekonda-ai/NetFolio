@@ -1,0 +1,19 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary: #5A67D8;
+  --primary-light: #8B96E5;
+  --primary-dark: #4A54B3;
+  --accent: #FA8072;
+  --accent-light: #FFA599;
+  --accent-dark: #E5675A;
+}
+
+body {
+  @apply bg-neutral-light-gray text-neutral-dark-charcoal;
+  font-family: 'Inter', sans-serif;
+}
