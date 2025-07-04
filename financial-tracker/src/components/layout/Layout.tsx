@@ -12,6 +12,7 @@ const navItems = [
   { href: '/', label: 'Upload', icon: '📤' },
   { href: '/categorize', label: 'Categorize', icon: '🏷️' },
   { href: '/dashboard', label: 'Dashboard', icon: '📊' },
+  { href: '/profile', label: 'Profile', icon: '👤' },
 ];
 
 export const Layout: FC<LayoutProps> = ({ children }) => {

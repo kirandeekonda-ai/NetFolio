@@ -83,3 +83,15 @@ export interface ChartData {
   label: string;
   value: number;
 }
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+}
+
+export interface UserSettings {
+  userId: string;
+  defaultCurrency: string;
+  categoryColors: Record<string, string>;
+}
