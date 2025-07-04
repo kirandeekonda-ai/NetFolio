@@ -9,15 +9,17 @@ interface CategoriesState {
 
 const initialState: CategoriesState = {
   items: [
-    { id: '1', name: 'Food & Groceries', type: 'essential' },
-    { id: '2', name: 'Housing & Utilities', type: 'essential' },
-    { id: '3', name: 'Transport', type: 'essential' },
+    { id: '1', name: 'Food & Dining', type: 'essential' },
+    { id: '2', name: 'Bills & Utilities', type: 'essential' },
+    { id: '3', name: 'Transportation', type: 'essential' },
     { id: '4', name: 'Shopping', type: 'lifestyle' },
     { id: '5', name: 'Entertainment', type: 'lifestyle' },
     { id: '6', name: 'Health & Wellness', type: 'lifestyle' },
-    { id: '7', name: 'Income', type: 'financial' },
-    { id: '8', name: 'Investments', type: 'financial' },
-    { id: '9', name: 'Bills & Payments', type: 'financial' },
+    { id: '7', name: 'Travel', type: 'lifestyle' },
+    { id: '8', name: 'Income', type: 'financial' },
+    { id: '9', name: 'Investments', type: 'financial' },
+    { id: '10', name: 'Other', type: 'lifestyle' },
+    { id: '11', name: 'Uncategorized', type: 'other' },
   ],
   isLoading: false,
   error: null,

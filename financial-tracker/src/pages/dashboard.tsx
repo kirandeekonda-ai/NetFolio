@@ -5,6 +5,7 @@ import { Card } from '@/components/Card';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store';
 import { Transaction } from '@/types';
+import { formatAmount } from '@/utils/currency';
 import {
   ResponsiveContainer,
   BarChart,
@@ -18,15 +19,6 @@ import {
   Cell,
 } from 'recharts';
 import { motion } from 'framer-motion';
-
-const formatAmount = (amount: number) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
-};
 
 const COLORS = [
   '#5A67D8', // primary
