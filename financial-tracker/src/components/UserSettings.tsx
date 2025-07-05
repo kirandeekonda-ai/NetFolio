@@ -1,6 +1,40 @@
-import { FC } from 'react';
+import { FC, useState, useEffect } from 'react';
+import { supabase } from '@/utils/supabase';
+import { useUser } from '@supabase/auth-helpers-react';
 
 export const UserSettings: FC = () => {
+  const user = useUser();
+  const [currency, setCurrency] = useState<string>('USD');
+
+  useEffect(() => {
+    const fetchCurrency = async () => {
+      if (user) {
+        const { data, error } = await supabase
+          .from('user_preferences')
+          .select('currency')
+          .eq('user_id', user.id)
+          .single();
+
+        if (data) {
+          setCurrency(data.currency);
+        }
+      }
+    };
+
+    fetchCurrency();
+  }, [user]);
+
+  const handleCurrencyChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newCurrency = e.target.value;
+    setCurrency(newCurrency);
+
+    if (user) {
+      await supabase
+        .from('user_preferences')
+        .upsert({ user_id: user.id, currency: newCurrency });
+    }
+  };
+
   return (
     <div>
       <h2 className="text-xl font-bold">User Settings</h2>
@@ -12,11 +46,13 @@ export const UserSettings: FC = () => {
           id="currency"
           name="currency"
           className="mt-1 block w-full rounded-md border-neutral-300 py-2 pl-3 pr-10 text-base focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
-          defaultValue="USD"
+          value={currency}
+          onChange={handleCurrencyChange}
         >
           <option>USD</option>
           <option>EUR</option>
           <option>GBP</option>
+          <option>INR</option>
         </select>
       </div>
     </div>

@@ -1,4 +1,6 @@
-import { FC, useState } from 'react';
+import { FC, useState, useEffect } from 'react';
+import { supabase } from '@/utils/supabase';
+import { useUser } from '@supabase/auth-helpers-react';
 
 const initialSuggestedCategories = [
   { id: 4, name: 'Food', color: '#FFC107' },
@@ -9,22 +11,47 @@ const initialSuggestedCategories = [
 ];
 
 export const CategoryManager: FC = () => {
-  const [userCategories, setUserCategories] = useState([
-    { id: 1, name: 'Groceries', color: '#FFC107' },
-    { id: 2, name: 'Rent', color: '#F44336' },
-    { id: 3, name: 'Transport', color: '#2196F3' },
-  ]);
+  const user = useUser();
+  const [userCategories, setUserCategories] = useState<any[]>([]);
   const [suggestedCategories, setSuggestedCategories] = useState(
     initialSuggestedCategories
   );
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      if (user) {
+        const { data, error } = await supabase
+          .from('user_preferences')
+          .select('categories')
+          .eq('user_id', user.id)
+          .single();
+
+        if (data && data.categories) {
+          setUserCategories(data.categories);
+        }
+      }
+    };
+
+    fetchCategories();
+  }, [user]);
+
+  const updateCategories = async (categories: any[]) => {
+    if (user) {
+      await supabase
+        .from('user_preferences')
+        .upsert({ user_id: user.id, categories });
+    }
+  };
 
   const handleAddCategory = (category: {
     id: number;
     name: string;
     color: string;
   }) => {
-    setUserCategories([...userCategories, category]);
+    const newCategories = [...userCategories, category];
+    setUserCategories(newCategories);
     setSuggestedCategories(suggestedCategories.filter((c) => c.id !== category.id));
+    updateCategories(newCategories);
   };
 
   const handleRemoveCategory = (category: {
@@ -32,8 +59,10 @@ export const CategoryManager: FC = () => {
     name: string;
     color: string;
   }) => {
-    setUserCategories(userCategories.filter((c) => c.id !== category.id));
+    const newCategories = userCategories.filter((c) => c.id !== category.id);
+    setUserCategories(newCategories);
     setSuggestedCategories([...suggestedCategories, category]);
+    updateCategories(newCategories);
   };
 
   return (
