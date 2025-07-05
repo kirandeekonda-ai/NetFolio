@@ -16,6 +16,8 @@ export const CategoryManager: FC = () => {
   const [suggestedCategories, setSuggestedCategories] = useState(
     initialSuggestedCategories
   );
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [newCategoryColor, setNewCategoryColor] = useState('#000000');
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -52,6 +54,20 @@ export const CategoryManager: FC = () => {
     setUserCategories(newCategories);
     setSuggestedCategories(suggestedCategories.filter((c) => c.id !== category.id));
     updateCategories(newCategories);
+  };
+
+  const handleCreateCategory = () => {
+    if (newCategoryName.trim() === '') return;
+
+    const newCategory = {
+      id: Date.now(),
+      name: newCategoryName,
+      color: newCategoryColor,
+    };
+
+    handleAddCategory(newCategory);
+    setNewCategoryName('');
+    setNewCategoryColor('#000000');
   };
 
   const handleRemoveCategory = (category: {
@@ -93,6 +109,31 @@ export const CategoryManager: FC = () => {
             </li>
           ))}
         </ul>
+      </div>
+
+      <div className="mt-8">
+        <h3 className="text-lg font-semibold">Create New Category</h3>
+        <div className="flex items-center gap-4 mt-2">
+          <input
+            type="text"
+            placeholder="Category Name"
+            value={newCategoryName}
+            onChange={(e) => setNewCategoryName(e.target.value)}
+            className="border rounded px-2 py-1"
+          />
+          <input
+            type="color"
+            value={newCategoryColor}
+            onChange={(e) => setNewCategoryColor(e.target.value)}
+            className="border rounded w-10 h-10"
+          />
+          <button
+            onClick={handleCreateCategory}
+            className="bg-blue-500 text-white px-4 py-2 rounded"
+          >
+            Add
+          </button>
+        </div>
       </div>
 
       <div className="mt-8">
