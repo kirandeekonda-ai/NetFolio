@@ -49,7 +49,11 @@ export const deleteCategory = createAsyncThunk(
 export const categoriesSlice = createSlice({
   name: 'categories',
   initialState,
-  reducers: {},
+  reducers: {
+    setCategories: (state, action: PayloadAction<Category[]>) => {
+      state.items = action.payload;
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchCategories.pending, (state) => {
@@ -77,5 +81,7 @@ export const categoriesSlice = createSlice({
       });
   },
 });
+
+export const { setCategories } = categoriesSlice.actions;
 
 export default categoriesSlice.reducer;
