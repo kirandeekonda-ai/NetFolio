@@ -29,7 +29,22 @@ export const CategoryManager: FC = () => {
           .single();
 
         if (data && data.categories) {
-          setUserCategories(data.categories);
+          const uniqueCategories = data.categories.filter(
+            (category: any, index: number, self: any[]) =>
+              index ===
+              self.findIndex(
+                (c) => c.name.toLowerCase() === category.name.toLowerCase()
+              )
+          );
+          setUserCategories(uniqueCategories);
+          setSuggestedCategories(
+            initialSuggestedCategories.filter(
+              (sc) =>
+                !uniqueCategories.some(
+                  (uc: any) => uc.name.toLowerCase() === sc.name.toLowerCase()
+                )
+            )
+          );
         }
       }
     };
@@ -50,14 +65,35 @@ export const CategoryManager: FC = () => {
     name: string;
     color: string;
   }) => {
-    const newCategories = [...userCategories, category];
-    setUserCategories(newCategories);
-    setSuggestedCategories(suggestedCategories.filter((c) => c.id !== category.id));
-    updateCategories(newCategories);
+    if (
+      !userCategories.some(
+        (c) => c.name.toLowerCase() === category.name.toLowerCase()
+      )
+    ) {
+      const newCategories = [...userCategories, category];
+      setUserCategories(newCategories);
+      setSuggestedCategories(
+        suggestedCategories.filter((c) => c.id !== category.id)
+      );
+      updateCategories(newCategories);
+    } else {
+      setSuggestedCategories(
+        suggestedCategories.filter((c) => c.id !== category.id)
+      );
+    }
   };
 
   const handleCreateCategory = () => {
     if (newCategoryName.trim() === '') return;
+
+    if (
+      userCategories.some(
+        (c) => c.name.toLowerCase() === newCategoryName.trim().toLowerCase()
+      )
+    ) {
+      alert('Category already exists');
+      return;
+    }
 
     const newCategory = {
       id: Date.now(),
