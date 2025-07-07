@@ -87,9 +87,12 @@ const Categorize: NextPage = () => {
       key: 'type' as keyof Transaction,
       header: 'Type',
       render: (value: 'income' | 'expense') => {
-        const style = getCategoryColorStyle(value === 'income' ? 'Income' : 'Expense');
+        const style = getCategoryColorStyle(value === 'income' ? 'Income' : 'Expense', categories);
         return (
-          <span className={`px-2 py-1 rounded-label text-sm ${style.bg} ${style.text}`}>
+          <span 
+            className={`px-2 py-1 rounded-label text-sm ${style.bg} ${style.text}`}
+            style={style.style}
+          >
             {value.charAt(0).toUpperCase() + value.slice(1)}
           </span>
         );
@@ -101,7 +104,7 @@ const Categorize: NextPage = () => {
       header: 'Category',
       render: (value: string, item: Transaction) => {
         const categoryName = value || 'Uncategorized';
-        const style = getCategoryColorStyle(categoryName);
+        const style = getCategoryColorStyle(categoryName, categories);
         return (
           <div className="relative">
             <button
@@ -110,6 +113,7 @@ const Categorize: NextPage = () => {
                 setOpenDropdown(openDropdown === item.id ? null : item.id);
               }}
               className={`px-3 py-1 rounded-label text-sm ${style.bg} ${style.text}`}
+              style={style.style}
             >
               {categoryName === 'Uncategorized' ? 'Select Category' : categoryName}
             </button>
@@ -120,12 +124,13 @@ const Categorize: NextPage = () => {
               >
                 <div className="p-2 grid grid-cols-1 gap-1">
                   {categories.map((category) => {
-                    const categoryStyle = getCategoryColorStyle(category.name);
+                    const categoryStyle = getCategoryColorStyle(category.name, categories);
                     return (
                       <button
                         key={category.id}
                         onClick={() => handleCategoryChange(item, category)}
                         className={`px-3 py-1.5 text-left text-sm rounded-button hover:bg-gray-100 transition-colors ${category.name === value ? `${categoryStyle.bg} ${categoryStyle.text}` : ''}`}
+                        style={category.name === value ? categoryStyle.style : undefined}
                       >
                         {category.name}
                       </button>
