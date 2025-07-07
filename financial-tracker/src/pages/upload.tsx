@@ -1,5 +1,5 @@
 import { NextPage } from 'next';
-import { useCallback } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { Layout } from '@/components/layout/Layout';
 import { Card } from '@/components/Card';
@@ -9,20 +9,66 @@ import { useDispatch } from 'react-redux';
 import { setTransactions } from '@/store/transactionsSlice';
 import Papa from 'papaparse';
 import { Transaction } from '@/types';
-// Removed static import of parsePdfDocument to avoid SSR evaluation
 import { getFileTypeFromExtension } from '@/utils/fileTypes';
+import { bankStatementParser } from '@/utils/bankStatementParser';
 
 const Upload: NextPage = () => {
   const router = useRouter();
   const dispatch = useDispatch();
+  const [availableTemplates, setAvailableTemplates] = useState<Array<{ identifier: string, bankName: string, format: string }>>([]);
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string>('');
+
+  // Load available templates on component mount
+  useEffect(() => {
+    const loadTemplates = async () => {
+      try {
+        const templates = await bankStatementParser.getAvailableTemplates();
+        setAvailableTemplates(templates.map(t => ({
+          identifier: t.identifier,
+          bankName: t.bank_name,
+          format: t.format
+        })));
+        // Set default template to DBS if available
+        const dbsTemplate = templates.find(t => t.identifier === 'dbs_pdf_v1');
+        if (dbsTemplate) {
+          setSelectedTemplate(dbsTemplate.identifier);
+        }
+      } catch (err) {
+        console.error('Error loading templates:', err);
+        setError('Failed to load bank templates');
+      }
+    };
+
+    loadTemplates();
+  }, []);
 
   const handleFileSelect = useCallback(async (file: File) => {
+    if (!selectedTemplate) {
+      setError('Please select a bank template first');
+      return;
+    }
+
+    setIsLoading(true);
+    setError('');
+
     try {
       let transactions: Transaction[] = [];
       const fileType = getFileTypeFromExtension(file.name);
 
-      // For CSV files
-      if (fileType === 'text/csv') {
+      // For PDF files - use the new template system
+      if (fileType === 'application/pdf') {
+        const result = await bankStatementParser.parseStatement(file, selectedTemplate);
+        if (result.success) {
+          transactions = result.transactions;
+        } else {
+          setError(result.error || 'Failed to parse PDF file');
+          return;
+        }
+      } 
+      // For CSV files - keep existing logic for now, will be updated later
+      else if (fileType === 'text/csv') {
         await new Promise((resolve) => {
           Papa.parse<string[]>(file, {
             complete: (results: Papa.ParseResult<string[]>) => {
@@ -41,35 +87,30 @@ const Upload: NextPage = () => {
             header: true,
           });
         });
-      } 
-      // For PDF files
-      else if (fileType === 'application/pdf') {
-        try {
-          // Dynamically import the PDF parsing logic in the browser
-          const { parsePdfDocument } = await import('@/components/PdfParser');
-          transactions = await parsePdfDocument(file);
-        } catch (error) {
-          console.error('Error parsing PDF:', error);
-          return;
-        }
       }
       // For Excel files (to be implemented)
       else if (fileType?.includes('excel')) {
-        // Excel implementation will go here
-        console.log('Excel support coming soon');
+        setError('Excel support coming soon');
         return;
       }
-      // For Excel files, you would need to use a library like xlsx
+      else {
+        setError('Unsupported file format');
+        return;
+      }
 
       if (transactions.length > 0) {
         dispatch(setTransactions(transactions));
         router.push('/categorize');
+      } else {
+        setError('No transactions found in the file');
       }
     } catch (err) {
       console.error('Error processing file:', err);
-      // You might want to show an error message to the user here
+      setError(err instanceof Error ? err.message : 'Unknown error occurred');
+    } finally {
+      setIsLoading(false);
     }
-  }, [dispatch, router]);
+  }, [dispatch, router, selectedTemplate]);
 
   return (
     <Layout>
@@ -82,11 +123,52 @@ const Upload: NextPage = () => {
           Upload Bank Statement
         </h1>
 
+        {error && (
+          <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+            {error}
+          </div>
+        )}
+
+        <Card className="p-6 mb-6">
+          <h2 className="text-lg font-semibold mb-4">Select Bank Template</h2>
+          <div className="mb-4">
+            <label htmlFor="template-select" className="block text-sm font-medium mb-2">
+              Bank Template:
+            </label>
+            <select
+              id="template-select"
+              value={selectedTemplate}
+              onChange={(e) => setSelectedTemplate(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={isLoading}
+            >
+              <option value="">Select a template...</option>
+              {availableTemplates.map(template => (
+                <option key={template.identifier} value={template.identifier}>
+                  {template.bankName} ({template.format})
+                </option>
+              ))}
+            </select>
+          </div>
+          {selectedTemplate && (
+            <div className="text-sm text-gray-600">
+              Selected: {availableTemplates.find(t => t.identifier === selectedTemplate)?.bankName} - {availableTemplates.find(t => t.identifier === selectedTemplate)?.format}
+            </div>
+          )}
+        </Card>
+
         <Card className="p-6">
           <FileUpload
             onFileSelect={handleFileSelect}
             maxSize={5 * 1024 * 1024} // 5MB
+            disabled={isLoading || !selectedTemplate}
           />
+          {isLoading && (
+            <div className="mt-4 text-center">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+              <p className="mt-2 text-sm text-gray-600">Processing file...</p>
+            </div>
+          )}
         </Card>
 
         <motion.div
@@ -97,8 +179,10 @@ const Upload: NextPage = () => {
         >
           <h2 className="font-semibold mb-2">Instructions:</h2>
           <ul className="list-disc list-inside space-y-1">
+            <li>Select the appropriate bank template for your statement</li>
             <li>Upload your bank statement in CSV, Excel, or PDF format</li>
-            <li>File should contain Date, Description, and Amount columns</li>
+            <li>The system will automatically extract transactions based on the selected template</li>
+            <li>Review and categorize the imported transactions on the next page</li>
             <li>Maximum file size is 5MB</li>
             <li>All data is processed locally in your browser</li>
           </ul>

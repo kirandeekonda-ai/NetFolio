@@ -7,11 +7,13 @@ import { ACCEPTED_MIME_TYPES, ACCEPTED_EXTENSIONS } from '@/utils/fileTypes';
 interface FileUploadProps {
   onFileSelect: (file: File) => void;
   maxSize?: number;
+  disabled?: boolean;
 }
 
 export const FileUpload: FC<FileUploadProps> = ({
   onFileSelect,
   maxSize = 5242880, // 5MB
+  disabled = false,
 }) => {
   const [error, setError] = useState<string | null>(null);
   const [isDragActive, setIsDragActive] = useState(false);
@@ -28,6 +30,7 @@ export const FileUpload: FC<FileUploadProps> = ({
     accept: ACCEPTED_MIME_TYPES,
     maxSize,
     multiple: false,
+    disabled,
     onDragEnter: () => setIsDragActive(true),
     onDragLeave: () => setIsDragActive(false),
     onDropRejected: (fileRejections: FileRejection[]) => {
@@ -44,15 +47,12 @@ export const FileUpload: FC<FileUploadProps> = ({
 
   return (
     <div className="w-full">
-      <motion.div
+      <div
         {...getRootProps()}
-        animate={{
-          scale: isDragActive ? 1.02 : 1,
-          borderColor: isDragActive ? '#5A67D8' : '#E2E8F0',
-        }}
         className={`
-          border-2 border-dashed rounded-lg p-8 text-center cursor-pointer
-          ${isDragActive ? 'border-primary bg-primary/5' : 'border-neutral-200'}
+          border-2 border-dashed rounded-lg p-8 text-center transition-all duration-200
+          ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}
+          ${isDragActive && !disabled ? 'border-primary bg-primary/5 scale-105' : 'border-neutral-200'}
           ${isDragReject ? 'border-accent bg-accent/5' : ''}
         `}
       >
@@ -62,14 +62,14 @@ export const FileUpload: FC<FileUploadProps> = ({
           <div className="text-4xl">📄</div>
           <div>
             <p className="text-lg font-medium">
-              Drag & drop your file here
+              {disabled ? 'Select a template first' : 'Drag & drop your file here'}
             </p>
             <p className="text-sm text-neutral-500 mt-1">
-              or click to browse
+              {disabled ? 'Choose a bank template above to enable file upload' : 'or click to browse'}
             </p>
           </div>
           
-          <Button variant="secondary" size="sm">
+          <Button variant="secondary" size="sm" disabled={disabled}>
             Choose File
           </Button>
 
@@ -77,7 +77,7 @@ export const FileUpload: FC<FileUploadProps> = ({
             Supported formats: CSV, Excel, PDF
           </div>
         </div>
-      </motion.div>
+      </div>
 
       {error && (
         <motion.p
