@@ -1,111 +1,79 @@
 import { NextPage } from 'next';
-import { useCallback } from 'react';
+import { useSession, useSupabaseClient } from '@supabase/auth-helpers-react';
 import { useRouter } from 'next/router';
+import { Auth } from '@/components/Auth';
 import { Layout } from '@/components/layout/Layout';
+import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
-import { FileUpload } from '@/components/FileUpload';
-import { motion } from 'framer-motion';
-import { useDispatch } from 'react-redux';
-import { setTransactions } from '@/store/transactionsSlice';
-import Papa from 'papaparse';
-import { Transaction } from '@/types';
-// Removed static import of parsePdfDocument to avoid SSR evaluation
-import { getFileTypeFromExtension } from '@/utils/fileTypes';
 
-const Upload: NextPage = () => {
+const LandingPage: NextPage = () => {
+  const session = useSession();
+  const supabase = useSupabaseClient();
   const router = useRouter();
-  const dispatch = useDispatch();
 
-  const handleFileSelect = useCallback(async (file: File) => {
-    try {
-      let transactions: Transaction[] = [];
-      const fileType = getFileTypeFromExtension(file.name);
-
-      // For CSV files
-      if (fileType === 'text/csv') {
-        await new Promise((resolve) => {
-          Papa.parse<string[]>(file, {
-            complete: (results: Papa.ParseResult<string[]>) => {
-              transactions = results.data
-                .slice(1)
-                .map((row: string[], index: number) => ({
-                  id: `tr-${index}`,
-                  date: row[0],
-                  description: row[1],
-                  amount: parseFloat(row[2]),
-                  type: parseFloat(row[2]) > 0 ? 'income' as const : 'expense' as const,
-                  category: '',
-                }));
-              resolve(null);
-            },
-            header: true,
-          });
-        });
-      } 
-      // For PDF files
-      else if (fileType === 'application/pdf') {
-        try {
-          // Dynamically import the PDF parsing logic in the browser
-          const { parsePdfDocument } = await import('@/components/PdfParser');
-          transactions = await parsePdfDocument(file);
-        } catch (error) {
-          console.error('Error parsing PDF:', error);
-          return;
-        }
-      }
-      // For Excel files (to be implemented)
-      else if (fileType?.includes('excel')) {
-        // Excel implementation will go here
-        console.log('Excel support coming soon');
-        return;
-      }
-      // For Excel files, you would need to use a library like xlsx
-
-      if (transactions.length > 0) {
-        dispatch(setTransactions(transactions));
-        router.push('/categorize');
-      }
-    } catch (err) {
-      console.error('Error processing file:', err);
-      // You might want to show an error message to the user here
-    }
-  }, [dispatch, router]);
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push('/');
+  };
 
   return (
     <Layout>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="max-w-2xl mx-auto"
-      >
-        <h1 className="text-heading font-bold mb-6">
-          Upload Bank Statement
-        </h1>
+      <div className="container mx-auto px-4 py-16">
+        {!session ? (
+          // New User View
+          <div className="text-center">
+            <h1 className="text-5xl font-bold mb-4">Simplify Your Personal Finances</h1>
+            <p className="text-xl text-gray-600 mb-8">Easy expense & income tracking, quick bank statement upload & categorization, and real-time financial insights.</p>
+            <div className="flex justify-center space-x-4">
+              <Button onClick={() => router.push('/#auth-modal')}>Sign Up for Free</Button>
+              <Button variant="secondary" onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}>Learn More</Button>
+            </div>
 
-        <Card className="p-6">
-          <FileUpload
-            onFileSelect={handleFileSelect}
-            maxSize={5 * 1024 * 1024} // 5MB
-          />
-        </Card>
+            <div id="features" className="mt-16">
+              <h2 className="text-3xl font-bold mb-8">Key Features</h2>
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <Card>Easy Expense & Income Tracking</Card>
+                <Card>Quick Bank Statement Upload & Categorization</Card>
+                <Card>Real-time Financial Insights</Card>
+                <Card>Secure and Private by Design</Card>
+              </div>
+            </div>
+            <div id="auth-modal" className="mt-16">
+              <Auth />
+            </div>
+          </div>
+        ) : (
+          // Returning User View
+          <div className="text-center">
+            <h1 className="text-4xl font-bold mb-4">Welcome back, {session.user.email}!</h1>
+            <div className="flex justify-center space-x-4 mb-8">
+              <Button onClick={() => router.push('/upload')}>Upload Bank Statement</Button>
+              <Button onClick={() => router.push('/categorize')}>Categorize Transactions</Button>
+              <Button onClick={() => router.push('/dashboard')}>Go to Dashboard</Button>
+            </div>
 
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="mt-6 text-sm text-neutral-500"
-        >
-          <h2 className="font-semibold mb-2">Instructions:</h2>
-          <ul className="list-disc list-inside space-y-1">
-            <li>Upload your bank statement in CSV, Excel, or PDF format</li>
-            <li>File should contain Date, Description, and Amount columns</li>
-            <li>Maximum file size is 5MB</li>
-            <li>All data is processed locally in your browser</li>
-          </ul>
-        </motion.div>
-      </motion.div>
+            <Card className="p-6">
+              <h2 className="text-2xl font-bold mb-4">Financial Summary</h2>
+              {/* Placeholder for financial summary widget */}
+              <p>Income: $5000</p>
+              <p>Expenses: $2500</p>
+              <p>Net Balance: $2500</p>
+            </Card>
+
+            <div className="mt-8">
+              <h2 className="text-2xl font-bold mb-4">Notifications</h2>
+              {/* Placeholder for notifications */}
+              <p>You have 3 uncategorized transactions.</p>
+            </div>
+
+            <div className="mt-8">
+              <Button onClick={handleLogout}>Logout</Button>
+            </div>
+          </div>
+        )}
+      </div>
     </Layout>
   );
 };
 
-export default Upload;
+export default LandingPage;
