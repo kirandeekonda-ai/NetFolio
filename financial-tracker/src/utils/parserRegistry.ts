@@ -15,6 +15,10 @@ const PARSER_REGISTRY: Record<string, () => Promise<ParserFactory>> = {
     const { createDbsPdfParser } = await import('@/templates/dbs_pdf_v1');
     return createDbsPdfParser;
   },
+  'icici_pdf_v1': async () => {
+    const { createIciciPdfParser } = await import('@/templates/icici_pdf_v1');
+    return createIciciPdfParser;
+  },
   // Add more parsers here as they are implemented
   // 'chase_pdf_v1': async () => {
   //   const { createChasePdfParser } = await import('@/templates/chase_pdf_v1');

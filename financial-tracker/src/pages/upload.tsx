@@ -99,9 +99,12 @@ const Upload: NextPage = () => {
       }
 
       if (transactions.length > 0) {
+        console.log('Successfully extracted transactions:', transactions.length);
+        console.log('Sample transaction:', transactions[0]);
         dispatch(setTransactions(transactions));
         router.push('/categorize');
       } else {
+        console.warn('No transactions found in the file');
         setError('No transactions found in the file');
       }
     } catch (err) {

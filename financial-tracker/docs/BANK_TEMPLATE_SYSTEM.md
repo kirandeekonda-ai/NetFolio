@@ -384,7 +384,8 @@ For issues or questions about the template system:
 ## Examples
 
 The system includes example templates for:
-- DBS Bank PDF statements
+- DBS Bank PDF statements (Multi-column debit/credit format)
+- ICICI Bank PDF statements (CR/DR type indicator format)
 - Generic CSV format
 
 Use these as reference when creating new templates.

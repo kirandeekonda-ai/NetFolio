@@ -10,6 +10,16 @@ This directory contains bank-specific parser modules for processing different ba
 - **Status**: Active
 - **Features**: Table-based parsing with multi-line description support
 
+### ICICI Bank
+- **File**: `icici_pdf_v1.ts`
+- **Format**: PDF
+- **Status**: Active
+- **Features**: 
+  - Table-based parsing with CR/DR type indicators
+  - Date format: DD-MM-YYYY
+  - Amount and Type column parsing
+  - Multi-line description support
+
 ## Adding New Templates
 
 1. Create a new TypeScript file following the naming convention: `[bank]_[format]_v[version].ts`
