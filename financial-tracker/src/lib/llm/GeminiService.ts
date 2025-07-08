@@ -72,7 +72,7 @@ export class GeminiService implements LLMProvider {
 
       // Validate the response structure
       const transactions: Transaction[] = Array.isArray(parsedResponse.transactions) 
-        ? parsedResponse.transactions.filter(this.isValidTransaction)
+        ? parsedResponse.transactions.filter((transaction: any) => this.isValidTransaction(transaction))
         : [];
 
       return {
