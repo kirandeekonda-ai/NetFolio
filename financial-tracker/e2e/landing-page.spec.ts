@@ -31,7 +31,7 @@ test.describe('Landing Page Flows', () => {
     await page.goto('/auth');
     
     // Check if we can access other pages (they should redirect back to auth if not authenticated)
-    await page.goto('/upload');
+    await page.goto('/statements');
     // Should redirect back to auth or show login requirement
     
     await page.goto('/dashboard'); 

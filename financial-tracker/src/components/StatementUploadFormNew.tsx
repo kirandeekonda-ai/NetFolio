@@ -1,0 +1,407 @@
+import { FC, useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { BankAccount, StatementUpload, Transaction } from '@/types';
+import { Card } from './Card';
+import { Button } from './Button';
+import { Input } from './Input';
+import { FileUpload } from './FileUpload';
+import { ProcessingLogs } from './ProcessingLogs';
+import { EnvironmentCheck } from './EnvironmentCheck';
+import { useAIPdfProcessor } from '@/hooks/useAIPdfProcessor';
+import { bankStatementParser } from '@/utils/bankStatementParser';
+
+interface StatementUploadFormProps {
+  accounts: BankAccount[];
+  selectedAccountId: string;
+  selectedMonth: number;
+  selectedYear: number;
+  onSubmit: (data: StatementUpload) => void;
+  onCancel: () => void;
+  onTransactionsExtracted: (transactions: Transaction[]) => void;
+  isLoading?: boolean;
+  isReupload?: boolean;
+}
+
+interface BankTemplate {
+  id: string;
+  bank_name: string;
+  format: string;
+  identifier: string;
+  parser_module: string;
+  parser_config: any;
+}
+
+const months = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
+
+export const StatementUploadForm: FC<StatementUploadFormProps> = ({
+  accounts,
+  selectedAccountId,
+  selectedMonth,
+  selectedYear,
+  onSubmit,
+  onCancel,
+  onTransactionsExtracted,
+  isLoading = false,
+  isReupload = false,
+}) => {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [availableTemplates, setAvailableTemplates] = useState<BankTemplate[]>([]);
+  const [matchedTemplate, setMatchedTemplate] = useState<BankTemplate | null>(null);
+  const [processingMode, setProcessingMode] = useState<'template' | 'ai'>('template');
+  const [processingLogs, setProcessingLogs] = useState<string[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const selectedAccount = accounts.find(acc => acc.id === selectedAccountId);
+  
+  // Calculate statement dates based on month/year
+  const statementStartDate = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-01`;
+  const statementEndDate = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-${new Date(selectedYear, selectedMonth, 0).getDate().toString().padStart(2, '0')}`;
+
+  const {
+    processFile,
+    isProcessing: aiProcessing,
+    processingLogs: aiLogs,
+    clearLogs: clearAiLogs,
+  } = useAIPdfProcessor();
+
+  useEffect(() => {
+    fetchAvailableTemplates();
+  }, []);
+
+  useEffect(() => {
+    if (selectedAccount && availableTemplates.length > 0) {
+      findMatchingTemplate();
+    }
+  }, [selectedAccount, availableTemplates]);
+
+  const fetchAvailableTemplates = async () => {
+    try {
+      const templates = await bankStatementParser.getAvailableTemplates();
+      setAvailableTemplates(templates.map(t => ({
+        id: t.identifier,
+        bank_name: t.bank_name,
+        format: t.format,
+        identifier: t.identifier,
+        parser_module: t.parser_module,
+        parser_config: t.parser_config,
+      })));
+    } catch (error) {
+      console.error('Error fetching templates:', error);
+    }
+  };
+
+  const findMatchingTemplate = () => {
+    if (!selectedAccount) return;
+
+    // Try to find an exact or partial match for the bank name
+    const bankName = selectedAccount.bank_name.toLowerCase();
+    
+    const exactMatch = availableTemplates.find(template => 
+      template.bank_name.toLowerCase() === bankName
+    );
+
+    if (exactMatch) {
+      setMatchedTemplate(exactMatch);
+      setProcessingMode('template');
+      addLog(`✅ Found exact template match: ${exactMatch.bank_name} (${exactMatch.format})`);
+      return;
+    }
+
+    // Try partial matching (e.g., "DBS" in "DBS Bank")
+    const partialMatch = availableTemplates.find(template => {
+      const templateName = template.bank_name.toLowerCase();
+      return bankName.includes(templateName) || templateName.includes(bankName);
+    });
+
+    if (partialMatch) {
+      setMatchedTemplate(partialMatch);
+      setProcessingMode('template');
+      addLog(`✅ Found partial template match: ${partialMatch.bank_name} (${partialMatch.format})`);
+      return;
+    }
+
+    // No template found, suggest AI processing
+    setMatchedTemplate(null);
+    setProcessingMode('ai');
+    addLog(`⚠️ No template found for "${selectedAccount.bank_name}". Using AI processing.`);
+  };
+
+  const addLog = (message: string) => {
+    setProcessingLogs(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
+  };
+
+  const handleFileSelect = (file: File) => {
+    setSelectedFile(file);
+    addLog(`📁 File selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
+  };
+
+  const validateForm = (): boolean => {
+    if (!selectedFile) {
+      addLog('❌ Please select a file to upload');
+      return false;
+    }
+
+    if (!selectedAccount) {
+      addLog('❌ Invalid account selection');
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm() || !selectedFile || !selectedAccount) return;
+
+    setIsProcessing(true);
+    addLog(`🚀 Starting ${processingMode} processing...`);
+
+    try {
+      if (processingMode === 'ai') {
+        // Use AI processing
+        addLog('🤖 Processing with AI...');
+        const result = await processFile(selectedFile);
+        
+        if (result.transactions && result.transactions.length > 0) {
+          addLog(`✅ Extracted ${result.transactions.length} transactions`);
+          onTransactionsExtracted(result.transactions);
+        } else {
+          addLog('⚠️ No transactions extracted');
+        }
+      } else if (matchedTemplate) {
+        // Use template processing
+        addLog(`🏦 Processing with ${matchedTemplate.bank_name} template...`);
+        
+        const result = await bankStatementParser.parseStatement(selectedFile, matchedTemplate.identifier);
+        
+        if (result.success && result.transactions) {
+          addLog(`✅ Template processing completed. Extracted ${result.transactions.length} transactions`);
+          onTransactionsExtracted(result.transactions);
+        } else {
+          addLog(`❌ Template processing failed: ${result.error || 'Unknown error'}`);
+          throw new Error(result.error || 'Template processing failed');
+        }
+      }
+
+      // Submit the statement record
+      const uploadData: StatementUpload = {
+        bank_account_id: selectedAccountId,
+        statement_month: selectedMonth,
+        statement_year: selectedYear,
+        statement_start_date: statementStartDate,
+        statement_end_date: statementEndDate,
+        file: selectedFile,
+      };
+
+      onSubmit(uploadData);
+      addLog('✅ Statement upload completed successfully');
+
+    } catch (error) {
+      console.error('Processing error:', error);
+      addLog(`❌ Processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  if (!selectedAccount) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <Card className="max-w-2xl mx-auto text-center p-8">
+          <div className="text-6xl mb-4">❌</div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Invalid Account</h2>
+          <p className="text-gray-600 mb-6">
+            The selected account could not be found. Please try again.
+          </p>
+          <Button onClick={onCancel}>
+            Go Back
+          </Button>
+        </Card>
+      </motion.div>
+    );
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+    >
+      <Card className="max-w-4xl mx-auto">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Header */}
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              {isReupload ? 'Reupload Bank Statement' : 'Upload Bank Statement'}
+            </h2>
+            {isReupload && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                <div className="flex items-center space-x-2">
+                  <span className="text-yellow-600">⚠️</span>
+                  <span className="text-yellow-800 font-medium">
+                    You are replacing an existing statement. The previous statement and its transactions will be removed.
+                  </span>
+                </div>
+              </div>
+            )}
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="font-medium text-blue-900">Account:</span>
+                  <div className="text-blue-800">
+                    {selectedAccount.account_nickname || `${selectedAccount.bank_name} ${selectedAccount.account_type}`}
+                    {selectedAccount.account_number_last4 && ` (...${selectedAccount.account_number_last4})`}
+                  </div>
+                </div>
+                <div>
+                  <span className="font-medium text-blue-900">Period:</span>
+                  <div className="text-blue-800">
+                    {months[selectedMonth - 1]} {selectedYear}
+                  </div>
+                </div>
+                <div>
+                  <span className="font-medium text-blue-900">Date Range:</span>
+                  <div className="text-blue-800">
+                    {statementStartDate} to {statementEndDate}
+                  </div>
+                </div>
+                <div>
+                  <span className="font-medium text-blue-900">Processing:</span>
+                  <div className="text-blue-800">
+                    {matchedTemplate ? `${matchedTemplate.bank_name} Template` : 'AI Processing'}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Template Status */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">Processing Method</h3>
+            {matchedTemplate ? (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="flex items-center space-x-3">
+                  <span className="text-2xl">✅</span>
+                  <div>
+                    <h4 className="font-semibold text-green-900">Template Found</h4>
+                    <p className="text-green-800">
+                      Using {matchedTemplate.bank_name} {matchedTemplate.format} template for accurate extraction
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-3 flex items-center space-x-4">
+                  <Button
+                    type="button"
+                    variant={processingMode === 'template' ? 'primary' : 'secondary'}
+                    onClick={() => {
+                      setProcessingMode('template');
+                      addLog(`🏦 Switched to template processing: ${matchedTemplate.bank_name}`);
+                    }}
+                  >
+                    Use Template
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={processingMode === 'ai' ? 'primary' : 'secondary'}
+                    onClick={() => {
+                      setProcessingMode('ai');
+                      addLog('🤖 Switched to AI processing');
+                    }}
+                  >
+                    Use AI Instead
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div className="flex items-center space-x-3">
+                  <span className="text-2xl">🤖</span>
+                  <div>
+                    <h4 className="font-semibold text-yellow-900">No Template Available</h4>
+                    <p className="text-yellow-800">
+                      No template found for "{selectedAccount.bank_name}". Using AI-powered processing.
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <div className="bg-yellow-100 p-3 rounded text-sm text-yellow-800">
+                    <strong>AI Processing:</strong> Uses advanced machine learning to extract transactions from any bank format.
+                    Results may require manual review for accuracy.
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Environment Check for AI Processing */}
+          {processingMode === 'ai' && (
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">AI Processing Setup</h3>
+              <EnvironmentCheck onConfigComplete={() => {}} />
+            </div>
+          )}
+
+          {/* File Upload */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">Statement File</h3>
+            <FileUpload
+              onFileSelect={handleFileSelect}
+              disabled={isLoading || isProcessing}
+              maxSize={10 * 1024 * 1024} // 10MB
+            />
+            {selectedFile && (
+              <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center space-x-2 text-sm text-gray-700">
+                  <span>📁</span>
+                  <span className="font-medium">{selectedFile.name}</span>
+                  <span>•</span>
+                  <span>{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Processing Logs */}
+          {(processingLogs.length > 0 || aiLogs.length > 0) && (
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Processing Status</h3>
+              <ProcessingLogs 
+                logs={[...processingLogs, ...aiLogs]} 
+                isVisible={true}
+                isProcessing={isProcessing || aiProcessing}
+                onClear={() => {
+                  setProcessingLogs([]);
+                  clearAiLogs();
+                }}
+              />
+            </div>
+          )}
+
+          {/* Form Actions */}
+          <div className="flex justify-end space-x-3 pt-4 border-t">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={onCancel}
+              disabled={isLoading || isProcessing}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={isLoading || isProcessing || !selectedFile}
+            >
+              {isProcessing ? 'Processing...' : isReupload ? 'Reupload & Process Statement' : 'Upload & Process Statement'}
+            </Button>
+          </div>
+        </form>
+      </Card>
+    </motion.div>
+  );
+};

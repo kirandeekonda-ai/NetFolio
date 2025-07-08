@@ -11,7 +11,8 @@ interface LayoutProps {
 
 const navItems = [
   { href: '/landing', label: 'Home', icon: '🏠' },
-  { href: '/upload', label: 'Upload', icon: '📤' },
+  { href: '/bank-accounts', label: 'Bank Accounts', icon: '🏦' },
+  { href: '/statements', label: 'Statements', icon: '📄' },
   { href: '/categorize', label: 'Categorize', icon: '🏷️' },
   { href: '/dashboard', label: 'Dashboard', icon: '📊' },
   { href: '/profile', label: 'Profile', icon: '👤' },

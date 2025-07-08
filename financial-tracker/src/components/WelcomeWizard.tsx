@@ -21,7 +21,8 @@ const steps: WizardStep[] = [
   { id: 1, title: 'Welcome', description: 'Get started with NetFolio', icon: '👋' },
   { id: 2, title: 'Goals', description: 'Set your financial goals', icon: '🎯' },
   { id: 3, title: 'Currency', description: 'Choose your base currency', icon: '💰' },
-  { id: 4, title: 'Getting Started', description: 'Choose how to begin', icon: '🚀' },
+  { id: 4, title: 'Account', description: 'Setup your first bank account', icon: '🏦' },
+  { id: 5, title: 'Getting Started', description: 'Choose how to begin', icon: '🚀' },
 ];
 
 const currencies = [
@@ -50,14 +51,14 @@ const startingMethods = [
     title: 'Upload Bank Statement', 
     description: 'Quick start with your existing transactions',
     icon: '📄',
-    action: '/upload'
+    action: '/statements'
   },
   { 
     id: 'manual', 
-    title: 'Enter Manual Balances', 
-    description: 'Start with current account balances',
-    icon: '✏️',
-    action: '/profile'
+    title: 'Setup Bank Accounts', 
+    description: 'Add accounts and starting balances',
+    icon: '🏦',
+    action: '/bank-accounts'
   },
   { 
     id: 'fresh', 
@@ -76,6 +77,13 @@ export const WelcomeWizard: FC<WelcomeWizardProps> = ({ user, onComplete }) => {
     goals: [] as string[],
     currency: 'USD',
     startingMethod: '',
+    bankAccount: {
+      bank_name: '',
+      account_type: 'checking' as 'checking' | 'savings' | 'credit' | 'investment',
+      account_nickname: '',
+      starting_balance: 0,
+      starting_balance_date: new Date().toISOString().split('T')[0],
+    },
   });
 
   const handleNext = () => {
@@ -99,12 +107,22 @@ export const WelcomeWizard: FC<WelcomeWizardProps> = ({ user, onComplete }) => {
     }));
   };
 
+  const handleBankAccountChange = (field: string, value: string | number) => {
+    setFormData(prev => ({
+      ...prev,
+      bankAccount: {
+        ...prev.bankAccount,
+        [field]: value,
+      },
+    }));
+  };
+
   const handleComplete = async (method: string) => {
     setIsLoading(true);
     
     try {
       // Save user preferences
-      const { error } = await supabase
+      const { error: prefsError } = await supabase
         .from('user_preferences')
         .upsert({
           user_id: user.id,
@@ -113,9 +131,34 @@ export const WelcomeWizard: FC<WelcomeWizardProps> = ({ user, onComplete }) => {
           categories: [], // Will be populated with defaults
         });
 
-      if (error) {
-        console.error('Error saving preferences:', error);
+      if (prefsError) {
+        console.error('Error saving preferences:', prefsError);
         return;
+      }
+
+      // Create bank account if user provided info
+      if (formData.bankAccount.bank_name.trim()) {
+        const accountData = {
+          bank_name: formData.bankAccount.bank_name,
+          account_type: formData.bankAccount.account_type,
+          account_nickname: formData.bankAccount.account_nickname || null,
+          starting_balance: formData.bankAccount.starting_balance,
+          starting_balance_date: formData.bankAccount.starting_balance_date,
+          currency: formData.currency,
+        };
+
+        const response = await fetch('/api/bank-accounts', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(accountData),
+        });
+
+        if (!response.ok) {
+          console.error('Error creating bank account:', await response.json());
+          // Don't fail the onboarding process for this
+        }
       }
 
       // Navigate based on chosen method
@@ -263,6 +306,107 @@ export const WelcomeWizard: FC<WelcomeWizardProps> = ({ user, onComplete }) => {
         );
 
       case 4:
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-6"
+          >
+            <div className="text-center">
+              <div className="text-4xl mb-4">🏦</div>
+              <h2 className="text-2xl font-bold text-gray-900">Set up your first bank account</h2>
+              <p className="text-gray-600 mt-2">This helps us get you started with accurate balance tracking</p>
+            </div>
+            
+            <div className="space-y-4 max-w-md mx-auto">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Bank Name
+                </label>
+                <Input
+                  type="text"
+                  value={formData.bankAccount.bank_name}
+                  onChange={(e) => handleBankAccountChange('bank_name', e.target.value)}
+                  placeholder="e.g., Chase, Bank of America"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Account Type
+                </label>
+                <select
+                  value={formData.bankAccount.account_type}
+                  onChange={(e) => handleBankAccountChange('account_type', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="checking">Checking Account</option>
+                  <option value="savings">Savings Account</option>
+                  <option value="credit">Credit Card</option>
+                  <option value="investment">Investment Account</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Account Nickname (Optional)
+                </label>
+                <Input
+                  type="text"
+                  value={formData.bankAccount.account_nickname}
+                  onChange={(e) => handleBankAccountChange('account_nickname', e.target.value)}
+                  placeholder="e.g., Main Checking"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Current Balance
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                    {currencies.find(c => c.code === formData.currency)?.symbol}
+                  </span>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={formData.bankAccount.starting_balance}
+                    onChange={(e) => handleBankAccountChange('starting_balance', parseFloat(e.target.value) || 0)}
+                    className="pl-8"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Balance Date
+                </label>
+                <Input
+                  type="date"
+                  value={formData.bankAccount.starting_balance_date}
+                  onChange={(e) => handleBankAccountChange('starting_balance_date', e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="text-center">
+              <p className="text-sm text-gray-500">
+                You can skip this step and add accounts later if you prefer
+              </p>
+            </div>
+
+            <div className="flex justify-between pt-4">
+              <Button variant="secondary" onClick={handleBack}>
+                Back
+              </Button>
+              <Button onClick={handleNext}>
+                Continue
+              </Button>
+            </div>
+          </motion.div>
+        );
+
+      case 5:
         return (
           <motion.div
             initial={{ opacity: 0, y: 20 }}

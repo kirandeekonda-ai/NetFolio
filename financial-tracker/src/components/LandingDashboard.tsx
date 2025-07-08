@@ -134,7 +134,7 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user, profile }) =
       title: 'Upload Statement',
       description: 'Import transactions from your bank',
       icon: '📄',
-      href: '/upload',
+      href: '/statements',
       color: 'blue'
     },
     {
@@ -279,7 +279,7 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user, profile }) =
                   </div>
                 </div>
                 <Button
-                  onClick={() => router.push('/upload')}
+                  onClick={() => router.push('/statements')}
                   className="bg-blue-600 hover:bg-blue-700"
                 >
                   Upload Statement
