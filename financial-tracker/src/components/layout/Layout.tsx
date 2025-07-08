@@ -3,13 +3,15 @@ import Head from 'next/head';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import { useSession } from '@supabase/auth-helpers-react';
 
 interface LayoutProps {
   children: ReactNode;
 }
 
 const navItems = [
-  { href: '/', label: 'Upload', icon: '📤' },
+  { href: '/landing', label: 'Home', icon: '🏠' },
+  { href: '/upload', label: 'Upload', icon: '📤' },
   { href: '/categorize', label: 'Categorize', icon: '🏷️' },
   { href: '/dashboard', label: 'Dashboard', icon: '📊' },
   { href: '/profile', label: 'Profile', icon: '👤' },
@@ -17,8 +19,34 @@ const navItems = [
 
 export const Layout: FC<LayoutProps> = ({ children }) => {
   const router = useRouter();
+  const session = useSession();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  // Don't show navigation for unauthenticated users
+  if (!session) {
+    return (
+      <div className="min-h-screen bg-neutral-light-gray">
+        <Head>
+          <title>NetFolio</title>
+          <meta name="description" content="Personal finance tracker" />
+          <link rel="icon" href="/favicon.ico" />
+        </Head>
+        <main className="min-h-screen">
+          <div className="container mx-auto p-6">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              {children}
+            </motion.div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // Authenticated layout with navigation
   return (
     <div className="min-h-screen bg-neutral-light-gray">
       <Head>

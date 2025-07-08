@@ -57,16 +57,22 @@ BEGIN
         AND id != NEW.id 
         AND is_default = TRUE;
     END IF;
-    
-    -- Ensure at least one active provider exists for the user
+      -- Ensure at least one active provider exists for the user
     IF NEW.is_active = FALSE AND OLD.is_default = TRUE THEN
         -- If deactivating the default provider, make another one default
-        UPDATE llm_providers 
+        UPDATE llm_providers
         SET is_default = TRUE, updated_at = NOW()
-        WHERE user_id = NEW.user_id 
-        AND id != NEW.id 
+        WHERE user_id = NEW.user_id
+        AND id != NEW.id
         AND is_active = TRUE
-        LIMIT 1;
+        AND id = (
+            SELECT id FROM llm_providers 
+            WHERE user_id = NEW.user_id 
+            AND id != NEW.id 
+            AND is_active = TRUE 
+            ORDER BY created_at ASC 
+            LIMIT 1
+        );
     END IF;
     
     RETURN NEW;
@@ -103,4 +109,3 @@ CREATE POLICY "Users can manage their own LLM providers" ON llm_providers
 
 -- Grant permissions
 GRANT ALL ON llm_providers TO authenticated;
-GRANT USAGE ON SEQUENCE llm_providers_id_seq TO authenticated;
