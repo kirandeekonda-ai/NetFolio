@@ -48,6 +48,10 @@ export class AzureOpenAIService implements LLMProvider {
     const endpoint = `https://${this.resourceName}.openai.azure.com/openai/deployments/${this.deploymentName}/chat/completions?api-version=${this.apiVersion}`;
 
     try {
+      console.log('=== PROMPT SENT TO AZURE OPENAI LLM ===');
+      console.log(prompt);
+      console.log('=== END OF PROMPT ===');
+      
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -70,6 +74,10 @@ export class AzureOpenAIService implements LLMProvider {
 
       const data = await response.json();
       const text = data.choices?.[0]?.message?.content;
+
+      console.log('=== RESPONSE FROM AZURE OPENAI LLM ===');
+      console.log(text);
+      console.log('=== END OF RESPONSE ===');
 
       if (!text) {
         throw new Error('No response from Azure OpenAI API');
@@ -207,6 +215,10 @@ export class OpenAIService implements LLMProvider {
     `;
 
     try {
+      console.log('=== PROMPT SENT TO OPENAI LLM ===');
+      console.log(prompt);
+      console.log('=== END OF PROMPT ===');
+      
       const response = await fetch(`${this.endpoint}/chat/completions`, {
         method: 'POST',
         headers: {
@@ -230,6 +242,10 @@ export class OpenAIService implements LLMProvider {
 
       const data = await response.json();
       const text = data.choices?.[0]?.message?.content;
+
+      console.log('=== RESPONSE FROM OPENAI LLM ===');
+      console.log(text);
+      console.log('=== END OF RESPONSE ===');
 
       if (!text) {
         throw new Error('No response from OpenAI API');

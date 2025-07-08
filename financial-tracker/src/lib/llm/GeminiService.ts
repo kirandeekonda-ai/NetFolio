@@ -38,9 +38,16 @@ export class GeminiService implements LLMProvider {
 
     try {
       console.log(`Calling Gemini API with model: ${this.modelName}`);
+      console.log('=== PROMPT SENT TO GEMINI LLM ===');
+      console.log(prompt);
+      console.log('=== END OF PROMPT ===');
       const result = await this.model.generateContent(prompt);
       const response = await result.response;
       const text = response.text();
+      
+      console.log('=== RESPONSE FROM GEMINI LLM ===');
+      console.log(text);
+      console.log('=== END OF RESPONSE ===');
       
       // Extract usage information
       const usage: LLMUsage = {
