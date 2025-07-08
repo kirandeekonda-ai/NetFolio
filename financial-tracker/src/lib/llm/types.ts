@@ -18,4 +18,5 @@ export interface ExtractionResult {
 
 export interface LLMProvider {
   extractTransactions(pageText: string): Promise<ExtractionResult>;
+  testConnection(): Promise<{ success: boolean; error?: string }>;
 }

@@ -117,12 +117,12 @@ export const EnvironmentCheck: React.FC<EnvironmentCheckProps> = ({ onConfigComp
       default:
         return {
           title: '⚙️ API Not Configured',
-          description: 'AI processing requires a Google Gemini API key.',
+          description: 'AI processing requires an LLM provider to be configured.',
           instructions: [
-            'Get a free API key from Google AI Studio',
-            'Create a .env.local file in your project root',
-            'Add: GEMINI_API_KEY=your_api_key_here',
-            'Restart your development server'
+            'Go to Profile → LLM Provider Configuration',
+            'Add a provider (Google Gemini, Azure OpenAI, etc.)',
+            'Test the configuration to ensure it works',
+            'Set it as your default provider'
           ]
         };
     }
