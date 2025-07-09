@@ -210,21 +210,32 @@ async function handleDelete(supabase: any, userId: string, statementId: string, 
     return res.status(404).json({ error: 'Bank statement not found' });
   }
 
-  // Check if statement has any transactions
+  // Get all transactions associated with this statement
   const { data: transactions, error: transactionError } = await supabase
     .from('transactions')
     .select('id')
-    .eq('bank_statement_id', statementId)
-    .limit(1);
+    .eq('bank_statement_id', statementId);
 
   if (transactionError) {
     return res.status(500).json({ error: 'Failed to check transactions' });
   }
 
+  let deletedTransactionsCount = 0;
+
+  // Delete all associated transactions first
   if (transactions && transactions.length > 0) {
-    return res.status(400).json({ 
-      error: 'Cannot delete statement with associated transactions. Please delete transactions first.' 
-    });
+    const { error: deleteTransactionsError } = await supabase
+      .from('transactions')
+      .delete()
+      .eq('bank_statement_id', statementId)
+      .eq('user_id', userId);
+
+    if (deleteTransactionsError) {
+      console.error('Error deleting transactions:', deleteTransactionsError);
+      return res.status(500).json({ error: 'Failed to delete associated transactions' });
+    }
+
+    deletedTransactionsCount = transactions.length;
   }
 
   // Delete the statement
@@ -235,8 +246,12 @@ async function handleDelete(supabase: any, userId: string, statementId: string, 
     .eq('user_id', userId);
 
   if (deleteError) {
+    console.error('Error deleting statement:', deleteError);
     return res.status(500).json({ error: 'Failed to delete statement' });
   }
 
-  return res.status(200).json({ message: 'Statement deleted successfully' });
+  return res.status(200).json({ 
+    message: 'Statement and associated transactions deleted successfully',
+    deletedTransactionsCount
+  });
 }

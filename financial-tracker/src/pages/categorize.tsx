@@ -1,14 +1,16 @@
 import { NextPage } from 'next';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { Layout } from '@/components/layout/Layout';
 import { Card } from '@/components/Card';
 import { Table } from '@/components/Table';
 import { Input } from '@/components/Input';
+import { Button } from '@/components/Button';
+import { ToastProvider, useToast } from '@/components/Toast';
 import { motion } from 'framer-motion';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/store';
-import { updateTransaction } from '@/store/transactionsSlice';
+import { updateTransaction, setTransactions } from '@/store/transactionsSlice';
 import { setCategories } from '@/store/categoriesSlice';
 import { Transaction, Category } from '@/types';
 import { formatAmount } from '@/utils/currency';
@@ -20,12 +22,17 @@ const Categorize: NextPage = () => {
   const router = useRouter();
   const dispatch = useDispatch();
   const user = useUser();
+  const { toasts, addToast, removeToast, updateToast } = useToast();
   const transactions = useSelector((state: RootState) => state.transactions.items);
   const categories = useSelector((state: RootState) => state.categories.items);
   const [searchTerm, setSearchTerm] = useState('');
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [currency, setCurrency] = useState<string>('INR');
   const [showNoTransactionsMessage, setShowNoTransactionsMessage] = useState(false);
+  const [currentStatement, setCurrentStatement] = useState<any>(null);
+  
+  // UI state
+  const [highlightedRows, setHighlightedRows] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     // Check if user came from upload with no transactions
@@ -38,7 +45,27 @@ const Categorize: NextPage = () => {
         query: cleanQuery
       }, undefined, { shallow: true });
     }
+
+    // Check if we're categorizing transactions for a specific statement
+    if (router.query.statement && typeof router.query.statement === 'string') {
+      fetchStatementContext(router.query.statement);
+    }
   }, [router.query]);
+
+  const fetchStatementContext = async (statementId: string) => {
+    try {
+      const response = await fetch(`/api/transactions/by-statement/${statementId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setCurrentStatement(data.statement);
+        // Transactions should already be loaded in Redux store from StatementDashboard
+      } else {
+        console.error('Failed to fetch statement context');
+      }
+    } catch (error) {
+      console.error('Error fetching statement context:', error);
+    }
+  };
 
   useEffect(() => {
     const fetchUserPreferences = async () => {
@@ -63,26 +90,143 @@ const Categorize: NextPage = () => {
     fetchUserPreferences();
   }, [user]);
 
+  // Debug: Log when transactions change
+  useEffect(() => {
+    console.log('=== TRANSACTIONS LOADED/CHANGED ===');
+    console.log('Total transactions:', transactions.length);
+    console.log('Transaction details:', transactions.map(t => ({
+      id: t.id,
+      description: t.description,
+      isValidUUID: isValidUUID(t.id),
+      category: t.category,
+      amount: t.amount
+    })));
+  }, [transactions]);
+
   const filteredTransactions = useMemo(() => {
-    return transactions.filter((transaction) =>
-      transaction.description.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    return transactions
+      .filter((transaction) => {
+        // Filter out null/undefined transactions and ensure required fields exist
+        if (!transaction || !transaction.id || !transaction.description) {
+          console.warn('Filtering out invalid transaction:', transaction);
+          return false;
+        }
+        
+        // Ensure transaction has proper structure
+        if (typeof transaction.id !== 'string' || 
+            typeof transaction.description !== 'string' ||
+            (transaction.amount !== undefined && typeof transaction.amount !== 'number')) {
+          console.warn('Filtering out malformed transaction:', transaction);
+          return false;
+        }
+        
+        return true;
+      })
+      .filter((transaction) =>
+        transaction.description.toLowerCase().includes(searchTerm.toLowerCase())
+      );
   }, [transactions, searchTerm]);
 
-  const handleCategoryChange = (transaction: Transaction, category: Category) => {
+  // Helper function to check if an ID is a valid UUID (not a mock ID)
+  const isValidUUID = (id: string): boolean => {
+    // UUID v4 regex pattern
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    return uuidPattern.test(id);
+  };
+
+  const handleCategoryChange = async (transaction: Transaction, category: Category) => {
+    console.log('=== CATEGORY CHANGE DEBUG ===');
+    console.log('Transaction ID:', transaction.id);
+    console.log('Transaction description:', transaction.description);
+    console.log('Is valid UUID:', isValidUUID(transaction.id));
+    console.log('New category:', category.name);
+    
+    // Update Redux store immediately for UI feedback
     dispatch(updateTransaction({
       ...transaction,
-      category: category.name,
+      category_name: category.name,
+      category: category.name, // Keep legacy field in sync
     }));
+    
     setOpenDropdown(null); // Close dropdown after selection
+    
+    // If it's a valid UUID (persisted transaction), save immediately to database
+    if (isValidUUID(transaction.id)) {
+      try {
+        const loadingToastId = addToast({
+          type: 'loading',
+          message: 'Saving category...',
+          duration: 0
+        });
+
+        const response = await fetch('/api/transactions/batch-update', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            updates: [{
+              id: transaction.id,
+              category_name: category.name,
+              transaction_type: transaction.transaction_type
+            }]
+          }),
+        });
+
+        const result = await response.json();
+        removeToast(loadingToastId);
+
+        if (result.success) {
+          // Show brief success feedback
+          setHighlightedRows(new Set([transaction.id]));
+          addToast({
+            type: 'success',
+            message: `Category saved: ${category.name}`,
+            duration: 2000
+          });
+
+          // Remove highlighting after 1 second
+          setTimeout(() => {
+            setHighlightedRows(new Set());
+          }, 1000);
+        } else {
+          addToast({
+            type: 'error',
+            message: 'Failed to save category',
+            duration: 3000
+          });
+        }
+      } catch (error) {
+        console.error('Error saving category:', error);
+        addToast({
+          type: 'error',
+          message: 'Failed to save category',
+          duration: 3000
+        });
+      }
+    } else {
+      // For mock transactions, just show info that they need to upload first
+      addToast({
+        type: 'info',
+        message: 'Category will be saved when you upload the statement to database',
+        duration: 4000
+      });
+    }
   };
 
   const columns = [
     { 
-      key: 'date' as keyof Transaction,
+      key: 'transaction_date' as keyof Transaction,
       header: 'Date',
-      render: (value: string) => new Date(value).toLocaleDateString(),
-      className: 'w-1/12',
+      render: (value: string) => {
+        if (!value) return <span className="text-gray-400">-</span>;
+        try {
+          return new Date(value).toLocaleDateString();
+        } catch (error) {
+          return <span className="text-gray-400">Invalid Date</span>;
+        }
+      },
+      className: 'w-2/12',
     },
     { 
       key: 'description' as keyof Transaction,
@@ -92,35 +236,35 @@ const Categorize: NextPage = () => {
     {
       key: 'amount' as keyof Transaction,
       header: 'Amount',
-      render: (value: number) => (
-        <span className={value > 0 ? 'text-green-600' : 'text-red-600'}>
-          {formatAmount(value, currency)}
-        </span>
-      ),
-      className: 'w-2/12 text-right',
-    },
-    {
-      key: 'type' as keyof Transaction,
-      header: 'Type',
-      render: (value: 'income' | 'expense') => {
-        const style = getCategoryColorStyle(value === 'income' ? 'Income' : 'Expense', categories);
+      render: (value: number) => {
+        if (value === undefined || value === null || isNaN(value)) {
+          return <span className="text-gray-400">-</span>;
+        }
         return (
-          <span 
-            className={`px-2 py-1 rounded-label text-sm ${style.bg} ${style.text}`}
-            style={style.style}
-          >
-            {value.charAt(0).toUpperCase() + value.slice(1)}
+          <span className={value > 0 ? 'text-green-600' : 'text-red-600'}>
+            {formatAmount(value, currency)}
           </span>
         );
       },
-      className: 'w-1/12',
+      className: 'w-2/12 text-right',
     },
     {
-      key: 'category' as keyof Transaction,
+      key: 'category_name' as keyof Transaction,
       header: 'Category',
       render: (value: string, item: Transaction) => {
-        const categoryName = value || 'Uncategorized';
+        console.log('Rendering category for item:', item?.id, 'value:', value, 'category_name:', item?.category_name, 'legacy category:', item?.category);
+        
+        // Safety check: ensure item exists and has required properties
+        if (!item || !item.id) {
+          console.warn('Invalid item passed to category render:', item);
+          return <span className="text-gray-400">-</span>;
+        }
+        
+        // Use category_name first, fallback to legacy category field
+        const categoryName = value || item?.category || 'Uncategorized';
         const style = getCategoryColorStyle(categoryName, categories);
+        const isHighlighted = highlightedRows.has(item.id);
+        
         return (
           <div className="relative">
             <button
@@ -128,8 +272,12 @@ const Categorize: NextPage = () => {
                 e.stopPropagation();
                 setOpenDropdown(openDropdown === item.id ? null : item.id);
               }}
-              className={`px-3 py-1 rounded-label text-sm ${style.bg} ${style.text}`}
-              style={style.style}
+              className={`px-3 py-1 rounded-label text-sm transition-all duration-200 ${
+                isHighlighted 
+                  ? 'bg-green-200 text-green-800 shadow-md scale-105' 
+                  : `${style.bg} ${style.text}`
+              }`}
+              style={!isHighlighted ? style.style : undefined}
             >
               {categoryName === 'Uncategorized' ? 'Select Category' : categoryName}
             </button>
@@ -164,20 +312,46 @@ const Categorize: NextPage = () => {
 
   return (
     <Layout>
+      <ToastProvider toasts={toasts} onRemove={removeToast} />
+      
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         onClick={() => setOpenDropdown(null)} // Close dropdown when clicking outside
       >
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-heading font-bold">Categorize Transactions</h1>
-          <Input
-            type="search"
-            placeholder="Search transactions..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-xs"
-          />
+          <div>
+            <h1 className="text-heading font-bold">
+              {currentStatement ? 'Categorize Statement Transactions' : 'Categorize Transactions'}
+            </h1>
+            {currentStatement && (
+              <p className="text-sm text-gray-600 mt-1">
+                {currentStatement.statement_month}/{currentStatement.statement_year} Statement
+                {currentStatement.bank_account_id && ' • '}
+                <span className="font-medium">
+                  {filteredTransactions.length} transactions
+                </span>
+              </p>
+            )}
+          </div>
+          <div className="flex space-x-4 items-center">
+            {currentStatement && (
+              <Button
+                onClick={() => router.push('/statements')}
+                variant="secondary"
+                className="text-sm"
+              >
+                ← Back to Statements
+              </Button>
+            )}
+            <Input
+              type="search"
+              placeholder="Search transactions..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="max-w-xs"
+            />
+          </div>
         </div>
 
         {showNoTransactionsMessage && (

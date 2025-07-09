@@ -1,6 +1,9 @@
-import { FC, useState, useEffect } from 'react';
+import { FC, useState, useEffect, useImperativeHandle, forwardRef, useRef } from 'react';
+import { useRouter } from 'next/router';
+import { useDispatch } from 'react-redux';
 import { motion } from 'framer-motion';
 import { BankAccount, BankStatement, StatementCompletion } from '@/types';
+import { setTransactions } from '@/store/transactionsSlice';
 import { Card } from './Card';
 import { Button } from './Button';
 
@@ -11,6 +14,10 @@ interface StatementDashboardProps {
   onRemoveStatement: (statementId: string) => void;
   onReuploadStatement: (accountId: string, month: number, year: number, existingStatementId: string) => void;
   isLoading?: boolean;
+}
+
+export interface StatementDashboardRef {
+  refreshStatements: () => Promise<void>;
 }
 
 const months = [
@@ -48,18 +55,24 @@ const getStatusIcon = (status?: string) => {
   }
 };
 
-export const StatementDashboard: FC<StatementDashboardProps> = ({
+export const StatementDashboard = forwardRef<StatementDashboardRef, StatementDashboardProps>(({
   accounts,
   onUploadStatement,
   onViewStatement,
   onRemoveStatement,
   onReuploadStatement,
   isLoading = false,
-}) => {
+}, ref) => {
   const [statements, setStatements] = useState<BankStatement[]>([]);
   const [statementCompletion, setStatementCompletion] = useState<StatementCompletion[]>([]);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedAccount, setSelectedAccount] = useState<string>('all');
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+
+  const router = useRouter();
+  const dispatch = useDispatch();
 
   const activeAccounts = accounts.filter(acc => acc.is_active);
   const currentYear = new Date().getFullYear();
@@ -71,8 +84,25 @@ export const StatementDashboard: FC<StatementDashboardProps> = ({
     fetchStatements();
   }, [selectedYear, selectedAccount]);
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      // Check if the click is outside any dropdown
+      if (openDropdown && !target.closest('[data-dropdown]')) {
+        setOpenDropdown(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [openDropdown]);
+
   const fetchStatements = async () => {
     try {
+      setIsRefreshing(true);
       const params = new URLSearchParams({
         year: selectedYear.toString(),
       });
@@ -91,6 +121,73 @@ export const StatementDashboard: FC<StatementDashboardProps> = ({
       }
     } catch (error) {
       console.error('Error fetching statements:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  // Expose refresh function to parent component
+  useImperativeHandle(ref, () => ({
+    refreshStatements: fetchStatements
+  }));
+
+  // Enhanced remove statement handler with immediate UI updates
+  const handleRemoveStatementWithUpdate = async (statementId: string) => {
+    if (!confirm('Are you sure you want to remove this statement? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setIsDeleting(statementId);
+      
+      // Optimistically remove from UI first
+      setStatements(prev => prev.filter(stmt => stmt.id !== statementId));
+      
+      // Call the parent's remove handler
+      await onRemoveStatement(statementId);
+      
+      // Refresh data to ensure consistency
+      await fetchStatements();
+    } catch (error) {
+      console.error('Error removing statement:', error);
+      // Revert the optimistic update on error
+      await fetchStatements();
+    } finally {
+      setIsDeleting(null);
+    }
+  };
+
+  // Handle categorizing transactions for a specific statement
+  const handleCategorizeStatement = async (statementId: string) => {
+    console.log('Categorize button clicked for statement:', statementId);
+    try {
+      // Fetch transactions for this specific statement
+      const response = await fetch(`/api/transactions/by-statement/${statementId}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        const transactions = data.transactions || [];
+        
+        console.log('Fetched transactions:', transactions.length);
+        
+        if (transactions.length === 0) {
+          alert('No transactions found for this statement.');
+          return;
+        }
+        
+        // Store transactions in Redux store
+        dispatch(setTransactions(transactions));
+        
+        // Navigate to categorize page with statement context
+        router.push(`/categorize?statement=${statementId}`);
+      } else {
+        const error = await response.json();
+        console.error('Failed to fetch transactions:', error);
+        alert('Failed to load transactions for categorization.');
+      }
+    } catch (error) {
+      console.error('Error fetching transactions for categorization:', error);
+      alert('Error loading transactions for categorization.');
     }
   };
 
@@ -141,16 +238,21 @@ export const StatementDashboard: FC<StatementDashboardProps> = ({
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Statement Dashboard</h2>
+          <h2 className="text-2xl font-bold text-gray-900 flex items-center">
+            Statement Dashboard
+            {isRefreshing && (
+              <div className="ml-3 animate-spin h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+            )}
+          </h2>
           <p className="text-gray-600">
             Track your monthly statement uploads and processing status
           </p>
         </div>
         <Button 
           onClick={() => onUploadStatement(selectedAccount !== 'all' ? selectedAccount : activeAccounts[0].id, currentMonth, selectedYear)}
-          disabled={isLoading}
+          disabled={isLoading || isRefreshing}
         >
-          Upload Statement
+          {isLoading ? 'Loading...' : 'Upload Statement'}
         </Button>
       </div>
 
@@ -255,7 +357,9 @@ export const StatementDashboard: FC<StatementDashboardProps> = ({
                     <div
                       key={month}
                       className={`relative p-3 border rounded-lg text-center transition-all duration-200 ${
-                        isFuture 
+                        isDeleting === statement?.id
+                          ? 'border-red-300 bg-red-100 opacity-50 pointer-events-none'
+                          : isFuture 
                           ? 'border-gray-200 bg-gray-50 opacity-50' 
                           : statement 
                           ? 'border-blue-200 bg-blue-50 hover:bg-blue-100' 
@@ -281,39 +385,80 @@ export const StatementDashboard: FC<StatementDashboardProps> = ({
                           <div className={`text-xs px-2 py-1 rounded ${getStatusColor(statement.processing_status)}`}>
                             {statement.processing_status}
                           </div>
-                          <div className="flex justify-center space-x-1 mt-2">
+                          <div className="flex justify-center mt-2 relative">
                             <button
+                              data-dropdown
                               onClick={(e) => {
+                                console.log('Three dots clicked for statement:', statement.id);
                                 e.stopPropagation();
-                                onViewStatement(statement);
+                                setOpenDropdown(openDropdown === statement.id ? null : statement.id);
                               }}
-                              className="text-xs px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
-                              title="View Statement"
+                              className="text-sm px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
+                              title="Actions"
                             >
-                              👁️
+                              ⋯
                             </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onReuploadStatement(account.id, monthNumber, selectedYear, statement.id);
-                              }}
-                              className="text-xs px-2 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600"
-                              title="Reupload Statement"
-                            >
-                              🔄
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (confirm('Are you sure you want to remove this statement? This action cannot be undone.')) {
-                                  onRemoveStatement(statement.id);
-                                }
-                              }}
-                              className="text-xs px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600"
-                              title="Remove Statement"
-                            >
-                              🗑️
-                            </button>
+                            {openDropdown === statement.id && (
+                              <div 
+                                data-dropdown
+                                className="absolute top-8 right-0 bg-white rounded-lg shadow-lg border z-50 min-w-48"
+                              >
+                                <div className="py-1">
+                                  <button
+                                    onClick={(e) => {
+                                      console.log('View Statement clicked for:', statement.id);
+                                      e.stopPropagation();
+                                      setOpenDropdown(null);
+                                      onViewStatement(statement);
+                                    }}
+                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                  >
+                                    <span className="text-blue-500">👁️</span>
+                                    View Statement
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      console.log('Categorize Transactions clicked');
+                                      e.stopPropagation();
+                                      setOpenDropdown(null);
+                                      handleCategorizeStatement(statement.id);
+                                    }}
+                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                  >
+                                    <span className="text-green-500">🏷️</span>
+                                    Categorize Transactions
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setOpenDropdown(null);
+                                      onReuploadStatement(account.id, monthNumber, selectedYear, statement.id);
+                                    }}
+                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                  >
+                                    <span className="text-yellow-500">🔄</span>
+                                    Reupload Statement
+                                  </button>
+                                  <hr className="my-1" />
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setOpenDropdown(null);
+                                      handleRemoveStatementWithUpdate(statement.id);
+                                    }}
+                                    disabled={isDeleting === statement.id}
+                                    className={`w-full text-left px-4 py-2 text-sm hover:bg-red-50 flex items-center gap-2 ${
+                                      isDeleting === statement.id 
+                                        ? 'text-gray-400 cursor-not-allowed'
+                                        : 'text-red-600'
+                                    }`}
+                                  >
+                                    <span>{isDeleting === statement.id ? '⏳' : '🗑️'}</span>
+                                    {isDeleting === statement.id ? 'Deleting...' : 'Delete Statement'}
+                                  </button>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
                       ) : isFuture ? (
@@ -333,47 +478,78 @@ export const StatementDashboard: FC<StatementDashboardProps> = ({
       </div>
 
       {/* Legend */}
-      <Card>
-        <h4 className="font-semibold text-gray-900 mb-3">Legend</h4>
-        <div className="space-y-3">
-          <div className="flex flex-wrap gap-4 text-sm">
-            <div className="flex items-center space-x-2">
-              <span className="text-lg">✅</span>
-              <span>Completed</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className="text-lg">⏳</span>
-              <span>Processing/Pending</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className="text-lg">❌</span>
-              <span>Failed</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className="text-lg">📄</span>
-              <span>Missing (click to upload)</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className="text-lg opacity-50">📅</span>
-              <span>Future month</span>
+      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+        <div className="flex items-center mb-4">
+          <span className="text-xl mr-2">ℹ️</span>
+          <h4 className="font-semibold text-gray-900">Statement Status Guide</h4>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Status Icons Section */}
+          <div>
+            <h5 className="text-sm font-medium text-gray-700 mb-3">Status Icons</h5>
+            <div className="space-y-2">
+              <div className="flex items-center space-x-3 p-2 bg-white rounded-lg">
+                <span className="text-xl">✅</span>
+                <span className="text-sm text-gray-700">Statement processed successfully</span>
+              </div>
+              <div className="flex items-center space-x-3 p-2 bg-white rounded-lg">
+                <span className="text-xl">⏳</span>
+                <span className="text-sm text-gray-700">Processing or pending upload</span>
+              </div>
+              <div className="flex items-center space-x-3 p-2 bg-white rounded-lg">
+                <span className="text-xl">❌</span>
+                <span className="text-sm text-gray-700">Processing failed - needs attention</span>
+              </div>
+              <div className="flex items-center space-x-3 p-2 bg-white rounded-lg">
+                <span className="text-xl">📄</span>
+                <span className="text-sm text-gray-700">No statement uploaded (click to upload)</span>
+              </div>
+              <div className="flex items-center space-x-3 p-2 bg-white rounded-lg">
+                <span className="text-xl opacity-50">📅</span>
+                <span className="text-sm text-gray-700">Future month (not available yet)</span>
+              </div>
             </div>
           </div>
-          <div className="flex flex-wrap gap-4 text-sm">
-            <div className="flex items-center space-x-2">
-              <span className="text-xs px-2 py-1 bg-blue-500 text-white rounded">👁️</span>
-              <span>View statement details</span>
+
+          {/* Action Buttons Section */}
+          <div>
+            <h5 className="text-sm font-medium text-gray-700 mb-3">Available Actions</h5>
+            <div className="space-y-2">
+              <div className="flex items-center space-x-3 p-2 bg-white rounded-lg">
+                <span className="text-xs px-2 py-1 bg-blue-500 text-white rounded font-medium">👁️</span>
+                <span className="text-sm text-gray-700">View statement details and transactions</span>
+              </div>
+              <div className="flex items-center space-x-3 p-2 bg-white rounded-lg">
+                <span className="text-xs px-2 py-1 bg-green-500 text-white rounded font-medium">🏷️</span>
+                <span className="text-sm text-gray-700">Categorize transactions for this statement</span>
+              </div>
+              <div className="flex items-center space-x-3 p-2 bg-white rounded-lg">
+                <span className="text-xs px-2 py-1 bg-yellow-500 text-white rounded font-medium">🔄</span>
+                <span className="text-sm text-gray-700">Reupload or replace existing statement</span>
+              </div>
+              <div className="flex items-center space-x-3 p-2 bg-white rounded-lg">
+                <span className="text-xs px-2 py-1 bg-red-500 text-white rounded font-medium">🗑️</span>
+                <span className="text-sm text-gray-700">Permanently remove statement</span>
+              </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <span className="text-xs px-2 py-1 bg-yellow-500 text-white rounded">🔄</span>
-              <span>Reupload statement</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className="text-xs px-2 py-1 bg-red-500 text-white rounded">🗑️</span>
-              <span>Remove statement</span>
+          </div>
+        </div>
+
+        {/* Quick Tips */}
+        <div className="mt-4 p-3 bg-blue-100 border border-blue-200 rounded-lg">
+          <div className="flex items-start space-x-2">
+            <span className="text-blue-600 mt-0.5">💡</span>
+            <div className="text-sm text-blue-800">
+              <strong>Pro Tips:</strong> Click on empty months to quickly upload statements. 
+              Orange highlighted months indicate the current month. 
+              Use filters above to focus on specific accounts or years.
             </div>
           </div>
         </div>
       </Card>
     </div>
   );
-};
+});
+
+StatementDashboard.displayName = 'StatementDashboard';

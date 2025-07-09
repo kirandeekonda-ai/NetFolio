@@ -42,10 +42,15 @@ const isLightColor = (hex: string): boolean => {
 };
 
 // Get category color style with user-defined colors
-export const getCategoryColorStyle = (category: string, userCategories?: Category[]): { bg: string; text: string; style?: React.CSSProperties } => {
+export const getCategoryColorStyle = (category: string | null | undefined, userCategories?: Category[]): { bg: string; text: string; style?: React.CSSProperties } => {
+  // Handle null/undefined category
+  if (!category || typeof category !== 'string') {
+    return colorConfig['Uncategorized'] || defaultColor;
+  }
+
   // Check if we have user-defined categories with colors
-  if (userCategories) {
-    const userCategory = userCategories.find(c => c.name === category);
+  if (userCategories && Array.isArray(userCategories)) {
+    const userCategory = userCategories.find(c => c && c.name === category);
     if (userCategory && userCategory.color) {
       const isLight = isLightColor(userCategory.color);
       return {

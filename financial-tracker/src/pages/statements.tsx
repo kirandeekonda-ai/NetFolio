@@ -1,20 +1,24 @@
 import { NextPage } from 'next';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { useSession } from '@supabase/auth-helpers-react';
 import { useDispatch } from 'react-redux';
 import { BankAccount, BankStatement, StatementUpload, Transaction } from '@/types';
 import { Layout } from '@/components/layout/Layout';
-import { StatementDashboard } from '@/components/StatementDashboard';
+import { StatementDashboard, StatementDashboardRef } from '@/components/StatementDashboard';
 import { StatementUploadForm } from '@/components/StatementUploadFormNew';
 import { Auth } from '@/components/Auth';
+import { ConfirmationDialog } from '@/components/ConfirmationDialog';
+import { ToastProvider, useToast } from '@/components/Toast';
 import { setTransactions } from '@/store/transactionsSlice';
 import { motion } from 'framer-motion';
 
-const StatementsPage: NextPage = () => {
+const StatementsPageContent: React.FC = () => {
   const session = useSession();
   const router = useRouter();
   const dispatch = useDispatch();
+  const { toasts, addToast, removeToast } = useToast();
+  const statementDashboardRef = useRef<StatementDashboardRef>(null);
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showUploadForm, setShowUploadForm] = useState(false);
@@ -23,6 +27,8 @@ const StatementsPage: NextPage = () => {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [extractedTransactions, setExtractedTransactions] = useState<Transaction[]>([]);
   const [reuploadStatementId, setReuploadStatementId] = useState<string>('');
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [statementToDelete, setStatementToDelete] = useState<string>('');
 
   useEffect(() => {
     if (session?.user) {
@@ -65,26 +71,58 @@ const StatementsPage: NextPage = () => {
   };
 
   const handleRemoveStatement = async (statementId: string) => {
+    // Show confirmation dialog
+    setStatementToDelete(statementId);
+    setShowDeleteConfirmation(true);
+  };
+
+  const confirmDeleteStatement = async () => {
+    if (!statementToDelete) return;
+
     try {
       setIsLoading(true);
       
-      const response = await fetch(`/api/bank-statements?id=${statementId}`, {
+      const response = await fetch(`/api/bank-statements?id=${statementToDelete}`, {
         method: 'DELETE',
       });
 
       if (response.ok) {
-        // Refresh the statements dashboard
-        fetchAccounts();
-        alert('Statement removed successfully');
+        const result = await response.json();
+        
+        // Refresh both the accounts and statement dashboard immediately
+        await Promise.all([
+          fetchAccounts(),
+          statementDashboardRef.current?.refreshStatements()
+        ]);
+        
+        // Show success notification with details
+        const message = result.deletedTransactionsCount > 0 
+          ? `Statement deleted successfully! ${result.deletedTransactionsCount} associated transactions were also removed.`
+          : 'Statement deleted successfully!';
+        
+        addToast({
+          type: 'success',
+          message,
+          duration: 5000
+        });
       } else {
         const error = await response.json();
-        alert('Failed to remove statement: ' + error.error);
+        addToast({
+          type: 'error',
+          message: 'Failed to remove statement: ' + error.error,
+          duration: 5000
+        });
       }
     } catch (error) {
       console.error('Error removing statement:', error);
-      alert('Error removing statement');
+      addToast({
+        type: 'error',
+        message: 'Error removing statement',
+        duration: 5000
+      });
     } finally {
       setIsLoading(false);
+      setStatementToDelete('');
     }
   };
 
@@ -140,11 +178,41 @@ File: ${statement.file_name || 'N/A'}`);
       if (response.ok) {
         const data = await response.json();
         
-        // Store transactions in Redux store for categorize page (even if empty)
-        dispatch(setTransactions(transactionsToUse));
+        // Save extracted transactions to database if there are any
+        let savedTransactions = transactionsToUse;
+        if (transactionsToUse.length > 0) {
+          console.log(`Saving ${transactionsToUse.length} extracted transactions to database...`);
+          
+          try {
+            const saveResponse = await fetch('/api/transactions/save-extracted', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                transactions: transactionsToUse,
+                bankAccountId: selectedAccountId,
+                bankStatementId: data.statement.id
+              }),
+            });
+
+            if (saveResponse.ok) {
+              const saveData = await saveResponse.json();
+              savedTransactions = saveData.transactions || [];
+              console.log(`Successfully saved ${saveData.count} transactions to database`);
+            } else {
+              const saveError = await saveResponse.json();
+              console.error('Failed to save transactions:', saveError);
+              alert('Warning: Transactions were extracted but not saved to database. You can still categorize them, but changes won\'t persist.');
+            }
+          } catch (saveError) {
+            console.error('Error saving transactions:', saveError);
+            alert('Warning: Error saving transactions to database. You can still categorize them, but changes won\'t persist.');
+          }
+        }
         
-        // TODO: Save extracted transactions to database
-        // For now, we'll simulate this
+        // Store transactions in Redux store for categorize page (use saved transactions with real UUIDs)
+        dispatch(setTransactions(savedTransactions));
         
         // Update statement status to completed
         await fetch(`/api/bank-statements?id=${data.statement.id}`, {
@@ -225,6 +293,7 @@ File: ${statement.file_name || 'N/A'}`);
             />
           ) : (
             <StatementDashboard
+              ref={statementDashboardRef}
               accounts={accounts}
               onUploadStatement={handleUploadStatement}
               onViewStatement={handleViewStatement}
@@ -235,8 +304,37 @@ File: ${statement.file_name || 'N/A'}`);
           )}
         </motion.div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={showDeleteConfirmation}
+        onClose={() => {
+          setShowDeleteConfirmation(false);
+          setStatementToDelete('');
+        }}
+        onConfirm={confirmDeleteStatement}
+        type="danger"
+        title="Delete Bank Statement"
+        message={`Are you sure you want to delete this statement?
+
+This will permanently delete:
+• The bank statement record
+• ALL associated transactions
+• ALL categorization work for these transactions
+
+This action cannot be undone.`}
+        confirmButtonText="Delete Statement"
+        cancelButtonText="Cancel"
+      />
+
+      {/* Toast Provider */}
+      <ToastProvider toasts={toasts} onRemove={removeToast} />
     </Layout>
   );
+};
+
+const StatementsPage: NextPage = () => {
+  return <StatementsPageContent />;
 };
 
 export default StatementsPage;

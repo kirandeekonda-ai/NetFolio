@@ -73,8 +73,8 @@ export const Table = <T extends object>({
                   >
                     <div className="break-word">
                       {column.render
-                        ? column.render(item[column.key], item)
-                        : String(item[column.key])}
+                        ? column.render(item?.[column.key], item)
+                        : String(item?.[column.key] || '')}
                     </div>
                   </td>
                 ))}
