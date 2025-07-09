@@ -335,15 +335,13 @@ const Categorize: NextPage = () => {
             )}
           </div>
           <div className="flex space-x-4 items-center">
-            {currentStatement && (
-              <Button
-                onClick={() => router.push('/statements')}
-                variant="secondary"
-                className="text-sm"
-              >
-                ← Back to Statements
-              </Button>
-            )}
+            <Button
+              onClick={() => router.push('/statements')}
+              variant="secondary"
+              className="text-sm"
+            >
+              ← Back to Statements
+            </Button>
             <Input
               type="search"
               placeholder="Search transactions..."

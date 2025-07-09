@@ -204,16 +204,30 @@ export const StatementDashboard = forwardRef<StatementDashboardRef, StatementDas
   };
 
   const getCompletionStats = () => {
-    const totalSlots = activeAccounts.length * 12;
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth() + 1; // getMonth() returns 0-11, we need 1-12
+    
+    // Calculate total slots based on current date
+    let totalSlots = 0;
+    for (const account of activeAccounts) {
+      if (selectedYear < currentYear) {
+        // Previous years: count all 12 months
+        totalSlots += 12;
+      } else if (selectedYear === currentYear) {
+        // Current year: only count months up to current month
+        totalSlots += currentMonth;
+      } else {
+        // Future years: count 0 months (shouldn't happen in normal usage)
+        totalSlots += 0;
+      }
+    }
+    
     const completedSlots = statements.filter(stmt => stmt.processing_status === 'completed').length;
-    const pendingSlots = statements.filter(stmt => stmt.processing_status === 'pending').length;
-    const failedSlots = statements.filter(stmt => stmt.processing_status === 'failed').length;
 
     return {
       total: totalSlots,
       completed: completedSlots,
-      pending: pendingSlots,
-      failed: failedSlots,
       missing: totalSlots - statements.length,
       completion: totalSlots > 0 ? Math.round((completedSlots / totalSlots) * 100) : 0,
     };
@@ -294,7 +308,7 @@ export const StatementDashboard = forwardRef<StatementDashboardRef, StatementDas
       </Card>
 
       {/* Statistics */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <div className="text-center">
             <div className="text-2xl font-bold text-blue-600">{stats.completion}%</div>
@@ -305,18 +319,6 @@ export const StatementDashboard = forwardRef<StatementDashboardRef, StatementDas
           <div className="text-center">
             <div className="text-2xl font-bold text-green-600">{stats.completed}</div>
             <div className="text-sm text-gray-600">Completed</div>
-          </div>
-        </Card>
-        <Card>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
-            <div className="text-sm text-gray-600">Pending</div>
-          </div>
-        </Card>
-        <Card>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-red-600">{stats.failed}</div>
-            <div className="text-sm text-gray-600">Failed</div>
           </div>
         </Card>
         <Card>
