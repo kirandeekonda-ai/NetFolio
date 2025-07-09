@@ -184,7 +184,10 @@ File: ${statement.file_name || 'N/A'}`);
 
   const handleTransactionsExtracted = (transactions: Transaction[]) => {
     setExtractedTransactions(transactions);
+    // Dispatch transactions to Redux store so they're available on the categorize page
+    dispatch(setTransactions(transactions));
     console.log(`Extracted ${transactions.length} transactions, ready for upload:`, transactions);
+    console.log('Transactions dispatched to Redux store for categorization');
   };
 
   const handleCancel = () => {
