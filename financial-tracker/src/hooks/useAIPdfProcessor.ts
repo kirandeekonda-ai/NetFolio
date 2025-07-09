@@ -77,29 +77,29 @@ export const useAIPdfProcessor = (): UseAIPdfProcessorReturn => {
 
       // Convert to our internal Transaction format and apply category matching
       const transactions: Transaction[] = result.transactions.map((txn: any, index: number) => {
+        // Validate and normalize fields from AI
+        const description = typeof txn.description === 'string' ? txn.description : '';
+        let amount = Number(txn.amount);
+        if (isNaN(amount)) amount = 0;
+        let date = typeof txn.date === 'string' ? txn.date : '';
         // Check if AI provided a suggested category
         let finalCategory = 'Uncategorized';
-        
-        // Look for category in either 'category', 'suggested_category', or based on the old output
         const aiCategory = txn.suggested_category || txn.category;
-        
         if (categoryMatcher && aiCategory && aiCategory.trim() && aiCategory !== 'N/A') {
-          // AI provided a category, try to match it to user categories
           finalCategory = categoryMatcher.matchCategory(aiCategory.trim());
           addLog(`🎯 Mapped AI category "${aiCategory}" to "${finalCategory}"`);
         } else if (userCategories.length > 0) {
-          addLog(`⚠️ No AI category suggestion for "${txn.description.substring(0, 50)}..." - using "Uncategorized"`);
+          addLog(`⚠️ No AI category suggestion for "${description.substring(0, 50)}..." - using "Uncategorized"`);
         }
-        
-        const transactionType = txn.amount > 0 ? 'income' as const : 'expense' as const;
-
+        const transactionType = amount > 0 ? 'income' as const : 'expense' as const;
+        // Always provide required fields for categorize page
         return {
           id: `ai-${Date.now()}-${index}`,
-          user_id: '', // Will be set by the calling component
-          bank_account_id: '', // Will be set by the calling component
-          transaction_date: txn.date,
-          description: txn.description,
-          amount: Math.abs(txn.amount), // Store absolute value
+          user_id: '',
+          bank_account_id: '',
+          transaction_date: date,
+          description,
+          amount: Math.abs(amount),
           transaction_type: transactionType,
           category_name: finalCategory,
           is_transfer: false,
@@ -107,11 +107,11 @@ export const useAIPdfProcessor = (): UseAIPdfProcessorReturn => {
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           // Legacy fields for backward compatibility
-          date: txn.date,
+          date,
           type: transactionType,
           category: finalCategory,
         };
-      });
+      }).filter(txn => txn.description && typeof txn.amount === 'number' && !isNaN(txn.amount));
 
       addLog('✨ Transaction conversion and category matching completed');
 

@@ -160,12 +160,15 @@ export class AzureOpenAIService implements LLMProvider {
   }
 
   private isValidTransaction(transaction: any): boolean {
+    // Accept transactions even if currency is missing; default to 'INR' if not present
+    if (transaction && typeof transaction.currency !== 'string') {
+      transaction.currency = 'INR';
+    }
     return (
       transaction &&
       typeof transaction.date === 'string' &&
       typeof transaction.description === 'string' &&
       typeof transaction.amount === 'number' &&
-      typeof transaction.currency === 'string' &&
       this.isValidDate(transaction.date)
     );
   }
@@ -326,12 +329,15 @@ export class OpenAIService implements LLMProvider {
   }
 
   private isValidTransaction(transaction: any): boolean {
+    // Accept transactions even if currency is missing; default to 'INR' if not present
+    if (transaction && typeof transaction.currency !== 'string') {
+      transaction.currency = 'INR';
+    }
     return (
       transaction &&
       typeof transaction.date === 'string' &&
       typeof transaction.description === 'string' &&
       typeof transaction.amount === 'number' &&
-      typeof transaction.currency === 'string' &&
       this.isValidDate(transaction.date)
     );
   }

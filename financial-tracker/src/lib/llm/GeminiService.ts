@@ -69,9 +69,16 @@ export class GeminiService implements LLMProvider {
         };
       }
 
-      // Validate the response structure
-      const transactions: Transaction[] = Array.isArray(parsedResponse.transactions) 
-        ? parsedResponse.transactions.filter((transaction: any) => this.isValidTransaction(transaction))
+      // Map Gemini response to internal Transaction format
+      const transactions: Transaction[] = Array.isArray(parsedResponse.transactions)
+        ? parsedResponse.transactions.map((txn: any) => {
+            // Map suggested_category to category, add default currency
+            return {
+              ...txn,
+              category: txn.suggested_category || txn.category || 'Uncategorized',
+              currency: txn.currency || 'INR',
+            };
+          }).filter((transaction: any) => this.isValidTransaction(transaction))
         : [];
 
       return {
@@ -155,9 +162,7 @@ export class GeminiService implements LLMProvider {
       transaction &&
       typeof transaction.date === 'string' &&
       typeof transaction.description === 'string' &&
-      typeof transaction.category === 'string' &&
       typeof transaction.amount === 'number' &&
-      typeof transaction.currency === 'string' &&
       this.isValidDate(transaction.date)
     );
   }
