@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { uploadPdfStatement } from '../lib/api/pdfStatementClient';
-import { Transaction } from '@/types';
+import { Transaction, Category } from '@/types';
+import { createCategoryMatcher } from '@/utils/categoryMatcher';
 
 interface ProcessingResult {
   transactions: Transaction[];
@@ -12,7 +13,7 @@ interface ProcessingResult {
 }
 
 interface UseAIPdfProcessorReturn {
-  processFile: (file: File) => Promise<ProcessingResult>;
+  processFile: (file: File, userCategories?: Category[]) => Promise<ProcessingResult>;
   isProcessing: boolean;
   error: string | null;
   processingLogs: string[];
@@ -35,7 +36,7 @@ export const useAIPdfProcessor = (): UseAIPdfProcessorReturn => {
     setProcessingLogs([]);
   }, []);
 
-  const processFile = useCallback(async (file: File): Promise<ProcessingResult> => {
+  const processFile = useCallback(async (file: File, userCategories: Category[] = []): Promise<ProcessingResult> => {
     setIsProcessing(true);
     setError(null);
     clearLogs();
@@ -68,28 +69,55 @@ export const useAIPdfProcessor = (): UseAIPdfProcessorReturn => {
 
       if (result.transactions.length > 0) {
         addLog(`📅 Date range: ${result.transactions[0]?.date} to ${result.transactions[result.transactions.length - 1]?.date}`);
-        
-        // Log transaction summary by category
-        const categoryStats = result.transactions.reduce((acc: Record<string, number>, txn: any) => {
-          acc[txn.category] = (acc[txn.category] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>);
-        
-        addLog(`📊 Categories found: ${Object.entries(categoryStats).map(([cat, count]) => `${cat}(${count})`).join(', ')}`);
+        addLog(`💰 Raw transactions extracted from AI: ${result.transactions.length}`);
       }
 
-      // Convert to our internal Transaction format
-      const transactions: Transaction[] = result.transactions.map((txn: any, index: number) => ({
-        id: `ai-${Date.now()}-${index}`,
-        date: txn.date,
-        description: txn.description,
-        amount: txn.amount,
-        type: txn.amount > 0 ? 'income' as const : 'expense' as const,
-        category: txn.category,
-        currency: txn.currency,
-      }));
+      // Create category matcher if user categories are provided
+      const categoryMatcher = userCategories.length > 0 ? createCategoryMatcher(userCategories) : null;
 
-      addLog('✨ Transaction conversion completed');
+      // Convert to our internal Transaction format and apply category matching
+      const transactions: Transaction[] = result.transactions.map((txn: any, index: number) => {
+        // Check if AI provided a suggested category
+        let finalCategory = 'Uncategorized';
+        
+        // Look for category in either 'category', 'suggested_category', or based on the old output
+        const aiCategory = txn.suggested_category || txn.category;
+        
+        if (categoryMatcher && aiCategory && aiCategory.trim() && aiCategory !== 'N/A') {
+          // AI provided a category, try to match it to user categories
+          finalCategory = categoryMatcher.matchCategory(aiCategory.trim());
+          addLog(`🎯 Mapped AI category "${aiCategory}" to "${finalCategory}"`);
+        } else if (userCategories.length > 0) {
+          addLog(`⚠️ No AI category suggestion for "${txn.description.substring(0, 50)}..." - using "Uncategorized"`);
+        }
+        
+        const transactionType = txn.amount > 0 ? 'income' as const : 'expense' as const;
+
+        return {
+          id: `ai-${Date.now()}-${index}`,
+          user_id: '', // Will be set by the calling component
+          bank_account_id: '', // Will be set by the calling component
+          transaction_date: txn.date,
+          description: txn.description,
+          amount: Math.abs(txn.amount), // Store absolute value
+          transaction_type: transactionType,
+          category_name: finalCategory,
+          is_transfer: false,
+          transfer_account_id: undefined,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          // Legacy fields for backward compatibility
+          date: txn.date,
+          type: transactionType,
+          category: finalCategory,
+        };
+      });
+
+      addLog('✨ Transaction conversion and category matching completed');
+
+      if (categoryMatcher && userCategories.length > 0) {
+        addLog(`🎯 Category matching available with ${userCategories.length} user categories`);
+      }
 
       return {
         transactions,

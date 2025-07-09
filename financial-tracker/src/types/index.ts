@@ -171,6 +171,7 @@ export interface StatementUpload {
   statement_start_date: string;
   statement_end_date: string;
   file: File;
+  extractedTransactions?: Transaction[];
 }
 
 export interface Category {

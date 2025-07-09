@@ -103,6 +103,9 @@ File: ${statement.file_name || 'N/A'}`);
     try {
       setIsLoading(true);
 
+      // Use transactions from uploadData directly (from template/AI processing)
+      const transactionsToUse = uploadData.extractedTransactions || extractedTransactions;
+
       // If we're reuploading, first delete the existing statement
       if (reuploadStatementId) {
         const deleteResponse = await fetch(`/api/bank-statements?id=${reuploadStatementId}`, {
@@ -137,46 +140,34 @@ File: ${statement.file_name || 'N/A'}`);
       if (response.ok) {
         const data = await response.json();
         
-        // Wait for transactions to be extracted before proceeding
-        if (extractedTransactions.length > 0) {
-          // Store transactions in Redux store for categorize page
-          dispatch(setTransactions(extractedTransactions));
-          
-          // TODO: Save extracted transactions to database
-          // For now, we'll simulate this
-          
-          // Update statement status to completed
-          await fetch(`/api/bank-statements?id=${data.statement.id}`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              processing_status: 'completed',
-              processed_at: new Date().toISOString(),
-              transaction_count: extractedTransactions.length,
-            }),
-          });
+        // Store transactions in Redux store for categorize page (even if empty)
+        dispatch(setTransactions(transactionsToUse));
+        
+        // TODO: Save extracted transactions to database
+        // For now, we'll simulate this
+        
+        // Update statement status to completed
+        await fetch(`/api/bank-statements?id=${data.statement.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            processing_status: 'completed',
+            processed_at: new Date().toISOString(),
+            transaction_count: transactionsToUse.length,
+          }),
+        });
 
+        // Always redirect to categorize page after successful upload
+        setShowUploadForm(false);
+        
+        if (transactionsToUse.length > 0) {
           // Redirect to categorize page with the extracted transactions
-          setShowUploadForm(false);
           router.push('/categorize');
         } else {
-          // No transactions extracted, just mark as completed
-          await fetch(`/api/bank-statements?id=${data.statement.id}`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              processing_status: 'completed',
-              processed_at: new Date().toISOString(),
-              transaction_count: 0,
-            }),
-          });
-
-          setShowUploadForm(false);
-          alert('Statement uploaded successfully but no transactions were extracted. Please check the file format.');
+          // No transactions extracted, still redirect to categorize page with a message
+          router.push('/categorize?message=no_transactions');
         }
       } else {
         const error = await response.json();
@@ -193,7 +184,7 @@ File: ${statement.file_name || 'N/A'}`);
 
   const handleTransactionsExtracted = (transactions: Transaction[]) => {
     setExtractedTransactions(transactions);
-    console.log(`Extracted ${transactions.length} transactions, ready for upload`);
+    console.log(`Extracted ${transactions.length} transactions, ready for upload:`, transactions);
   };
 
   const handleCancel = () => {

@@ -23,9 +23,8 @@ export class GeminiService implements LLMProvider {
         {
           "date": "YYYY-MM-DD",
           "description": "transaction description",
-          "category": "estimated category (e.g., food, transport, shopping, etc.)",
           "amount": number (positive for credits, negative for debits),
-          "currency": "currency code (e.g., USD, INR, etc.)"
+          "suggested_category": "suggested category name based on description (e.g., food, transport, utilities, etc.)"
         }
       ]
     }

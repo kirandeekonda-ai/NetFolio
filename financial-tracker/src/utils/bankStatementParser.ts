@@ -57,7 +57,9 @@ export class BankStatementParserService {
       }
 
       // Load and execute the appropriate parser
+      console.log(`BankStatementParser: Executing parser for template ${template.identifier}`);
       const transactions = await this.executeParser(file, template);
+      console.log(`BankStatementParser: Parser completed, extracted ${transactions.length} transactions:`, transactions);
       
       return {
         success: true,

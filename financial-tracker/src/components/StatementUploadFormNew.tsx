@@ -1,5 +1,6 @@
 import { FC, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useSelector } from 'react-redux';
 import { BankAccount, StatementUpload, Transaction } from '@/types';
 import { Card } from './Card';
 import { Button } from './Button';
@@ -9,6 +10,7 @@ import { ProcessingLogs } from './ProcessingLogs';
 import { EnvironmentCheck } from './EnvironmentCheck';
 import { useAIPdfProcessor } from '@/hooks/useAIPdfProcessor';
 import { bankStatementParser } from '@/utils/bankStatementParser';
+import { RootState } from '@/store';
 
 interface StatementUploadFormProps {
   accounts: BankAccount[];
@@ -66,6 +68,9 @@ export const StatementUploadForm: FC<StatementUploadFormProps> = ({
     processingLogs: aiLogs,
     clearLogs: clearAiLogs,
   } = useAIPdfProcessor();
+
+  // Get user categories from Redux store for AI category matching
+  const userCategories = useSelector((state: RootState) => state.categories.items);
 
   useEffect(() => {
     fetchAvailableTemplates();
@@ -161,40 +166,50 @@ export const StatementUploadForm: FC<StatementUploadFormProps> = ({
     addLog(`🚀 Starting ${processingMode} processing...`);
 
     try {
+      let extractedTransactions: Transaction[] = [];
+
       if (processingMode === 'ai') {
-        // Use AI processing
+        // Use AI processing with category matching
         addLog('🤖 Processing with AI...');
-        const result = await processFile(selectedFile);
+        addLog(`🎯 Using ${userCategories.length} user categories for matching`);
+        const result = await processFile(selectedFile, userCategories);
         
         if (result.transactions && result.transactions.length > 0) {
-          addLog(`✅ Extracted ${result.transactions.length} transactions`);
-          onTransactionsExtracted(result.transactions);
+          extractedTransactions = result.transactions;
+          addLog(`✅ Extracted ${extractedTransactions.length} transactions`);
+          onTransactionsExtracted(extractedTransactions);
         } else {
           addLog('⚠️ No transactions extracted');
+          onTransactionsExtracted([]);
         }
       } else if (matchedTemplate) {
         // Use template processing
         addLog(`🏦 Processing with ${matchedTemplate.bank_name} template...`);
+        console.log(`StatementUploadForm: Starting template processing with ${matchedTemplate.identifier}`, matchedTemplate);
         
         const result = await bankStatementParser.parseStatement(selectedFile, matchedTemplate.identifier);
+        console.log(`StatementUploadForm: Template processing result:`, result);
         
         if (result.success && result.transactions) {
-          addLog(`✅ Template processing completed. Extracted ${result.transactions.length} transactions`);
-          onTransactionsExtracted(result.transactions);
+          extractedTransactions = result.transactions;
+          addLog(`✅ Template processing completed. Extracted ${extractedTransactions.length} transactions`);
+          console.log(`StatementUploadForm: Extracted transactions:`, extractedTransactions);
+          onTransactionsExtracted(extractedTransactions);
         } else {
           addLog(`❌ Template processing failed: ${result.error || 'Unknown error'}`);
           throw new Error(result.error || 'Template processing failed');
         }
       }
 
-      // Submit the statement record
-      const uploadData: StatementUpload = {
+      // Submit the statement record with the extracted transactions
+      const uploadData: StatementUpload & { extractedTransactions?: Transaction[] } = {
         bank_account_id: selectedAccountId,
         statement_month: selectedMonth,
         statement_year: selectedYear,
         statement_start_date: statementStartDate,
         statement_end_date: statementEndDate,
         file: selectedFile,
+        extractedTransactions: extractedTransactions, // Pass transactions directly
       };
 
       onSubmit(uploadData);
