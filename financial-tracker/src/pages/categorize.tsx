@@ -367,9 +367,9 @@ const Categorize: NextPage = () => {
                 Your statement was uploaded but no transactions were extracted. This could happen if:
               </p>
               <ul className="text-left text-sm text-gray-600 max-w-md mx-auto space-y-1">
-                <li>• The file format is not supported by the template</li>
+                <li>• The file format is not supported by the AI processor</li>
                 <li>• The statement is empty or has no transaction data</li>
-                <li>• The template needs to be updated for your bank's format</li>
+                <li>• The statement format is unclear or contains only images</li>
               </ul>
               <div className="mt-4">
                 <button

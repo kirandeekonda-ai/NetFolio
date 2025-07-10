@@ -11,7 +11,6 @@ import { useAIPdfProcessor } from '@/hooks/useAIPdfProcessor';
 import { useDispatch } from 'react-redux';
 import { setTransactions } from '@/store/transactionsSlice';
 import { getFileTypeFromExtension } from '@/utils/fileTypes';
-import { bankStatementParser } from '@/utils/bankStatementParser';
 import Papa from 'papaparse';
 
 interface StatementUploadFormProps {
@@ -45,9 +44,6 @@ export const StatementUploadForm: FC<StatementUploadFormProps> = ({
   onTransactionsExtracted,
 }) => {
   const dispatch = useDispatch();
-  const [availableTemplates, setAvailableTemplates] = useState<Array<{ identifier: string, bankName: string, format: string }>>([]);
-  const [selectedTemplate, setSelectedTemplate] = useState<string>('');
-  const [processingMode, setProcessingMode] = useState<'ai' | 'template'>('ai');
   const [showLogs, setShowLogs] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [isApiReady, setIsApiReady] = useState(false);
@@ -79,36 +75,6 @@ export const StatementUploadForm: FC<StatementUploadFormProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const activeAccounts = accounts.filter(acc => acc.is_active);
-
-  // Load available templates on component mount
-  useEffect(() => {
-    const loadTemplates = async () => {
-      try {
-        const templates = await bankStatementParser.getAvailableTemplates();
-        setAvailableTemplates(templates.map(t => ({
-          identifier: t.identifier,
-          bankName: t.bank_name,
-          format: t.format
-        })));
-        // Set default template to DBS if available
-        const dbsTemplate = templates.find(t => t.identifier === 'dbs_pdf_v1');
-        if (dbsTemplate) {
-          setSelectedTemplate(dbsTemplate.identifier);
-        }
-      } catch (err) {
-        console.error('Error loading templates:', err);
-      }
-    };
-
-    loadTemplates();
-  }, []);
-
-  // Set processing mode based on API availability
-  useEffect(() => {
-    if (!isApiReady && processingMode === 'ai') {
-      setProcessingMode('template');
-    }
-  }, [isApiReady, processingMode]);
 
   const steps = [
     { id: 1, title: 'Choose Method', icon: '⚙️', description: 'Select processing mode' },
@@ -145,40 +111,22 @@ export const StatementUploadForm: FC<StatementUploadFormProps> = ({
       let transactions: Transaction[] = [];
       const fileType = getFileTypeFromExtension(file.name);
 
-      console.log(`🎯 Processing file: ${file.name} (${fileType}) using ${processingMode} mode`);
+      console.log(`🎯 Processing file: ${file.name} (${fileType})`);
 
-      // For PDF files - use AI processing or template system
+      // For PDF files - use AI processing
       if (fileType === 'application/pdf') {
-        if (processingMode === 'ai') {
-          console.log('🤖 Using AI-powered PDF processing');
-          setShowLogs(true);
-          
-          try {
-            const result = await processWithAI(file);
-            transactions = result.transactions;
-            setAnalytics(result.analytics);
-            console.log('✅ AI processing completed successfully');
-          } catch (aiProcessingError) {
-            console.error('❌ AI processing failed:', aiProcessingError);
-            setErrors({ file: aiError || 'AI processing failed' });
-            return;
-          }
-        } else {
-          // Fallback to template system
-          if (!selectedTemplate) {
-            setErrors({ file: 'Please select a bank template first' });
-            return;
-          }
-
-          console.log(`📋 Using template system with: ${selectedTemplate}`);
-          const result = await bankStatementParser.parseStatement(file, selectedTemplate);
-          if (result.success) {
-            transactions = result.transactions;
-            console.log('✅ Template processing completed successfully');
-          } else {
-            setErrors({ file: result.error || 'Failed to parse PDF file' });
-            return;
-          }
+        console.log('🤖 Using AI-powered PDF processing');
+        setShowLogs(true);
+        
+        try {
+          const result = await processWithAI(file);
+          transactions = result.transactions;
+          setAnalytics(result.analytics);
+          console.log('✅ AI processing completed successfully');
+        } catch (aiProcessingError) {
+          console.error('❌ AI processing failed:', aiProcessingError);
+          setErrors({ file: aiError || 'AI processing failed' });
+          return;
         }
       } 
       // For CSV files - keep existing logic
@@ -250,7 +198,7 @@ export const StatementUploadForm: FC<StatementUploadFormProps> = ({
       console.error('💥 Error processing file:', err);
       setErrors({ file: err instanceof Error ? err.message : 'Unknown error occurred' });
     }
-  }, [processingMode, selectedTemplate, processWithAI, aiError, clearLogs, dispatch, onTransactionsExtracted]);
+  }, [processWithAI, aiError, clearLogs, dispatch, onTransactionsExtracted]);
 
   const handleFileChange = (file: File | null) => {
     if (file) {
@@ -478,168 +426,6 @@ export const StatementUploadForm: FC<StatementUploadFormProps> = ({
         )}
       </AnimatePresence>
 
-      {/* Processing Mode Selection */}
-      <Card className="relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-600"></div>
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h3 className="text-xl font-semibold text-gray-900 flex items-center space-x-2">
-              <span className="text-2xl">⚙️</span>
-              <span>Processing Mode</span>
-            </h3>
-            <p className="text-gray-600 mt-1">
-              Choose how you want to extract transactions from your statements
-            </p>
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <motion.div
-            whileHover={{ scale: 1.02 }}
-            className={`relative border-2 rounded-lg p-4 cursor-pointer transition-all duration-200 ${
-              processingMode === 'ai'
-                ? 'border-blue-500 bg-blue-50 shadow-md'
-                : 'border-gray-200 hover:border-gray-300'
-            }`}
-            onClick={() => !isLoading && !isProcessingWithAI && isApiReady && setProcessingMode('ai')}
-          >
-            <input
-              type="radio"
-              value="ai"
-              checked={processingMode === 'ai'}
-              onChange={(e) => setProcessingMode(e.target.value as 'ai' | 'template')}
-              className="absolute top-4 right-4"
-              disabled={isLoading || isProcessingWithAI || !isApiReady}
-            />
-            <div className="flex items-start space-x-3">
-              <div className="text-3xl">🤖</div>
-              <div>
-                <h4 className="font-semibold text-gray-900">AI-Powered (Recommended)</h4>
-                <p className="text-sm text-gray-600 mt-1">
-                  Uses advanced AI to extract transactions from any PDF format
-                </p>
-                <div className="flex items-center space-x-2 mt-2">
-                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                    isApiReady ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                  }`}>
-                    {isApiReady ? '✓ Ready' : '⚠ Requires API'}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-
-          <motion.div
-            whileHover={{ scale: 1.02 }}
-            className={`relative border-2 rounded-lg p-4 cursor-pointer transition-all duration-200 ${
-              processingMode === 'template'
-                ? 'border-purple-500 bg-purple-50 shadow-md'
-                : 'border-gray-200 hover:border-gray-300'
-            }`}
-            onClick={() => !isLoading && !isProcessingWithAI && setProcessingMode('template')}
-          >
-            <input
-              type="radio"
-              value="template"
-              checked={processingMode === 'template'}
-              onChange={(e) => setProcessingMode(e.target.value as 'ai' | 'template')}
-              className="absolute top-4 right-4"
-              disabled={isLoading || isProcessingWithAI}
-            />
-            <div className="flex items-start space-x-3">
-              <div className="text-3xl">📋</div>
-              <div>
-                <h4 className="font-semibold text-gray-900">Template-Based</h4>
-                <p className="text-sm text-gray-600 mt-1">
-                  Uses predefined templates for specific bank formats
-                </p>
-                <div className="flex items-center space-x-2 mt-2">
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    ⚡ Fast & Reliable
-                  </span>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      </Card>
-
-      {/* Template Selection (if template mode) */}
-      <AnimatePresence>
-        {processingMode === 'template' && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <Card className="relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-pink-600"></div>
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="text-xl font-semibold text-gray-900 flex items-center space-x-2">
-                    <span className="text-2xl">🏦</span>
-                    <span>Bank Template</span>
-                  </h3>
-                  <p className="text-gray-600 mt-1">
-                    Select your bank template for accurate transaction extraction
-                  </p>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="template-select" className="block text-sm font-medium text-gray-700 mb-3">
-                    Available Templates
-                  </label>
-                  <select
-                    id="template-select"
-                    value={selectedTemplate}
-                    onChange={(e) => {
-                      setSelectedTemplate(e.target.value);
-                      setCurrentStep(2);
-                    }}
-                    className="w-full appearance-none bg-white border border-gray-300 rounded-lg py-3 pl-4 pr-10 text-base focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-20 transition-all duration-200"
-                    disabled={isLoading || isProcessingWithAI}
-                  >
-                    <option value="">Select a template...</option>
-                    {availableTemplates.map(template => (
-                      <option key={template.identifier} value={template.identifier}>
-                        {template.bankName} ({template.format})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                
-                {selectedTemplate && (
-                  <motion.div
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="bg-purple-50 rounded-lg p-4"
-                  >
-                    <h4 className="font-semibold text-purple-900 mb-2">Selected Template</h4>
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-lg">🏦</span>
-                        <span className="font-medium text-purple-800">
-                          {availableTemplates.find(t => t.identifier === selectedTemplate)?.bankName}
-                        </span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <span className="text-lg">📄</span>
-                        <span className="text-purple-700">
-                          {availableTemplates.find(t => t.identifier === selectedTemplate)?.format}
-                        </span>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </div>
-            </Card>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* Main Upload Form */}
       <Card className="max-w-2xl mx-auto">
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -807,7 +593,7 @@ export const StatementUploadForm: FC<StatementUploadFormProps> = ({
             
             <FileUpload
               onFileSelect={handleFileChange}
-              disabled={isLoading || isProcessingWithAI || (processingMode === 'template' && !selectedTemplate)}
+              disabled={isLoading || isProcessingWithAI}
               maxSize={20 * 1024 * 1024} // 20MB for AI processing
             />
             {errors.file && (
@@ -827,7 +613,7 @@ export const StatementUploadForm: FC<StatementUploadFormProps> = ({
                   <div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-500 border-t-transparent"></div>
                   <div>
                     <p className="font-medium text-indigo-900">
-                      {processingMode === 'ai' ? 'AI Processing in Progress...' : 'Processing File...'}
+                      {isProcessingWithAI ? 'AI Processing in Progress...' : 'Processing File...'}
                     </p>
                     {isProcessingWithAI && (
                       <p className="text-sm text-indigo-700 mt-1">

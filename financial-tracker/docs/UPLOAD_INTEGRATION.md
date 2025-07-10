@@ -2,16 +2,16 @@
 
 ## Overview
 
-The upload page has been successfully integrated with the new AI-powered PDF processing API. Users can now choose between two processing modes:
+The upload page has been successfully integrated with the new AI-powered PDF processing API. Users can now upload PDF bank statements that are automatically processed using advanced AI technology.
 
-1. **AI-Powered Processing** (Recommended) - Uses Google Gemini Flash 2.0
-2. **Template-Based Processing** - Uses predefined bank templates
+**AI-Powered Processing** - Uses Google Gemini Flash 2.0 for intelligent transaction extraction from any bank statement format.
 
 ## Features Added
 
-### ✅ Dual Processing Modes
+### ✅ AI-Powered Processing
 - **AI Mode**: Automatically extracts transactions from any PDF bank statement format
-- **Template Mode**: Uses existing bank-specific templates for precise parsing
+- Supports all major banks and statement layouts
+- No manual template configuration required
 
 ### ✅ Comprehensive Logging System
 - Real-time processing logs with emojis for visual clarity
@@ -21,11 +21,11 @@ The upload page has been successfully integrated with the new AI-powered PDF pro
 ### ✅ Environment Configuration Check
 - Automatic detection of Gemini API key configuration
 - User-friendly setup instructions if API key is missing
-- Graceful fallback to template mode when AI is unavailable
+- Clear error messaging when AI processing is unavailable
 
 ### ✅ Enhanced User Experience
-- Progress indicators for both processing modes
-- File size validation (20MB for AI, 5MB for templates)
+- Progress indicators for processing
+- File size validation (20MB limit)
 - Success analytics display (pages processed, tokens used)
 - Automatic navigation to categorization page upon completion
 
@@ -68,15 +68,6 @@ src/
 🏁 Processing session ended
 ```
 
-### Template Mode Flow:
-```
-📋 Using template system
-📊 File validation
-✅ Template processing completed
-💰 Transactions extracted
-🏁 Processing completed
-```
-
 ## Error Handling & Logging
 
 ### Error Types Logged:
@@ -104,10 +95,10 @@ MAX_UPLOAD_MB=20
 
 ## User Interface Updates
 
-### 1. Processing Mode Selection
-- Radio buttons to choose between AI and Template modes
+### 1. AI Processing Mode
+- AI-powered processing is the primary and only processing mode
 - Dynamic enabling/disabling based on API availability
-- Helpful descriptions for each mode
+- Clear descriptions for AI processing capabilities
 
 ### 2. Environment Status Banner
 - Green: ✅ AI processing ready
@@ -129,7 +120,7 @@ MAX_UPLOAD_MB=20
 
 ### For Users with Gemini API:
 1. Upload page automatically detects API configuration
-2. AI mode is pre-selected and available
+2. AI mode is available for processing
 3. User can upload any PDF bank statement
 4. Real-time logs show processing progress
 5. Success analytics are displayed
@@ -137,10 +128,9 @@ MAX_UPLOAD_MB=20
 
 ### For Users without API:
 1. Warning banner explains setup requirements
-2. Template mode is automatically selected
-3. User must choose appropriate bank template
-4. Traditional template processing is used
-5. Same categorization flow continues
+2. Upload functionality requires API configuration
+3. Users need to set up Gemini API key to proceed
+4. Clear instructions provided for API setup
 
 ## Benefits
 
@@ -154,9 +144,9 @@ MAX_UPLOAD_MB=20
 - Performance metrics for optimization
 
 ### 🛡️ **Robust Error Handling**
-- Graceful fallback to template mode
 - Clear error messages and recovery instructions
 - Validation at multiple levels
+- Helpful setup guidance for API configuration
 
 ### 🚀 **Enhanced User Experience**
 - Faster processing for supported formats
@@ -176,8 +166,8 @@ MAX_UPLOAD_MB=20
 
 To test the integration:
 
-1. **With API Key**: Set `GEMINI_API_KEY` in `.env.local` and test AI mode
-2. **Without API Key**: Remove the key and test template fallback
+1. **With API Key**: Set `GEMINI_API_KEY` in `.env.local` and test AI processing
+2. **Without API Key**: Remove the key and test error handling
 3. **Various PDF Formats**: Test with different bank statement formats
 4. **Error Scenarios**: Test with invalid files, oversized files
 5. **Log Monitoring**: Watch the real-time logs during processing

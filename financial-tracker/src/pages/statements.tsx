@@ -141,7 +141,7 @@ File: ${statement.file_name || 'N/A'}`);
     try {
       setIsLoading(true);
 
-      // Use transactions from uploadData directly (from template/AI processing)
+      // Use transactions from uploadData directly (from AI processing)
       const transactionsToUse = uploadData.extractedTransactions || extractedTransactions;
 
       // If we're reuploading, first delete the existing statement

@@ -9,7 +9,6 @@ import { FileUpload } from './FileUpload';
 import { ProcessingLogs } from './ProcessingLogs';
 import { EnvironmentCheck } from './EnvironmentCheck';
 import { useAIPdfProcessor } from '@/hooks/useAIPdfProcessor';
-import { bankStatementParser } from '@/utils/bankStatementParser';
 import { RootState } from '@/store';
 
 interface StatementUploadFormProps {
@@ -22,15 +21,6 @@ interface StatementUploadFormProps {
   onTransactionsExtracted: (transactions: Transaction[]) => void;
   isLoading?: boolean;
   isReupload?: boolean;
-}
-
-interface BankTemplate {
-  id: string;
-  bank_name: string;
-  format: string;
-  identifier: string;
-  parser_module: string;
-  parser_config: any;
 }
 
 interface HealthData {
@@ -62,9 +52,6 @@ export const StatementUploadForm: FC<StatementUploadFormProps> = ({
   isReupload = false,
 }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [availableTemplates, setAvailableTemplates] = useState<BankTemplate[]>([]);
-  const [matchedTemplate, setMatchedTemplate] = useState<BankTemplate | null>(null);
-  const [processingMode, setProcessingMode] = useState<'template' | 'ai'>('template');
   const [processingLogs, setProcessingLogs] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [healthData, setHealthData] = useState<HealthData | null>(null);
@@ -137,67 +124,7 @@ export const StatementUploadForm: FC<StatementUploadFormProps> = ({
     checkHealthStatus();
   }, []);
 
-  useEffect(() => {
-    fetchAvailableTemplates();
-  }, []);
 
-  useEffect(() => {
-    if (selectedAccount && availableTemplates.length > 0) {
-      findMatchingTemplate();
-    }
-  }, [selectedAccount, availableTemplates]);
-
-  const fetchAvailableTemplates = async () => {
-    try {
-      const templates = await bankStatementParser.getAvailableTemplates();
-      setAvailableTemplates(templates.map(t => ({
-        id: t.identifier,
-        bank_name: t.bank_name,
-        format: t.format,
-        identifier: t.identifier,
-        parser_module: t.parser_module,
-        parser_config: t.parser_config,
-      })));
-    } catch (error) {
-      console.error('Error fetching templates:', error);
-    }
-  };
-
-  const findMatchingTemplate = () => {
-    if (!selectedAccount) return;
-
-    // Try to find an exact or partial match for the bank name
-    const bankName = selectedAccount.bank_name.toLowerCase();
-    
-    const exactMatch = availableTemplates.find(template => 
-      template.bank_name.toLowerCase() === bankName
-    );
-
-    if (exactMatch) {
-      setMatchedTemplate(exactMatch);
-      setProcessingMode('template');
-      addLog(`✅ Found exact template match: ${exactMatch.bank_name} (${exactMatch.format})`);
-      return;
-    }
-
-    // Try partial matching (e.g., "DBS" in "DBS Bank")
-    const partialMatch = availableTemplates.find(template => {
-      const templateName = template.bank_name.toLowerCase();
-      return bankName.includes(templateName) || templateName.includes(bankName);
-    });
-
-    if (partialMatch) {
-      setMatchedTemplate(partialMatch);
-      setProcessingMode('template');
-      addLog(`✅ Found partial template match: ${partialMatch.bank_name} (${partialMatch.format})`);
-      return;
-    }
-
-    // No template found, suggest AI processing
-    setMatchedTemplate(null);
-    setProcessingMode('ai');
-    addLog(`⚠️ No template found for "${selectedAccount.bank_name}". Using AI processing.`);
-  };
 
   const addLog = (message: string) => {
     setProcessingLogs(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
@@ -227,21 +154,21 @@ export const StatementUploadForm: FC<StatementUploadFormProps> = ({
     
     if (!validateForm() || !selectedFile || !selectedAccount) return;
 
-    // Check if AI mode is selected but not available
-    if (processingMode === 'ai' && !isAIAvailable()) {
+    // Check if AI processing is available
+    if (!isAIAvailable()) {
       addLog(`❌ AI processing is not available: ${getAIStatusDescription()}`);
       return;
     }
 
     setIsProcessing(true);
-    addLog(`🚀 Starting ${processingMode} processing...`);
+    addLog('🚀 Starting AI processing...');
 
     try {
       let extractedTransactions: Transaction[] = [];
 
-      if (processingMode === 'ai') {
-        // Use AI processing with category matching
-        addLog('🤖 Processing with AI...');
+      if (selectedFile.type === 'application/pdf' || selectedFile.name.toLowerCase().endsWith('.pdf')) {
+        // Use AI processing for PDFs with category matching
+        addLog('🤖 Processing PDF with AI...');
         addLog(`🎯 Using ${userCategories.length} user categories for matching`);
         const result = await processFile(selectedFile, userCategories);
         
@@ -253,23 +180,15 @@ export const StatementUploadForm: FC<StatementUploadFormProps> = ({
           addLog('⚠️ No transactions extracted');
           onTransactionsExtracted([]);
         }
-      } else if (matchedTemplate) {
-        // Use template processing
-        addLog(`🏦 Processing with ${matchedTemplate.bank_name} template...`);
-        console.log(`StatementUploadForm: Starting template processing with ${matchedTemplate.identifier}`, matchedTemplate);
-        
-        const result = await bankStatementParser.parseStatement(selectedFile, matchedTemplate.identifier);
-        console.log(`StatementUploadForm: Template processing result:`, result);
-        
-        if (result.success && result.transactions) {
-          extractedTransactions = result.transactions;
-          addLog(`✅ Template processing completed. Extracted ${extractedTransactions.length} transactions`);
-          console.log(`StatementUploadForm: Extracted transactions:`, extractedTransactions);
-          onTransactionsExtracted(extractedTransactions);
-        } else {
-          addLog(`❌ Template processing failed: ${result.error || 'Unknown error'}`);
-          throw new Error(result.error || 'Template processing failed');
-        }
+      } else if (selectedFile.name.toLowerCase().endsWith('.csv')) {
+        // Handle CSV files (basic implementation)
+        addLog('📊 Processing CSV file...');
+        // For now, just pass empty transactions for CSV - would need CSV parser implementation
+        extractedTransactions = [];
+        addLog('⚠️ CSV processing not yet implemented');
+        onTransactionsExtracted([]);
+      } else {
+        throw new Error('Unsupported file format. Please upload a PDF or CSV file.');
       }
 
       // Submit the statement record with the extracted transactions
@@ -360,101 +279,51 @@ export const StatementUploadForm: FC<StatementUploadFormProps> = ({
                 <div>
                   <span className="font-medium text-blue-900">Processing:</span>
                   <div className="text-blue-800">
-                    {matchedTemplate ? `${matchedTemplate.bank_name} Template` : 'AI Processing'}
+                    AI Processing
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Template Status */}
+          {/* Processing Method */}
           <div>
             <h3 className="text-lg font-semibold text-gray-900 mb-3">Processing Method</h3>
-            {matchedTemplate ? (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <div className="flex items-center space-x-3">
-                  <span className="text-2xl">✅</span>
-                  <div>
-                    <h4 className="font-semibold text-green-900">Template Found</h4>
-                    <p className="text-green-800">
-                      Using {matchedTemplate.bank_name} {matchedTemplate.format} template for accurate extraction
-                    </p>
-                  </div>
-                </div>
-                <div className="mt-3 flex items-center space-x-4">
-                  <Button
-                    type="button"
-                    variant={processingMode === 'template' ? 'primary' : 'secondary'}
-                    onClick={() => {
-                      setProcessingMode('template');
-                      addLog(`🏦 Switched to template processing: ${matchedTemplate.bank_name}`);
-                    }}
-                  >
-                    Use Template
-                  </Button>
-                  <div className="relative">
-                    <Button
-                      type="button"
-                      variant={processingMode === 'ai' ? 'primary' : 'secondary'}
-                      onClick={() => {
-                        if (isAIAvailable()) {
-                          setProcessingMode('ai');
-                          addLog('🤖 Switched to AI processing');
-                        }
-                      }}
-                      disabled={!isAIAvailable()}
-                      title={isAIAvailable() ? 'Switch to AI processing' : getAIStatusDescription()}
-                    >
-                      {isCheckingHealth ? 'Checking...' : 'Use AI Instead'}
-                    </Button>
-                    {!isAIAvailable() && healthData && (
-                      <div className="absolute top-full left-0 mt-1 w-48 bg-yellow-50 border border-yellow-200 rounded p-2 text-xs text-yellow-800 z-10">
-                        {getAIStatusDescription()}
-                      </div>
-                    )}
-                  </div>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-center space-x-3">
+                <span className="text-2xl">🤖</span>
+                <div>
+                  <h4 className="font-semibold text-blue-900">AI Processing</h4>
+                  <p className="text-blue-800">
+                    {isAIAvailable() 
+                      ? 'Using AI-powered processing to extract transactions from your bank statement.' 
+                      : 'AI processing is not available.'}
+                  </p>
                 </div>
               </div>
-            ) : (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <div className="flex items-center space-x-3">
-                  <span className="text-2xl">🤖</span>
-                  <div>
-                    <h4 className="font-semibold text-yellow-900">No Template Available</h4>
-                    <p className="text-yellow-800">
-                      No template found for "{selectedAccount.bank_name}". 
-                      {isAIAvailable() 
-                        ? ' Using AI-powered processing.' 
-                        : ' AI processing is not available.'}
-                    </p>
+              {isAIAvailable() ? (
+                <div className="mt-3">
+                  <div className="bg-blue-100 p-3 rounded text-sm text-blue-800">
+                    <strong>AI Processing:</strong> Uses advanced machine learning to extract transactions from any bank format.
+                    Results may require manual review for accuracy.
                   </div>
                 </div>
-                {isAIAvailable() ? (
-                  <div className="mt-3">
-                    <div className="bg-yellow-100 p-3 rounded text-sm text-yellow-800">
-                      <strong>AI Processing:</strong> Uses advanced machine learning to extract transactions from any bank format.
-                      Results may require manual review for accuracy.
-                    </div>
+              ) : (
+                <div className="mt-3">
+                  <div className="bg-red-100 p-3 rounded text-sm text-red-800">
+                    <strong>AI Unavailable:</strong> {getAIStatusDescription()}. 
+                    Please configure an AI provider or ensure your custom endpoint is running.
                   </div>
-                ) : (
-                  <div className="mt-3">
-                    <div className="bg-red-100 p-3 rounded text-sm text-red-800">
-                      <strong>AI Unavailable:</strong> {getAIStatusDescription()}. 
-                      Please configure an AI provider or ensure your custom endpoint is running.
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Environment Check for AI Processing */}
-          {processingMode === 'ai' && (
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">AI Processing Setup</h3>
-              <EnvironmentCheck onConfigComplete={() => {}} />
-            </div>
-          )}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">AI Processing Setup</h3>
+            <EnvironmentCheck onConfigComplete={() => {}} />
+          </div>
 
           {/* File Upload */}
           <div>
@@ -508,7 +377,7 @@ export const StatementUploadForm: FC<StatementUploadFormProps> = ({
                 isLoading || 
                 isProcessing || 
                 !selectedFile || 
-                (processingMode === 'ai' && !isAIAvailable())
+                !isAIAvailable()
               }
             >
               {isProcessing ? 'Processing...' : isReupload ? 'Reupload & Process Statement' : 'Upload & Process Statement'}

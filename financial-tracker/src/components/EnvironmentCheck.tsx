@@ -214,9 +214,7 @@ export const EnvironmentCheck: React.FC<EnvironmentCheckProps> = ({ onConfigComp
           </div>
         )}
         
-        <p className="mt-2 text-xs">
-          <strong>Note:</strong> You can still use template-based processing for supported banks.
-        </p>
+
       </div>
     </motion.div>
   );
