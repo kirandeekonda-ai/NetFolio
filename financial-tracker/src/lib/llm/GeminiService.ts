@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { LLMProvider, ExtractionResult, Transaction, LLMUsage } from './types';
+import { sanitizeTextForLLM } from '@/utils/dataSanitization';
 
 export class GeminiService implements LLMProvider {
   private genAI: GoogleGenerativeAI;
@@ -16,6 +17,16 @@ export class GeminiService implements LLMProvider {
   }
 
   async extractTransactions(pageText: string): Promise<ExtractionResult> {
+    // Sanitize the input text to protect sensitive information
+    const sanitizationResult = sanitizeTextForLLM(pageText);
+    const sanitizedPageText = sanitizationResult.sanitizedText;
+    
+    // Log sanitization summary
+    if (sanitizationResult.detectedPatterns.length > 0) {
+      console.log('🔐 Sanitized sensitive data before sending to Gemini LLM');
+      console.log('🔐 Sanitization summary:', sanitizationResult.summary);
+    }
+
     const prompt = `
     Extract bank transactions from the following text. Return ONLY valid JSON with this exact structure:
     {
@@ -30,7 +41,7 @@ export class GeminiService implements LLMProvider {
     }
 
     Text to analyze:
-    ${pageText}
+    ${sanitizedPageText}
 
     Return ONLY the JSON object, no additional text or formatting.
     `;

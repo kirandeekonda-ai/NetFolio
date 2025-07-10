@@ -1,4 +1,5 @@
 import { LLMProvider, ExtractionResult } from './types';
+import { sanitizeTextForLLM } from '@/utils/dataSanitization';
 
 /**
  * Custom Endpoint Service for development purposes
@@ -17,6 +18,16 @@ export class CustomEndpointService implements LLMProvider {
   }
 
   async extractTransactions(pageText: string): Promise<ExtractionResult> {
+    // Sanitize the input text to protect sensitive information
+    const sanitizationResult = sanitizeTextForLLM(pageText);
+    const sanitizedPageText = sanitizationResult.sanitizedText;
+    
+    // Log sanitization summary
+    if (sanitizationResult.detectedPatterns.length > 0) {
+      console.log('🔐 Sanitized sensitive data before sending to Custom Endpoint');
+      console.log('🔐 Sanitization summary:', sanitizationResult.summary);
+    }
+
     const prompt = `
     Extract bank transactions from the following text. Return ONLY valid JSON with this exact structure:
     {
@@ -31,7 +42,7 @@ export class CustomEndpointService implements LLMProvider {
     }
 
     Text to analyze:
-    ${pageText}
+    ${sanitizedPageText}
 
     Return ONLY the JSON object, no additional text or formatting.
     `;

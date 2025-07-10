@@ -2,6 +2,7 @@ import { LLMProvider as LLMProviderType } from '@/types/llm';
 import { GeminiService } from './GeminiService';
 import { CustomEndpointService } from './CustomEndpointService';
 import { LLMProvider, ExtractionResult } from './types';
+import { sanitizeTextForLLM } from '@/utils/dataSanitization';
 
 // Azure OpenAI Service implementation
 export class AzureOpenAIService implements LLMProvider {
@@ -26,6 +27,16 @@ export class AzureOpenAIService implements LLMProvider {
   }
 
   async extractTransactions(pageText: string): Promise<ExtractionResult> {
+    // Sanitize the input text to protect sensitive information
+    const sanitizationResult = sanitizeTextForLLM(pageText);
+    const sanitizedPageText = sanitizationResult.sanitizedText;
+    
+    // Log sanitization summary
+    if (sanitizationResult.detectedPatterns.length > 0) {
+      console.log('🔐 Sanitized sensitive data before sending to Azure OpenAI');
+      console.log('🔐 Sanitization summary:', sanitizationResult.summary);
+    }
+
     const prompt = `
     Extract bank transactions from the following text. Return ONLY valid JSON with this exact structure:
     {
@@ -40,7 +51,7 @@ export class AzureOpenAIService implements LLMProvider {
     }
 
     Text to analyze:
-    ${pageText}
+    ${sanitizedPageText}
 
     Return ONLY the JSON object, no additional text or formatting.
     `;
@@ -197,6 +208,16 @@ export class OpenAIService implements LLMProvider {
   }
 
   async extractTransactions(pageText: string): Promise<ExtractionResult> {
+    // Sanitize the input text to protect sensitive information
+    const sanitizationResult = sanitizeTextForLLM(pageText);
+    const sanitizedPageText = sanitizationResult.sanitizedText;
+    
+    // Log sanitization summary
+    if (sanitizationResult.detectedPatterns.length > 0) {
+      console.log('🔐 Sanitized sensitive data before sending to OpenAI');
+      console.log('🔐 Sanitization summary:', sanitizationResult.summary);
+    }
+
     const prompt = `
     Extract bank transactions from the following text. Return ONLY valid JSON with this exact structure:
     {
@@ -211,7 +232,7 @@ export class OpenAIService implements LLMProvider {
     }
 
     Text to analyze:
-    ${pageText}
+    ${sanitizedPageText}
 
     Return ONLY the JSON object, no additional text or formatting.
     `;
