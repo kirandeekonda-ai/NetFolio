@@ -238,9 +238,16 @@ export class IciciPdfParser {
         
         currentTransaction = {
           id: `tr-${Date.now()}-${Math.random()}`,
-          date: date,
+          user_id: '', // Will be filled when saving
+          transaction_date: date,
           description: descriptionText,
           amount: amount || 0,  // Use amount if available, otherwise 0 for now
+          transaction_type: finalType,
+          is_transfer: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          // Legacy fields for backward compatibility
+          date: date,
           type: finalType,
           category: 'Uncategorized',
         };
@@ -498,9 +505,16 @@ export class IciciPdfParser {
     
     return {
       id: `tr-${Date.now()}-${Math.random()}`,
-      date: validDate,
+      user_id: '', // Will be filled when saving
+      transaction_date: validDate,
       description: pending.description.trim(),
       amount,
+      transaction_type: pending.type,
+      is_transfer: false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      // Legacy fields for backward compatibility
+      date: validDate,
       type: pending.type,
       category: 'Uncategorized',
     };

@@ -33,6 +33,18 @@ interface BankTemplate {
   parser_config: any;
 }
 
+interface HealthData {
+  services: {
+    gemini: 'available' | 'not_configured' | 'connection_failed' | 'invalid_key';
+  };
+  details?: string;
+  provider_info?: {
+    type: string;
+    name: string;
+    isCustomEndpoint: boolean;
+  };
+}
+
 const months = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December'
@@ -55,6 +67,8 @@ export const StatementUploadForm: FC<StatementUploadFormProps> = ({
   const [processingMode, setProcessingMode] = useState<'template' | 'ai'>('template');
   const [processingLogs, setProcessingLogs] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [healthData, setHealthData] = useState<HealthData | null>(null);
+  const [isCheckingHealth, setIsCheckingHealth] = useState(false);
 
   const selectedAccount = accounts.find(acc => acc.id === selectedAccountId);
   
@@ -71,6 +85,57 @@ export const StatementUploadForm: FC<StatementUploadFormProps> = ({
 
   // Get user categories from Redux store for AI category matching
   const userCategories = useSelector((state: RootState) => state.categories.items);
+
+  // Helper function to check if AI processing is available
+  const isAIAvailable = (): boolean => {
+    return healthData?.services.gemini === 'available';
+  };
+
+  // Helper function to get AI status description
+  const getAIStatusDescription = (): string => {
+    if (!healthData) return 'Checking AI availability...';
+    
+    const { services, provider_info } = healthData;
+    const isCustomEndpoint = provider_info?.isCustomEndpoint;
+    
+    switch (services.gemini) {
+      case 'available':
+        return isCustomEndpoint 
+          ? `Custom endpoint ready: ${provider_info?.name}`
+          : 'AI processing ready';
+      case 'connection_failed':
+        return isCustomEndpoint
+          ? 'Custom endpoint connection failed'
+          : 'AI service connection failed';
+      case 'invalid_key':
+        return 'Invalid API credentials';
+      case 'not_configured':
+      default:
+        return isCustomEndpoint
+          ? 'Custom endpoint not configured'
+          : 'AI service not configured';
+    }
+  };
+
+  // Check health status on component mount
+  useEffect(() => {
+    const checkHealthStatus = async () => {
+      setIsCheckingHealth(true);
+      try {
+        const response = await fetch('/api/health');
+        if (response.ok) {
+          const data: HealthData = await response.json();
+          setHealthData(data);
+        }
+      } catch (error) {
+        console.error('Health check failed:', error);
+      } finally {
+        setIsCheckingHealth(false);
+      }
+    };
+
+    checkHealthStatus();
+  }, []);
 
   useEffect(() => {
     fetchAvailableTemplates();
@@ -161,6 +226,12 @@ export const StatementUploadForm: FC<StatementUploadFormProps> = ({
     e.preventDefault();
     
     if (!validateForm() || !selectedFile || !selectedAccount) return;
+
+    // Check if AI mode is selected but not available
+    if (processingMode === 'ai' && !isAIAvailable()) {
+      addLog(`❌ AI processing is not available: ${getAIStatusDescription()}`);
+      return;
+    }
 
     setIsProcessing(true);
     addLog(`🚀 Starting ${processingMode} processing...`);
@@ -321,16 +392,27 @@ export const StatementUploadForm: FC<StatementUploadFormProps> = ({
                   >
                     Use Template
                   </Button>
-                  <Button
-                    type="button"
-                    variant={processingMode === 'ai' ? 'primary' : 'secondary'}
-                    onClick={() => {
-                      setProcessingMode('ai');
-                      addLog('🤖 Switched to AI processing');
-                    }}
-                  >
-                    Use AI Instead
-                  </Button>
+                  <div className="relative">
+                    <Button
+                      type="button"
+                      variant={processingMode === 'ai' ? 'primary' : 'secondary'}
+                      onClick={() => {
+                        if (isAIAvailable()) {
+                          setProcessingMode('ai');
+                          addLog('🤖 Switched to AI processing');
+                        }
+                      }}
+                      disabled={!isAIAvailable()}
+                      title={isAIAvailable() ? 'Switch to AI processing' : getAIStatusDescription()}
+                    >
+                      {isCheckingHealth ? 'Checking...' : 'Use AI Instead'}
+                    </Button>
+                    {!isAIAvailable() && healthData && (
+                      <div className="absolute top-full left-0 mt-1 w-48 bg-yellow-50 border border-yellow-200 rounded p-2 text-xs text-yellow-800 z-10">
+                        {getAIStatusDescription()}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             ) : (
@@ -340,16 +422,28 @@ export const StatementUploadForm: FC<StatementUploadFormProps> = ({
                   <div>
                     <h4 className="font-semibold text-yellow-900">No Template Available</h4>
                     <p className="text-yellow-800">
-                      No template found for "{selectedAccount.bank_name}". Using AI-powered processing.
+                      No template found for "{selectedAccount.bank_name}". 
+                      {isAIAvailable() 
+                        ? ' Using AI-powered processing.' 
+                        : ' AI processing is not available.'}
                     </p>
                   </div>
                 </div>
-                <div className="mt-3">
-                  <div className="bg-yellow-100 p-3 rounded text-sm text-yellow-800">
-                    <strong>AI Processing:</strong> Uses advanced machine learning to extract transactions from any bank format.
-                    Results may require manual review for accuracy.
+                {isAIAvailable() ? (
+                  <div className="mt-3">
+                    <div className="bg-yellow-100 p-3 rounded text-sm text-yellow-800">
+                      <strong>AI Processing:</strong> Uses advanced machine learning to extract transactions from any bank format.
+                      Results may require manual review for accuracy.
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="mt-3">
+                    <div className="bg-red-100 p-3 rounded text-sm text-red-800">
+                      <strong>AI Unavailable:</strong> {getAIStatusDescription()}. 
+                      Please configure an AI provider or ensure your custom endpoint is running.
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -410,7 +504,12 @@ export const StatementUploadForm: FC<StatementUploadFormProps> = ({
             </Button>
             <Button
               type="submit"
-              disabled={isLoading || isProcessing || !selectedFile}
+              disabled={
+                isLoading || 
+                isProcessing || 
+                !selectedFile || 
+                (processingMode === 'ai' && !isAIAvailable())
+              }
             >
               {isProcessing ? 'Processing...' : isReupload ? 'Reupload & Process Statement' : 'Upload & Process Statement'}
             </Button>

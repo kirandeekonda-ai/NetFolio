@@ -3,6 +3,7 @@ import formidable from 'formidable';
 import fs from 'fs';
 import pdf from 'pdf-parse';
 import { createLLMProvider } from '../../../lib/llm/LLMProviderFactory';
+import { createEnhancedLLMService } from '../../../lib/llm/EnhancedLLMService';
 import { Transaction } from '../../../lib/llm/types';
 import { createSupabaseServerClient } from '@/utils/supabase';
 
@@ -121,8 +122,12 @@ async function processWithProvider(
     // Clean up temporary file
     fs.unlinkSync(file.filepath);
 
-    // Initialize LLM service using user's configured provider
-    const llmService = createLLMProvider(providerConfig);
+    // Initialize Enhanced LLM service (automatically chooses between custom endpoint and production)
+    const llmService = createEnhancedLLMService(providerConfig);
+
+    // Log provider information for debugging
+    const providerInfo = llmService.getProviderInfo();
+    console.log('Using LLM provider:', providerInfo.type, providerInfo.isCustomEndpoint ? '(Custom Endpoint)' : '(Production)');
 
     // Process the PDF text
     const allTransactions: Transaction[] = [];

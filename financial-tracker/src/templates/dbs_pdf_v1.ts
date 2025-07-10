@@ -179,9 +179,16 @@ export class DbsPdfParser {
         
         currentTransaction = {
           id: `tr-${Date.now()}-${Math.random()}`,
-          date: date,
+          user_id: '', // Will be filled when saving
+          transaction_date: date,
           description: details || '',
           amount: amount,
+          transaction_type: amount > 0 ? 'income' : 'expense',
+          is_transfer: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          // Legacy fields for backward compatibility
+          date: date,
           type: amount > 0 ? 'income' : 'expense',
           category: 'Uncategorized',
         };

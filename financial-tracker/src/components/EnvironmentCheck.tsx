@@ -10,6 +10,11 @@ interface HealthData {
     gemini: 'available' | 'not_configured' | 'connection_failed' | 'invalid_key';
   };
   details?: string;
+  provider_info?: {
+    type: string;
+    name: string;
+    isCustomEndpoint: boolean;
+  };
 }
 
 export const EnvironmentCheck: React.FC<EnvironmentCheckProps> = ({ onConfigComplete }) => {
@@ -65,6 +70,9 @@ export const EnvironmentCheck: React.FC<EnvironmentCheckProps> = ({ onConfigComp
   }
 
   if (healthData?.services.gemini === 'available') {
+    const isCustomEndpoint = healthData?.provider_info?.isCustomEndpoint;
+    const providerName = healthData?.provider_info?.name || 'AI Service';
+    
     return (
       <motion.div
         initial={{ opacity: 0, y: -10 }}
@@ -74,9 +82,16 @@ export const EnvironmentCheck: React.FC<EnvironmentCheckProps> = ({ onConfigComp
         <div className="flex items-center">
           <span className="text-green-600 mr-3">✅</span>
           <div>
-            <span className="text-green-700 font-semibold">AI processing is ready!</span>
+            <span className="text-green-700 font-semibold">
+              {isCustomEndpoint ? '🔧 Custom endpoint ready!' : 'AI processing is ready!'}
+            </span>
             {healthData.details && (
               <div className="text-green-600 text-sm mt-1">{healthData.details}</div>
+            )}
+            {isCustomEndpoint && (
+              <div className="text-green-600 text-xs mt-1 font-mono">
+                Development mode: Using custom endpoint for AI processing
+              </div>
             )}
           </div>
         </div>
@@ -104,26 +119,44 @@ export const EnvironmentCheck: React.FC<EnvironmentCheckProps> = ({ onConfigComp
       case 'connection_failed':
         return {
           title: '🌐 Connection Failed',
-          description: 'Unable to connect to the Gemini API.',
-          instructions: [
-            'Check your internet connection',
-            'Verify the API key has necessary permissions',
-            'Check if there are any firewall restrictions',
-            'Try again in a few moments'
-          ]
+          description: healthData?.provider_info?.isCustomEndpoint 
+            ? 'Unable to connect to the custom endpoint.'
+            : 'Unable to connect to the Gemini API.',
+          instructions: healthData?.provider_info?.isCustomEndpoint
+            ? [
+                'Check if your custom endpoint is running and accessible',
+                'Verify the endpoint URL is correct in your environment variables',
+                'Check network connectivity and firewall settings',
+                'Review the endpoint\'s response format and API contract'
+              ]
+            : [
+                'Check your internet connection',
+                'Verify the API key has necessary permissions',
+                'Check if there are any firewall restrictions',
+                'Try again in a few moments'
+              ]
         };
       
       case 'not_configured':
       default:
         return {
-          title: '⚙️ API Not Configured',
-          description: 'AI processing requires an LLM provider to be configured.',
-          instructions: [
-            'Go to Profile → LLM Provider Configuration',
-            'Add a provider (Google Gemini, Azure OpenAI, etc.)',
-            'Test the configuration to ensure it works',
-            'Set it as your default provider'
-          ]
+          title: '⚙️ AI Service Not Configured',
+          description: healthData?.provider_info?.isCustomEndpoint
+            ? 'Custom endpoint is enabled but not properly configured.'
+            : 'AI processing requires an LLM provider to be configured.',
+          instructions: healthData?.provider_info?.isCustomEndpoint
+            ? [
+                'Check your .env.local file for correct environment variables',
+                'Ensure NEXT_PUBLIC_CUSTOM_LLM_ENDPOINT is set to a valid URL',
+                'Verify the custom endpoint is running and accessible',
+                'Restart your development server after making changes'
+              ]
+            : [
+                'Go to Profile → LLM Provider Configuration',
+                'Add a provider (Google Gemini, Azure OpenAI, etc.)',
+                'Test the configuration to ensure it works',
+                'Set it as your default provider'
+              ]
         };
     }
   };
@@ -155,7 +188,7 @@ export const EnvironmentCheck: React.FC<EnvironmentCheckProps> = ({ onConfigComp
           ))}
         </ol>
         
-        {errorContent.title.includes('API Not Configured') && (
+        {errorContent.title.includes('AI Service Not Configured') && !healthData?.provider_info?.isCustomEndpoint && (
           <div className="mt-3 p-2 bg-yellow-100 rounded border">
             <p className="text-xs">
               <strong>Quick start:</strong> Visit{' '}
@@ -168,6 +201,15 @@ export const EnvironmentCheck: React.FC<EnvironmentCheckProps> = ({ onConfigComp
                 Google AI Studio
               </a>{' '}
               to get your free API key.
+            </p>
+          </div>
+        )}
+        
+        {healthData?.provider_info?.isCustomEndpoint && (
+          <div className="mt-3 p-2 bg-blue-100 rounded border">
+            <p className="text-xs">
+              <strong>Development mode:</strong> Using custom endpoint configuration.
+              Check your .env.local file and endpoint service.
             </p>
           </div>
         )}

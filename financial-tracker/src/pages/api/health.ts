@@ -1,6 +1,8 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { createSupabaseServerClient } from '@/utils/supabase';
 import { createLLMProvider } from '@/lib/llm/LLMProviderFactory';
+import { createEnhancedLLMService } from '@/lib/llm/EnhancedLLMService';
+import { isCustomEndpointAvailable } from '@/lib/llm/config';
 
 interface HealthResponse {
   status: 'ok' | 'error';
@@ -10,6 +12,11 @@ interface HealthResponse {
   };
   timestamp: string;
   details?: string;
+  provider_info?: {
+    type: string;
+    name: string;
+    isCustomEndpoint: boolean;
+  };
 }
 
 export default async function handler(
@@ -36,14 +43,37 @@ export default async function handler(
     
     let geminiStatus: 'available' | 'not_configured' | 'connection_failed' | 'invalid_key' = 'not_configured';
     let details = '';
+    let providerInfo: { type: string; name: string; isCustomEndpoint: boolean } | undefined;
 
-    if (authError || !user) {
-      // If no user, check environment variable as fallback
+    // Check if custom endpoint is available
+    if (isCustomEndpointAvailable()) {
+      console.log('🔧 Custom endpoint is available, testing connection...');
+      
+      try {
+        // Test custom endpoint
+        const enhancedService = createEnhancedLLMService();
+        const testResult = await enhancedService.testConnection();
+        
+        providerInfo = enhancedService.getProviderInfo();
+        
+        if (testResult.success) {
+          geminiStatus = 'available';
+          details = `Custom endpoint connection successful: ${providerInfo.name}`;
+        } else {
+          geminiStatus = 'connection_failed';
+          details = `Custom endpoint connection failed: ${testResult.error}`;
+        }
+      } catch (error) {
+        geminiStatus = 'connection_failed';
+        details = `Custom endpoint error: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      }
+    } else if (authError || !user) {
+      // If no user and no custom endpoint, check environment variable as fallback
       const geminiApiKey = process.env.GEMINI_API_KEY;
       
       if (!geminiApiKey) {
         geminiStatus = 'not_configured';
-        details = 'GEMINI_API_KEY environment variable is not set';
+        details = 'No custom endpoint configured and GEMINI_API_KEY environment variable is not set';
       } else {
         // Test the environment variable connection
         try {
@@ -149,7 +179,8 @@ export default async function handler(
         pdf_processing: 'available'
       },
       timestamp: new Date().toISOString(),
-      details
+      details,
+      provider_info: providerInfo
     };
 
     res.status(200).json(response);

@@ -1,5 +1,6 @@
 import { LLMProvider as LLMProviderType } from '@/types/llm';
 import { GeminiService } from './GeminiService';
+import { CustomEndpointService } from './CustomEndpointService';
 import { LLMProvider, ExtractionResult } from './types';
 
 // Azure OpenAI Service implementation
@@ -380,13 +381,12 @@ export function createLLMProvider(config: LLMProviderType): LLMProvider {
       });
 
     case 'custom':
-      if (!config.api_endpoint || !config.model_name) {
-        throw new Error('API endpoint and model name are required for custom provider');
+      if (!config.api_endpoint) {
+        throw new Error('API endpoint is required for custom provider');
       }
-      return new OpenAIService({
-        api_key: config.api_key || '',
-        model_name: config.model_name,
-        api_endpoint: config.api_endpoint
+      return new CustomEndpointService({
+        endpoint: config.api_endpoint,
+        api_key: config.api_key
       });
 
     default:

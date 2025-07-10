@@ -58,9 +58,16 @@ export const parsePdfToTransactions = async (file: File): Promise<Transaction[]>
           if (amount !== null) {
             transactions.push({
               id: `tr-${transactions.length}`,
-              date: currentDate,
+              user_id: '', // Will be filled when saving
+              transaction_date: currentDate,
               description: description.replace(amount.toString(), '').trim(),
               amount: amount,
+              transaction_type: amount > 0 ? 'income' : 'expense',
+              is_transfer: false,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              // Legacy fields for backward compatibility
+              date: currentDate,
               type: amount > 0 ? 'income' : 'expense',
               category: ''
             });
@@ -74,9 +81,16 @@ export const parsePdfToTransactions = async (file: File): Promise<Transaction[]>
           const description = buffer.map(b => b.text).join(' ');
           transactions.push({
             id: `tr-${transactions.length}`,
-            date: currentDate,
+            user_id: '', // Will be filled when saving
+            transaction_date: currentDate,
             description: description.trim(),
             amount: amount,
+            transaction_type: amount > 0 ? 'income' : 'expense',
+            is_transfer: false,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            // Legacy fields for backward compatibility
+            date: currentDate,
             type: amount > 0 ? 'income' : 'expense',
             category: ''
           });
