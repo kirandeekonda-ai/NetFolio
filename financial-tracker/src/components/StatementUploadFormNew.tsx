@@ -180,15 +180,8 @@ export const StatementUploadForm: FC<StatementUploadFormProps> = ({
           addLog('⚠️ No transactions extracted');
           onTransactionsExtracted([]);
         }
-      } else if (selectedFile.name.toLowerCase().endsWith('.csv')) {
-        // Handle CSV files (basic implementation)
-        addLog('📊 Processing CSV file...');
-        // For now, just pass empty transactions for CSV - would need CSV parser implementation
-        extractedTransactions = [];
-        addLog('⚠️ CSV processing not yet implemented');
-        onTransactionsExtracted([]);
       } else {
-        throw new Error('Unsupported file format. Please upload a PDF or CSV file.');
+        throw new Error('Unsupported file format. Please upload a PDF file.');
       }
 
       // Submit the statement record with the extracted transactions

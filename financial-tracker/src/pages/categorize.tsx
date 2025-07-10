@@ -7,7 +7,7 @@ import { Table } from '@/components/Table';
 import { Input } from '@/components/Input';
 import { Button } from '@/components/Button';
 import { ToastProvider, useToast } from '@/components/Toast';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/store';
 import { updateTransaction, setTransactions } from '@/store/transactionsSlice';
@@ -33,6 +33,9 @@ const Categorize: NextPage = () => {
   
   // UI state
   const [highlightedRows, setHighlightedRows] = useState<Set<string>>(new Set());
+  
+  // Ref for click-outside handling
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Check if user came from upload with no transactions
@@ -89,6 +92,23 @@ const Categorize: NextPage = () => {
 
     fetchUserPreferences();
   }, [user]);
+
+  // Handle click outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setOpenDropdown(null);
+      }
+    };
+
+    if (openDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [openDropdown]);
 
   // Debug: Log when transactions change
   useEffect(() => {
@@ -269,14 +289,20 @@ const Categorize: NextPage = () => {
         const style = getCategoryColorStyle(categoryName, categories);
         const isHighlighted = highlightedRows.has(item.id);
         
+        // Check if this is one of the last few rows to position dropdown above
+        const currentIndex = filteredTransactions.findIndex(t => t.id === item.id);
+        const isNearBottom = currentIndex >= filteredTransactions.length - 3;
+        
         return (
-          <div className="relative">
-            <button
+          <div className="relative" ref={dropdownRef}>
+            <motion.button
               onClick={(e) => {
                 e.stopPropagation();
                 setOpenDropdown(openDropdown === item.id ? null : item.id);
               }}
-              className={`px-3 py-1 rounded-label text-sm transition-all duration-200 ${
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className={`px-3 py-1 rounded-label text-sm transition-all duration-200 hover:shadow-sm ${
                 isHighlighted 
                   ? 'bg-green-200 text-green-800 shadow-md scale-105' 
                   : `${style.bg} ${style.text}`
@@ -284,29 +310,69 @@ const Categorize: NextPage = () => {
               style={!isHighlighted ? style.style : undefined}
             >
               {categoryName === 'Uncategorized' ? 'Select Category' : categoryName}
-            </button>
-            {openDropdown === item.id && (
-              <div
-                className="absolute z-10 mt-2 w-48 bg-white rounded-card shadow-card"
-                onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside dropdown
+              <motion.span
+                className="ml-2 inline-block"
+                animate={{ rotate: openDropdown === item.id ? 180 : 0 }}
+                transition={{ duration: 0.2 }}
               >
-                <div className="p-2 grid grid-cols-1 gap-1">
-                  {categories.map((category) => {
-                    const categoryStyle = getCategoryColorStyle(category.name, categories);
-                    return (
-                      <button
-                        key={category.id}
-                        onClick={() => handleCategoryChange(item, category)}
-                        className={`px-3 py-1.5 text-left text-sm rounded-button hover:bg-gray-100 transition-colors ${category.name === value ? `${categoryStyle.bg} ${categoryStyle.text}` : ''}`}
-                        style={category.name === value ? categoryStyle.style : undefined}
-                      >
-                        {category.name}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+                ▼
+              </motion.span>
+            </motion.button>
+            
+            <AnimatePresence>
+              {openDropdown === item.id && (
+                <motion.div
+                  initial={{ opacity: 0, y: isNearBottom ? 10 : -10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: isNearBottom ? 10 : -10, scale: 0.95 }}
+                  transition={{ duration: 0.15, ease: "easeOut" }}
+                  className="absolute z-50 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden"
+                  style={{ 
+                    minWidth: '200px',
+                    maxHeight: '300px',
+                    overflowY: 'auto',
+                    right: '0',
+                    ...(isNearBottom 
+                      ? { bottom: '100%', marginBottom: '8px' } 
+                      : { top: '100%', marginTop: '8px' }
+                    )
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="py-1">
+                    {categories.map((category, index) => {
+                      const categoryStyle = getCategoryColorStyle(category.name, categories);
+                      const isSelected = category.name === value;
+                      return (
+                        <motion.button
+                          key={category.id}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.02 }}
+                          onClick={() => handleCategoryChange(item, category)}
+                          className={`w-full px-4 py-2 text-left text-sm transition-all duration-150 flex items-center justify-between hover:bg-gray-50 ${
+                            isSelected ? `${categoryStyle.bg} ${categoryStyle.text}` : 'text-gray-700'
+                          }`}
+                          style={isSelected ? categoryStyle.style : undefined}
+                          whileHover={{ backgroundColor: isSelected ? undefined : '#f9fafb' }}
+                        >
+                          <span>{category.name}</span>
+                          {isSelected && (
+                            <motion.span
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1 }}
+                              className="text-xs"
+                            >
+                              ✓
+                            </motion.span>
+                          )}
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         );
       },
@@ -321,7 +387,6 @@ const Categorize: NextPage = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        onClick={() => setOpenDropdown(null)} // Close dropdown when clicking outside
       >
         <div className="flex justify-between items-center mb-6">
           <div>
@@ -403,11 +468,13 @@ const Categorize: NextPage = () => {
           </Card>
         ) : (
           <>
-            <Card>
-              <Table
-                data={filteredTransactions}
-                columns={columns}
-              />
+            <Card className="overflow-visible">
+              <div className="overflow-x-auto">
+                <Table
+                  data={filteredTransactions}
+                  columns={columns}
+                />
+              </div>
             </Card>
 
             <div className="mt-6 flex justify-between items-center">

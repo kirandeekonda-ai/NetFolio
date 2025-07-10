@@ -11,7 +11,6 @@ import { useAIPdfProcessor } from '@/hooks/useAIPdfProcessor';
 import { useDispatch } from 'react-redux';
 import { setTransactions } from '@/store/transactionsSlice';
 import { getFileTypeFromExtension } from '@/utils/fileTypes';
-import Papa from 'papaparse';
 
 interface StatementUploadFormProps {
   accounts: BankAccount[];
@@ -87,9 +86,6 @@ export const StatementUploadForm: FC<StatementUploadFormProps> = ({
     const extension = fileName.split('.').pop()?.toLowerCase();
     switch (extension) {
       case 'pdf': return '📄';
-      case 'csv': return '📊';
-      case 'xlsx':
-      case 'xls': return '📈';
       default: return '📁';
     }
   };
@@ -129,43 +125,8 @@ export const StatementUploadForm: FC<StatementUploadFormProps> = ({
           return;
         }
       } 
-      // For CSV files - keep existing logic
-      else if (fileType === 'text/csv') {
-        console.log('📊 Processing CSV file');
-        await new Promise((resolve) => {
-          Papa.parse<string[]>(file, {
-            complete: (results: Papa.ParseResult<string[]>) => {
-              transactions = results.data
-                .slice(1)
-                .map((row: string[], index: number) => ({
-                  id: `tr-${index}`,
-                  user_id: '',
-                  transaction_date: row[0],
-                  description: row[1],
-                  amount: parseFloat(row[2]),
-                  transaction_type: parseFloat(row[2]) > 0 ? 'income' as const : 'expense' as const,
-                  category: '',
-                  is_transfer: false,
-                  created_at: new Date().toISOString(),
-                  updated_at: new Date().toISOString(),
-                  // Legacy fields for backward compatibility
-                  date: row[0],
-                  type: parseFloat(row[2]) > 0 ? 'income' as const : 'expense' as const,
-                }));
-              resolve(null);
-            },
-            header: true,
-          });
-        });
-        console.log('✅ CSV processing completed');
-      }
-      // For Excel files (to be implemented)
-      else if (fileType?.includes('excel')) {
-        setErrors({ file: 'Excel support coming soon' });
-        return;
-      }
       else {
-        setErrors({ file: 'Unsupported file format' });
+        setErrors({ file: 'Unsupported file format. Please upload a PDF file.' });
         return;
       }
 
@@ -600,7 +561,7 @@ export const StatementUploadForm: FC<StatementUploadFormProps> = ({
               <p className="mt-1 text-sm text-red-600">{errors.file}</p>
             )}
             <p className="mt-1 text-sm text-gray-500">
-              Supported formats: PDF, CSV (max 20MB for AI processing)
+              Supported formats: PDF (max 5MB)
             </p>
             
             {(isLoading || isProcessingWithAI) && (

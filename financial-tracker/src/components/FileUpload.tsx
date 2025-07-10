@@ -38,7 +38,7 @@ export const FileUpload: FC<FileUploadProps> = ({
       if (rejection.errors[0].code === 'file-too-large') {
         setError(`File is too large. Maximum size is ${Math.round(maxSize / 1024 / 1024)}MB`);
       } else if (rejection.errors[0].code === 'file-invalid-type') {
-        setError(`Invalid file type. Please upload a CSV, Excel, or PDF file`);
+        setError(`Invalid file type. Please upload a PDF file`);
       } else {
         setError('Invalid file');
       }
@@ -129,14 +129,6 @@ export const FileUpload: FC<FileUploadProps> = ({
                 <div className="flex items-center space-x-2">
                   <span className="text-lg">📄</span>
                   <span>PDF</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <span className="text-lg">📊</span>
-                  <span>CSV</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <span className="text-lg">📈</span>
-                  <span>Excel</span>
                 </div>
               </div>
               <p className="text-xs text-gray-400">

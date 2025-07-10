@@ -68,20 +68,17 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
     fetchUserCategories();
   }, [user, supabase]);
 
-  const handleFileSelect = (file: File) => {
+  const handleFileSelect = async (file: File) => {
     setSelectedFile(file);
     clearLogs();
-  };
-
-  const handleProcessFile = async () => {
-    if (!selectedFile) return;
-
+    
+    // Auto-process the file immediately after selection
     setIsProcessing(true);
     try {
       console.log('🚀 Starting AI-powered PDF processing...');
       console.log('📂 Using user categories for processing:', userCategories.map(c => c.name));
       
-      const result = await processFile(selectedFile, userCategories);
+      const result = await processFile(file, userCategories);
       
       console.log(`✅ Successfully extracted ${result.transactions.length} transactions using AI`);
       onTransactionsExtracted(result.transactions);
@@ -93,8 +90,6 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
       setIsProcessing(false);
     }
   };
-
-  const canProcess = selectedFile && !isProcessing && !aiProcessing;
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -139,7 +134,7 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
           <div>
             <FileUpload
               onFileSelect={handleFileSelect}
-              maxSize={20 * 1024 * 1024} // 20MB for AI processing
+              maxSize={5 * 1024 * 1024} // 5MB
             />
             {selectedFile && (
               <p className="mt-2 text-sm text-gray-600">
@@ -163,31 +158,17 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
           )}
 
           {/* Action buttons */}
-          <div className="flex justify-end space-x-4">
-            <Button 
-              variant="secondary" 
-              onClick={onCancel}
-              disabled={isProcessing || aiProcessing}
-            >
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleProcessFile}
-              disabled={!canProcess}
-              className={isProcessing || aiProcessing ? 'opacity-50 cursor-not-allowed' : ''}
-            >
-              {isProcessing || aiProcessing ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Processing...
-                </>
-              ) : (
-                <>
-                  🚀 Extract Transactions
-                </>
-              )}
-            </Button>
-          </div>
+          {(isProcessing || aiProcessing) && (
+            <div className="flex justify-end space-x-4">
+              <Button 
+                variant="secondary" 
+                onClick={onCancel}
+                disabled={isProcessing || aiProcessing}
+              >
+                Cancel
+              </Button>
+            </div>
+          )}
 
           {/* Info section */}
           <div className="bg-blue-50 p-4 rounded-lg">
@@ -197,7 +178,8 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
               <li>• Handles multiple bank statement formats</li>
               <li>• Suggests categories based on transaction descriptions</li>
               <li>• Preserves credit/debit amounts correctly</li>
-              <li>• Supports files up to 20MB</li>
+              <li>• Supports PDF files up to 5MB</li>
+              <li>• Processes files immediately upon selection</li>
             </ul>
           </div>
         </div>
