@@ -23,21 +23,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     console.log(`[save-extracted] Saving ${transactions.length} transactions for user ${user.id}`);
+    console.log('[save-extracted] Raw transactions received:', transactions.map(t => ({
+      description: t.description,
+      category: t.category,
+      category_name: t.category_name,
+      amount: t.amount
+    })));
 
     // Prepare transactions for database insertion
-    const transactionsToInsert = transactions.map(transaction => ({
-      user_id: user.id,
-      bank_account_id: bankAccountId || null,
-      bank_statement_id: bankStatementId || null,
-      transaction_date: transaction.date || transaction.transaction_date,
-      description: transaction.description,
-      amount: transaction.amount,
-      transaction_type: transaction.type || transaction.transaction_type,
-      category_name: transaction.category || transaction.category_name || 'Uncategorized',
-      is_transfer: transaction.is_transfer || false,
-      reference_number: transaction.reference_number || null,
-      balance_after: transaction.balance_after || null,
-    }));
+    const transactionsToInsert = transactions.map(transaction => {
+      const processedTransaction = {
+        user_id: user.id,
+        bank_account_id: bankAccountId || null,
+        bank_statement_id: bankStatementId || null,
+        transaction_date: transaction.date || transaction.transaction_date,
+        description: transaction.description,
+        amount: transaction.amount,
+        transaction_type: transaction.type || transaction.transaction_type,
+        category_name: transaction.category || transaction.category_name || 'Uncategorized',
+        is_transfer: transaction.is_transfer || false,
+        reference_number: transaction.reference_number || null,
+        balance_after: transaction.balance_after || null,
+      };
+      
+      console.log(`[save-extracted] Processing transaction "${transaction.description}": category="${transaction.category}", category_name="${transaction.category_name}", final_category_name="${processedTransaction.category_name}"`);
+      
+      return processedTransaction;
+    });
 
     // Insert transactions into the database
     const { data: insertedTransactions, error } = await supabase

@@ -5,6 +5,7 @@
 
 import { LLMProvider as LLMProviderType } from '@/types/llm';
 import { LLMProvider, ExtractionResult } from './types';
+import { Category } from '@/types';
 import { createLLMProvider } from './LLMProviderFactory';
 import { getActiveLLMProvider, getLLMLoggingConfig } from './config';
 
@@ -26,11 +27,18 @@ export class EnhancedLLMService {
   /**
    * Extract transactions with automatic provider switching
    */
-  async extractTransactions(pageText: string): Promise<ExtractionResult> {
-    this.logInfo(`Starting transaction extraction with ${this.config.provider_type} provider`);
+  async extractTransactions(pageText: string, userCategories?: Category[]): Promise<ExtractionResult> {
+    const categoryCount = userCategories?.length || 0;
+    this.logInfo(`Starting transaction extraction with ${this.config.provider_type} provider and ${categoryCount} user categories`);
+    
+    if (categoryCount > 0) {
+      this.logInfo(`🎯 ENHANCED LLM SERVICE - User categories: ${userCategories!.map(cat => cat.name).join(', ')}`);
+    } else {
+      this.logInfo('⚠️ ENHANCED LLM SERVICE - No user categories provided');
+    }
     
     try {
-      const result = await this.provider.extractTransactions(pageText);
+      const result = await this.provider.extractTransactions(pageText, userCategories);
       
       this.logInfo(`Transaction extraction successful: ${result.transactions.length} transactions found`);
       this.logDebug('Extraction result:', result);

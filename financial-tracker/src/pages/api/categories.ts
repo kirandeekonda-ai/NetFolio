@@ -1,51 +1,72 @@
 
 import { NextApiRequest, NextApiResponse } from 'next';
-import { getDb } from '@/lib/db';
+import { createSupabaseServerClient } from '@/utils/supabase';
 import { Category } from '@/types';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const db = getDb();
+  const supabase = createSupabaseServerClient(req, res);
   const { method } = req;
 
   switch (method) {
     case 'GET':
       try {
-        const { rows } = await db.query<Category>('SELECT * FROM categories WHERE user_id IS NULL OR user_id = $1', [req.query.userId]);
-        res.status(200).json(rows);
+        const { data, error } = await supabase
+          .from('categories')
+          .select('*')
+          .or(`user_id.is.null,user_id.eq.${req.query.userId}`);
+        
+        if (error) throw error;
+        res.status(200).json(data);
       } catch (error) {
+        console.error('Failed to fetch categories:', error);
         res.status(500).json({ error: 'Failed to fetch categories' });
       }
       break;
     case 'POST':
       try {
         const { name, type, color, userId } = req.body;
-        const { rows } = await db.query<Category>(
-          'INSERT INTO categories (name, type, color, user_id) VALUES ($1, $2, $3, $4) RETURNING *',
-          [name, type, color, userId]
-        );
-        res.status(201).json(rows[0]);
+        const { data, error } = await supabase
+          .from('categories')
+          .insert([{ name, type, color, user_id: userId }])
+          .select()
+          .single();
+        
+        if (error) throw error;
+        res.status(201).json(data);
       } catch (error) {
+        console.error('Failed to create category:', error);
         res.status(500).json({ error: 'Failed to create category' });
       }
       break;
     case 'PUT':
       try {
         const { id, name, type, color } = req.body;
-        const { rows } = await db.query<Category>(
-          'UPDATE categories SET name = $1, type = $2, color = $3 WHERE id = $4 RETURNING *',
-          [name, type, color, id]
-        );
-        res.status(200).json(rows[0]);
+        const { data, error } = await supabase
+          .from('categories')
+          .update({ name, type, color })
+          .eq('id', id)
+          .select()
+          .single();
+        
+        if (error) throw error;
+        res.status(200).json(data);
       } catch (error) {
+        console.error('Failed to update category:', error);
         res.status(500).json({ error: 'Failed to update category' });
       }
       break;
     case 'DELETE':
       try {
         const { id } = req.body;
-        await db.query('DELETE FROM categories WHERE id = $1', [id]);
+        const { error } = await supabase
+          .from('categories')
+          .delete()
+          .eq('id', id);
+        
+        if (error) throw error;
         res.status(204).end();
       } catch (error) {
+        console.error('Failed to delete category:', error);
         res.status(500).json({ error: 'Failed to delete category' });
       }
       break;

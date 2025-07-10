@@ -6,6 +6,7 @@ import { createLLMProvider } from '../../../lib/llm/LLMProviderFactory';
 import { createEnhancedLLMService } from '../../../lib/llm/EnhancedLLMService';
 import { Transaction } from '../../../lib/llm/types';
 import { createSupabaseServerClient } from '@/utils/supabase';
+import { Category } from '@/types';
 
 // Disable Next.js default body parser
 export const config = {
@@ -78,10 +79,10 @@ export default async function handler(
       }
 
       // Use the first available active provider
-      return await processWithProvider(req, res, anyProvider);
+      return await processWithProvider(req, res, anyProvider, user);
     }
 
-    return await processWithProvider(req, res, provider);
+    return await processWithProvider(req, res, provider, user);
   } catch (error) {
     console.error('Error in PDF processing:', error);
     return res.status(500).json({ 
@@ -94,9 +95,44 @@ export default async function handler(
 async function processWithProvider(
   req: NextApiRequest, 
   res: NextApiResponse<APIResponse | ErrorResponse>,
-  providerConfig: any
+  providerConfig: any,
+  user: any
 ) {
   try {
+    const supabase = createSupabaseServerClient(req, res);
+    
+    // Debug: Log user information
+    console.log('🔍 PDF API - User ID:', user.id);
+    console.log('🔍 PDF API - User email:', user.email);
+    
+    // Fetch user's categories from user_preferences (same as categorize page)
+    let categories: Category[] = [];
+    try {
+      console.log('🔍 PDF API - Querying user_preferences for user_id:', user.id);
+      const { data: userPreferences, error: preferencesError } = await supabase
+        .from('user_preferences')
+        .select('categories')
+        .eq('user_id', user.id)
+        .single();
+
+      if (preferencesError) {
+        console.error('❌ Error fetching user preferences from Supabase:', preferencesError);
+      } else {
+        console.log('✅ PDF API - User preferences query successful, raw data:', userPreferences);
+        categories = userPreferences?.categories || [];
+      }
+      
+      console.log(`📂 PDF API - Found ${categories.length} user categories from preferences for personalized extraction`);
+      if (categories.length > 0) {
+        console.log('📂 PDF API - Category names:', categories.map((cat: Category) => cat.name));
+      } else {
+        console.log('⚠️ PDF API - No user categories found in preferences, will use default examples');
+      }
+    } catch (categoriesError) {
+      console.error('❌ Error fetching user categories from user_preferences:', categoriesError);
+      console.log('⚠️ PDF API - Continuing with empty categories due to fetch error');
+    }
+
     // Parse the multipart form data
     const { file } = await parseForm(req);
     
@@ -138,7 +174,8 @@ async function processWithProvider(
     const pageText = pdfData.text;
     if (pageText.trim()) {
       try {
-        const result = await llmService.extractTransactions(pageText);
+        console.log(`🚀 PDF API - Calling LLM service with ${categories.length} user categories`);
+        const result = await llmService.extractTransactions(pageText, categories);
         allTransactions.push(...result.transactions);
         totalInputTokens += result.usage.prompt_tokens;
         totalOutputTokens += result.usage.completion_tokens;

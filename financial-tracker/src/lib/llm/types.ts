@@ -1,3 +1,5 @@
+import { Category } from '@/types';
+
 export interface Transaction {
   date: string; // ISO-8601 format
   description: string;
@@ -17,6 +19,6 @@ export interface ExtractionResult {
 }
 
 export interface LLMProvider {
-  extractTransactions(pageText: string): Promise<ExtractionResult>;
+  extractTransactions(pageText: string, userCategories?: Category[]): Promise<ExtractionResult>;
   testConnection(): Promise<{ success: boolean; error?: string }>;
 }

@@ -85,10 +85,21 @@ export const useAIPdfProcessor = (): UseAIPdfProcessorReturn => {
         // Check if AI provided a suggested category
         let finalCategory = 'Uncategorized';
         const aiCategory = txn.suggested_category || txn.category;
+        
+        console.log(`🔍 CATEGORY MATCHING DEBUG for "${description}":`, {
+          aiCategory,
+          suggested_category: txn.suggested_category,
+          category: txn.category,
+          userCategories: userCategories.map(c => c.name),
+          hasCategoryMatcher: !!categoryMatcher
+        });
+        
         if (categoryMatcher && aiCategory && aiCategory.trim() && aiCategory !== 'N/A') {
           finalCategory = categoryMatcher.matchCategory(aiCategory.trim());
+          console.log(`🎯 Mapped AI category "${aiCategory}" to "${finalCategory}"`);
           addLog(`🎯 Mapped AI category "${aiCategory}" to "${finalCategory}"`);
         } else if (userCategories.length > 0) {
+          console.log(`⚠️ No category matching for "${description}" - aiCategory: "${aiCategory}", categoryMatcher: ${!!categoryMatcher}`);
           addLog(`⚠️ No AI category suggestion for "${description.substring(0, 50)}..." - using "Uncategorized"`);
         }
         const transactionType = amount > 0 ? 'income' as const : 'expense' as const;
@@ -99,7 +110,7 @@ export const useAIPdfProcessor = (): UseAIPdfProcessorReturn => {
           bank_account_id: '',
           transaction_date: date,
           description,
-          amount: Math.abs(amount),
+          amount: amount, // Keep original amount with sign (positive for credits, negative for debits)
           transaction_type: transactionType,
           category_name: finalCategory,
           is_transfer: false,

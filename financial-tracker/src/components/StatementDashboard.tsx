@@ -169,6 +169,12 @@ export const StatementDashboard = forwardRef<StatementDashboardRef, StatementDas
         const transactions = data.transactions || [];
         
         console.log('Fetched transactions:', transactions.length);
+        console.log('Transaction category fields debug:', transactions.map((t: any) => ({
+          id: t.id,
+          description: t.description,
+          category_name: t.category_name,
+          category: t.category
+        })));
         
         if (transactions.length === 0) {
           alert('No transactions found for this statement.');

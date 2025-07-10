@@ -1,4 +1,5 @@
 import { LLMProvider, ExtractionResult } from './types';
+import { Category } from '@/types';
 import { sanitizeTextForLLM } from '@/utils/dataSanitization';
 
 /**
@@ -17,7 +18,15 @@ export class CustomEndpointService implements LLMProvider {
     this.apiKey = config.api_key;
   }
 
-  async extractTransactions(pageText: string): Promise<ExtractionResult> {
+  async extractTransactions(pageText: string, userCategories: Category[] = []): Promise<ExtractionResult> {
+    // Log user categories for debugging
+    console.log('🎯 CUSTOM ENDPOINT SERVICE - User categories received:', userCategories.length);
+    if (userCategories.length > 0) {
+      console.log('🎯 CUSTOM ENDPOINT SERVICE - Category names:', userCategories.map(cat => cat.name));
+    } else {
+      console.log('⚠️ CUSTOM ENDPOINT SERVICE - No user categories provided, using default examples');
+    }
+
     // Sanitize the input text to protect sensitive information
     const sanitizationResult = sanitizeTextForLLM(pageText);
     const sanitizedPageText = sanitizationResult.sanitizedText;
@@ -28,18 +37,65 @@ export class CustomEndpointService implements LLMProvider {
       console.log('🔐 Sanitization summary:', sanitizationResult.summary);
     }
 
+    // Build suggested category description based on user categories
+    let categoriesDescription = "automatically classified category based on description";
+    if (userCategories.length > 0) {
+      const categoryNames = userCategories.map(cat => cat.name).join(', ');
+      categoriesDescription = `one of the user's preferred categories: ${categoryNames}`;
+    } else {
+      categoriesDescription += " (e.g., food, transport, insurance, interest, transfer, etc.)";
+    }
+
+    // Build categorization guidelines based on user categories
+    let categorizationGuidelines = "";
+    if (userCategories.length > 0) {
+      categorizationGuidelines = `3. **Smart Categorization**: ONLY use the user's preferred categories listed above. Match transactions to the most appropriate category from the user's list based on the transaction description.`;
+    } else {
+      categorizationGuidelines = `3. **Smart Categorization**: Analyze transaction descriptions to suggest appropriate categories:
+       - Shopping/retail transactions → "shopping"
+       - Food delivery, restaurants → "food"
+       - Transportation, fuel, parking → "transport"
+       - Utility bills, phone bills → "utilities"
+       - ATM withdrawals → "cash_withdrawal"
+       - Salary deposits → "salary"
+       - Investment transactions → "investment"
+       - Insurance payments → "insurance"
+       - Transfer between accounts → "transfer"
+       - Interest earned → "interest"
+       - Fees and charges → "fees"`;
+    }
+
     const prompt = `
-    Extract bank transactions from the following text. Return ONLY valid JSON with this exact structure:
+    Analyze the bank statement or transaction data provided below and extract individual transactions. Your goal is to create a structured list of financial transactions with accurate categorization.
+
+    Return ONLY valid JSON with the following structure:
+
     {
       "transactions": [
         {
           "date": "YYYY-MM-DD",
-          "description": "transaction description",
+          "description": "transaction description (cleaned and readable)",
           "amount": number (positive for credits, negative for debits),
-          "suggested_category": "suggested category name based on description (e.g., food, transport, utilities, etc.)"
+          "suggested_category": "${categoriesDescription}"
         }
       ]
     }
+
+    Critical Guidelines:
+    1. **Credit/Debit Detection**: Use balance changes to determine transaction direction. If balance increases, the transaction is a credit (positive amount). If balance decreases, it's a debit (negative amount).
+    
+    2. **Description Cleaning**: Remove unnecessary codes, reference numbers, and redundant information. Make descriptions human-readable and concise.
+    
+    ${categorizationGuidelines}
+    
+    4. **Data Filtering**: 
+       - Ignore opening/closing balance entries
+       - Skip summary rows and totals
+       - Focus only on individual transaction line items
+    
+    5. **Multi-line Handling**: If transaction data spans multiple lines (common in Indian bank statements), merge them into a single coherent entry.
+    
+    6. **Date Formatting**: Convert all dates to YYYY-MM-DD format regardless of the source format.
 
     Text to analyze:
     ${sanitizedPageText}
@@ -111,13 +167,20 @@ export class CustomEndpointService implements LLMProvider {
 
       // Validate and transform the response
       const transactions = parsedResponse.transactions || [];
-      const validTransactions = transactions.map((tx: any) => ({
-        date: tx.date || new Date().toISOString().split('T')[0],
-        description: tx.description || 'Unknown transaction',
-        category: tx.suggested_category || tx.category || 'Uncategorized',
-        amount: parseFloat(tx.amount) || 0,
-        currency: tx.currency || 'USD'
-      }));
+      const validTransactions = transactions.map((tx: any) => {
+        const amount = parseFloat(tx.amount) || 0;
+        const transaction_type = amount > 0 ? 'income' : 'expense';
+        
+        return {
+          date: tx.date || new Date().toISOString().split('T')[0],
+          description: tx.description || 'Unknown transaction',
+          category: tx.suggested_category || tx.category || 'Uncategorized',
+          amount: amount,
+          currency: tx.currency || 'INR', // Default to INR for Indian bank statements
+          type: transaction_type, // Legacy field for compatibility
+          transaction_type: transaction_type, // New field for database
+        };
+      });
 
       return {
         transactions: validTransactions,

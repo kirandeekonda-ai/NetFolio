@@ -6,7 +6,7 @@ import { useDispatch } from 'react-redux';
 import { BankAccount, BankStatement, StatementUpload, Transaction } from '@/types';
 import { Layout } from '@/components/layout/Layout';
 import { StatementDashboard, StatementDashboardRef } from '@/components/StatementDashboard';
-import { StatementUploadForm } from '@/components/StatementUploadFormNew';
+import { SimplifiedStatementUpload } from '@/components/SimplifiedStatementUpload';
 import { Auth } from '@/components/Auth';
 import { ConfirmationDialog } from '@/components/ConfirmationDialog';
 import { ToastProvider, useToast } from '@/components/Toast';
@@ -250,12 +250,134 @@ File: ${statement.file_name || 'N/A'}`);
     }
   };
 
-  const handleTransactionsExtracted = (transactions: Transaction[]) => {
-    setExtractedTransactions(transactions);
-    // Dispatch transactions to Redux store so they're available on the categorize page
-    dispatch(setTransactions(transactions));
-    console.log(`Extracted ${transactions.length} transactions, ready for upload:`, transactions);
-    console.log('Transactions dispatched to Redux store for categorization');
+  const handleTransactionsExtracted = async (transactions: Transaction[]) => {
+    try {
+      setIsLoading(true);
+      
+      // Store extracted transactions
+      setExtractedTransactions(transactions);
+      console.log(`Extracted ${transactions.length} transactions, starting upload process...`);
+      console.log('EXTRACTED TRANSACTIONS DEBUG:', transactions.map(t => ({
+        description: t.description,
+        category: t.category,
+        category_name: t.category_name,
+        amount: t.amount
+      })));
+
+      // If we're reuploading, first delete the existing statement
+      if (reuploadStatementId) {
+        const deleteResponse = await fetch(`/api/bank-statements?id=${reuploadStatementId}`, {
+          method: 'DELETE',
+        });
+
+        if (!deleteResponse.ok) {
+          const error = await deleteResponse.json();
+          throw new Error('Failed to remove existing statement: ' + error.error);
+        }
+      }
+
+      // Calculate statement dates based on month/year
+      const statementStartDate = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-01`;
+      const statementEndDate = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-${new Date(selectedYear, selectedMonth, 0).getDate().toString().padStart(2, '0')}`;
+
+      // Create the new statement record
+      const statementData = {
+        bank_account_id: selectedAccountId,
+        statement_month: selectedMonth,
+        statement_year: selectedYear,
+        statement_start_date: statementStartDate,
+        statement_end_date: statementEndDate,
+        file_name: 'AI_Processed_Statement.pdf', // Since we don't have file reference in this simplified flow
+        file_size_mb: 0, // AI processed, no direct file size
+      };
+
+      const response = await fetch('/api/bank-statements', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(statementData),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Save extracted transactions to database if there are any
+        let savedTransactions = transactions;
+        if (transactions.length > 0) {
+          console.log(`Saving ${transactions.length} extracted transactions to database...`);
+          console.log('TRANSACTIONS TO SAVE DEBUG:', transactions.map(t => ({
+            description: t.description,
+            category: t.category,
+            category_name: t.category_name,
+            amount: t.amount
+          })));
+          
+          try {
+            const saveResponse = await fetch('/api/transactions/save-extracted', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                transactions: transactions,
+                bankAccountId: selectedAccountId,
+                bankStatementId: data.statement.id
+              }),
+            });
+
+            if (saveResponse.ok) {
+              const saveData = await saveResponse.json();
+              savedTransactions = saveData.transactions || [];
+              console.log(`Successfully saved ${saveData.count} transactions to database`);
+            } else {
+              const saveError = await saveResponse.json();
+              console.error('Failed to save transactions:', saveError);
+              alert('Warning: Transactions were extracted but not saved to database. You can still categorize them, but changes won\'t persist.');
+            }
+          } catch (saveError) {
+            console.error('Error saving transactions:', saveError);
+            alert('Warning: Error saving transactions to database. You can still categorize them, but changes won\'t persist.');
+          }
+        }
+        
+        // Store transactions in Redux store for categorize page (use saved transactions with real UUIDs)
+        dispatch(setTransactions(savedTransactions));
+        
+        // Update statement status to completed
+        await fetch(`/api/bank-statements?id=${data.statement.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            processing_status: 'completed',
+            processed_at: new Date().toISOString(),
+            transaction_count: transactions.length,
+          }),
+        });
+
+        // Always redirect to categorize page after successful upload
+        setShowUploadForm(false);
+        
+        if (transactions.length > 0) {
+          // Redirect to categorize page with the extracted transactions
+          router.push('/categorize');
+        } else {
+          // No transactions extracted, still redirect to categorize page with a message
+          router.push('/categorize?message=no_transactions');
+        }
+      } else {
+        const error = await response.json();
+        console.error('Failed to create statement:', error);
+        alert('Failed to create statement: ' + error.error);
+      }
+    } catch (error) {
+      console.error('Error in upload process:', error);
+      alert('Error in upload process: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleCancel = () => {
@@ -280,15 +402,13 @@ File: ${statement.file_name || 'N/A'}`);
           className="space-y-8"
         >
           {showUploadForm ? (
-            <StatementUploadForm
+            <SimplifiedStatementUpload
               accounts={accounts}
               selectedAccountId={selectedAccountId}
               selectedMonth={selectedMonth}
               selectedYear={selectedYear}
-              onSubmit={handleStatementUpload}
-              onCancel={handleCancel}
               onTransactionsExtracted={handleTransactionsExtracted}
-              isLoading={isLoading}
+              onCancel={handleCancel}
               isReupload={!!reuploadStatementId}
             />
           ) : (

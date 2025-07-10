@@ -99,7 +99,11 @@ const Categorize: NextPage = () => {
       description: t.description,
       isValidUUID: isValidUUID(t.id),
       category: t.category,
-      amount: t.amount
+      amount: t.amount,
+      amountType: typeof t.amount,
+      amountIsNegative: t.amount < 0,
+      transaction_type: t.transaction_type,
+      type: t.type
     })));
   }, [transactions]);
 
