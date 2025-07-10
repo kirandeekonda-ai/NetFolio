@@ -4,6 +4,7 @@ import { CustomEndpointService } from './CustomEndpointService';
 import { LLMProvider, ExtractionResult } from './types';
 import { Category } from '@/types';
 import { sanitizeTextForLLM } from '@/utils/dataSanitization';
+import { transactionPromptBuilder } from './PromptTemplateService';
 
 // Azure OpenAI Service implementation
 export class AzureOpenAIService implements LLMProvider {
@@ -46,71 +47,11 @@ export class AzureOpenAIService implements LLMProvider {
       console.log('🔐 Sanitization summary:', sanitizationResult.summary);
     }
 
-    // Build suggested category description based on user categories
-    let categoriesDescription = "automatically classified category based on description";
-    if (userCategories.length > 0) {
-      const categoryNames = userCategories.map(cat => cat.name).join(', ');
-      categoriesDescription = `one of the user's preferred categories: ${categoryNames}`;
-    } else {
-      categoriesDescription += " (e.g., food, transport, insurance, interest, transfer, etc.)";
-    }
-
-    // Build categorization guidelines based on user categories
-    let categorizationGuidelines = "";
-    if (userCategories.length > 0) {
-      categorizationGuidelines = `3. **Smart Categorization**: ONLY use the user's preferred categories listed above. Match transactions to the most appropriate category from the user's list based on the transaction description.`;
-    } else {
-      categorizationGuidelines = `3. **Smart Categorization**: Analyze transaction descriptions to suggest appropriate categories:
-       - Shopping/retail transactions → "shopping"
-       - Food delivery, restaurants → "food"
-       - Transportation, fuel, parking → "transport"
-       - Utility bills, phone bills → "utilities"
-       - ATM withdrawals → "cash_withdrawal"
-       - Salary deposits → "salary"
-       - Investment transactions → "investment"
-       - Insurance payments → "insurance"
-       - Transfer between accounts → "transfer"
-       - Interest earned → "interest"
-       - Fees and charges → "fees"`;
-    }
-
-    const prompt = `
-    Analyze the bank statement or transaction data provided below and extract individual transactions. Your goal is to create a structured list of financial transactions with accurate categorization.
-
-    Return ONLY valid JSON with the following structure:
-
-    {
-      "transactions": [
-        {
-          "date": "YYYY-MM-DD",
-          "description": "transaction description (cleaned and readable)",
-          "amount": number (positive for credits, negative for debits),
-          "suggested_category": "${categoriesDescription}"
-        }
-      ]
-    }
-
-    Critical Guidelines:
-    1. **Credit/Debit Detection**: Use balance changes to determine transaction direction. If balance increases, the transaction is a credit (positive amount). If balance decreases, it's a debit (negative amount).
-    
-    2. **Description Cleaning**: Remove unnecessary codes, reference numbers, and redundant information. Make descriptions human-readable and concise.
-    
-    ${categorizationGuidelines}
-    
-    4. **Data Filtering**: 
-       - Ignore opening/closing balance entries
-       - Skip summary rows and totals
-       - Focus only on individual transaction line items
-    
-    5. **Multi-line Handling**: If transaction data spans multiple lines (common in Indian bank statements), merge them into a single coherent entry.
-    
-    6. **Date Formatting**: Convert all dates to YYYY-MM-DD format regardless of the source format.
-
-    Text to analyze:
-    ${sanitizedPageText}
-
-    Return ONLY the JSON object, no additional text or formatting.
-    `;
+    // Build prompt using centralized template service
+    const prompt = transactionPromptBuilder.buildTransactionExtractionPrompt(
+      sanitizedPageText,
+      userCategories
+    );
 
     const endpoint = `https://${this.resourceName}.openai.azure.com/openai/deployments/${this.deploymentName}/chat/completions?api-version=${this.apiVersion}`;
 
@@ -199,7 +140,7 @@ export class AzureOpenAIService implements LLMProvider {
 
   async testConnection(): Promise<{ success: boolean; error?: string }> {
     try {
-      const testPrompt = "Say hello";
+      const testPrompt = transactionPromptBuilder.buildConnectionTestPrompt();
       const endpoint = `https://${this.resourceName}.openai.azure.com/openai/deployments/${this.deploymentName}/chat/completions?api-version=${this.apiVersion}`;
 
       const response = await fetch(endpoint, {
@@ -296,77 +237,11 @@ export class OpenAIService implements LLMProvider {
       console.log('🔐 Sanitization summary:', sanitizationResult.summary);
     }
 
-    // Build suggested category description based on user categories
-    let categoriesDescription = "automatically classified category based on description";
-    if (userCategories.length > 0) {
-      const categoryNames = userCategories.map(cat => cat.name).join(', ');
-      categoriesDescription = `one of the user's preferred categories: ${categoryNames}`;
-    } else {
-      categoriesDescription += " (e.g., food, transport, insurance, interest, transfer, etc.)";
-    }
-
-    // Build categorization guidelines based on user categories
-    let categorizationGuidelines = "";
-    if (userCategories.length > 0) {
-      categorizationGuidelines = `3. **Smart Categorization**: ONLY use the user's preferred categories listed above. Match transactions to the most appropriate category from the user's list based on the transaction description.`;
-    } else {
-      categorizationGuidelines = `3. **Smart Categorization**: Analyze transaction descriptions to suggest appropriate categories:
-       - Shopping/retail transactions → "shopping"
-       - Food delivery, restaurants → "food"
-       - Transportation, fuel, parking → "transport"
-       - Utility bills, phone bills → "utilities"
-       - ATM withdrawals → "cash_withdrawal"
-       - Salary deposits → "salary"
-       - Investment transactions → "investment"
-       - Insurance payments → "insurance"
-       - Transfer between accounts → "transfer"
-       - Interest earned → "interest"
-       - Fees and charges → "fees"`;
-    }
-
-    const prompt = `
-    Analyze the bank statement or transaction data provided below and extract individual transactions. Your goal is to create a structured list of financial transactions with accurate categorization.
-
-    Return ONLY valid JSON with the following structure:
-
-    {
-      "transactions": [
-        {
-          "date": "YYYY-MM-DD",
-          "description": "transaction description (cleaned and readable)",
-          "amount": number (positive for credits, negative for debits),
-          "suggested_category": "${categoriesDescription}"
-        }
-      ]
-    }
-          "description": "transaction description (cleaned and readable)",
-          "amount": number (positive for credits, negative for debits),
-          "suggested_category": "automatically classified category based on description (e.g., food, transport, insurance, interest, transfer, etc.)"
-        }
-      ]
-    }
-
-    Critical Guidelines:
-    1. **Credit/Debit Detection**: Use balance changes to determine transaction direction. If balance increases, the transaction is a credit (positive amount). If balance decreases, it's a debit (negative amount).
-    
-    2. **Description Cleaning**: Remove unnecessary codes, reference numbers, and redundant information. Make descriptions human-readable and concise.
-    
-    ${categorizationGuidelines}
-    
-    4. **Data Filtering**: 
-       - Ignore opening/closing balance entries
-       - Skip summary rows and totals
-       - Focus only on individual transaction line items
-    
-    5. **Multi-line Handling**: If transaction data spans multiple lines (common in Indian bank statements), merge them into a single coherent entry.
-    
-    6. **Date Formatting**: Convert all dates to YYYY-MM-DD format regardless of the source format.
-
-    Text to analyze:
-    ${sanitizedPageText}
-
-    Return ONLY the JSON object, no additional text or formatting.
-    `;
+    // Build prompt using centralized template service
+    const prompt = transactionPromptBuilder.buildTransactionExtractionPrompt(
+      sanitizedPageText,
+      userCategories
+    );
 
     try {
       console.log('=== PROMPT SENT TO OPENAI LLM ===');
@@ -454,7 +329,7 @@ export class OpenAIService implements LLMProvider {
 
   async testConnection(): Promise<{ success: boolean; error?: string }> {
     try {
-      const testPrompt = "Say hello";
+      const testPrompt = transactionPromptBuilder.buildConnectionTestPrompt();
       const response = await fetch(`${this.endpoint}/chat/completions`, {
         method: 'POST',
         headers: {

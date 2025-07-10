@@ -256,25 +256,33 @@ export const StatementDashboard = forwardRef<StatementDashboardRef, StatementDas
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 flex items-center">
-            Statement Dashboard
-            {isRefreshing && (
-              <div className="ml-3 animate-spin h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
-            )}
-          </h2>
-          <p className="text-gray-600">
-            Track your monthly statement uploads and processing status
-          </p>
-        </div>
-        <Button 
-          onClick={() => onUploadStatement(selectedAccount !== 'all' ? selectedAccount : activeAccounts[0].id, currentMonth, selectedYear)}
-          disabled={isLoading || isRefreshing}
-        >
-          {isLoading ? 'Loading...' : 'Upload Statement'}
-        </Button>
+      <div>
+        <h2 className="text-2xl font-bold text-gray-900 flex items-center">
+          Statement Dashboard
+          {isRefreshing && (
+            <div className="ml-3 animate-spin h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+          )}
+        </h2>
+        <p className="text-gray-600">
+          Track your monthly statement uploads and processing status
+        </p>
       </div>
+
+      {/* Pro Tips - Moved to top for better visibility */}
+      <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+        <div className="flex items-start space-x-3">
+          <span className="text-green-600 text-xl mt-0.5">💡</span>
+          <div>
+            <h4 className="font-semibold text-green-900 mb-2">Pro Tips</h4>
+            <div className="text-sm text-green-800 space-y-1">
+              <p>• Click on empty months to quickly upload statements</p>
+              <p>• Orange highlighted months indicate the current month</p>
+              <p>• Use filters below to focus on specific accounts or years</p>
+              <p>• Click the ⋯ button on uploaded statements for more actions</p>
+            </div>
+          </div>
+        </div>
+      </Card>
 
       {/* Filters */}
       <Card>
@@ -540,18 +548,6 @@ export const StatementDashboard = forwardRef<StatementDashboardRef, StatementDas
                 <span className="text-xs px-2 py-1 bg-red-500 text-white rounded font-medium">🗑️</span>
                 <span className="text-sm text-gray-700">Permanently remove statement</span>
               </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Quick Tips */}
-        <div className="mt-4 p-3 bg-blue-100 border border-blue-200 rounded-lg">
-          <div className="flex items-start space-x-2">
-            <span className="text-blue-600 mt-0.5">💡</span>
-            <div className="text-sm text-blue-800">
-              <strong>Pro Tips:</strong> Click on empty months to quickly upload statements. 
-              Orange highlighted months indicate the current month. 
-              Use filters above to focus on specific accounts or years.
             </div>
           </div>
         </div>
