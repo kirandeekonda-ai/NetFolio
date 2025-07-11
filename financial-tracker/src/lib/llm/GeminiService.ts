@@ -35,6 +35,8 @@ export class GeminiService implements LLMProvider {
     if (sanitizationResult.detectedPatterns.length > 0) {
       console.log('🔐 Sanitized sensitive data before sending to Gemini LLM');
       console.log('🔐 Sanitization summary:', sanitizationResult.summary);
+    } else {
+      console.log('🔐 No sensitive data detected in this page');
     }
 
     // Build prompt using centralized template service

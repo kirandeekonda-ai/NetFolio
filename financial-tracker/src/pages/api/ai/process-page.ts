@@ -156,7 +156,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       })),
       pageEndingBalance: previousBalance || 0,
       processingNotes: `Processed ${llmResult.transactions?.length || 0} transactions`,
-      hasIncompleteTransactions: false
+      hasIncompleteTransactions: false,
+      securityBreakdown: llmResult.securityBreakdown
     };
 
     console.log(`Page ${pageNumber} processing result:`, {

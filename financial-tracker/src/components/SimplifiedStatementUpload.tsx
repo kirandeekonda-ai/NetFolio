@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
-import { Input } from '@/components/Input';
 import { FileUpload } from '@/components/FileUpload';
 import { SecurityStatus } from '@/components/SecurityStatus';
 import { ProcessingLogs } from '@/components/ProcessingLogs';
@@ -9,6 +8,18 @@ import { EnhancedProcessingStatus } from '@/components/EnhancedProcessingStatus'
 import { useEnhancedAIProcessor } from '@/hooks/useEnhancedAIProcessor';
 import { Transaction, BankAccount, Category } from '@/types';
 import { useUser, useSupabaseClient } from '@supabase/auth-helpers-react';
+
+interface SecurityBreakdown {
+  accountNumbers: number;
+  mobileNumbers: number;
+  emails: number;
+  panIds: number;
+  customerIds: number;
+  ifscCodes: number;
+  cardNumbers: number;
+  addresses: number;
+  names: number;
+}
 
 interface SimplifiedStatementUploadProps {
   accounts: BankAccount[];
@@ -31,12 +42,8 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
 }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [userCategories, setUserCategories] = useState<Category[]>([]);
-  
-  // Enhanced processing state
-  const [bankName, setBankName] = useState('');
-  const [manualMonth, setManualMonth] = useState('');
-  const [manualYear, setManualYear] = useState('');
-  const [useEnhancedProcessing, setUseEnhancedProcessing] = useState(true);
+  const [uploadMinimized, setUploadMinimized] = useState(false);
+  const [securityBreakdown, setSecurityBreakdown] = useState<any>(null);
   
   const user = useUser();
   const supabase = useSupabaseClient();
@@ -48,48 +55,34 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
     validationResult,
     pageResults,
     error: enhancedError,
-    processingLogs: enhancedLogs,
+    processingLogs,
     clearLogs: clearEnhancedLogs,
   } = useEnhancedAIProcessor();
 
+  // Get selected account info
   const selectedAccount = accounts.find(acc => acc.id === selectedAccountId);
+  
+  // Auto-populate bank name and period from props (no duplicates)
+  const bankName = selectedAccount?.bank_name || '';
+  const monthName = new Date(selectedYear, selectedMonth - 1).toLocaleDateString('en-US', { month: 'long' });
+  const yearString = selectedYear.toString();
 
-  // Auto-populate bank name and dates from selected account and period
-  useEffect(() => {
-    if (selectedAccount) {
-      setBankName(selectedAccount.bank_name);
-    }
-  }, [selectedAccount]);
-
-  useEffect(() => {
-    const monthNames = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
-    ];
-    setManualMonth(monthNames[selectedMonth - 1]);
-    setManualYear(selectedYear.toString());
-  }, [selectedMonth, selectedYear]);
-
-  // Fetch user categories for AI categorization
   useEffect(() => {
     const fetchUserCategories = async () => {
-      if (user) {
-        try {
-          const { data, error } = await supabase
-            .from('user_preferences')
-            .select('categories')
-            .eq('user_id', user.id)
-            .single();
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('categories')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('name');
 
-          if (data && data.categories) {
-            setUserCategories(data.categories);
-            console.log('📂 Enhanced Upload - Loaded user categories:', data.categories.map((c: Category) => c.name));
-          } else {
-            console.log('📂 Enhanced Upload - No user categories found');
-          }
-        } catch (error) {
-          console.error('Error fetching user categories for upload:', error);
-        }
+        if (error) throw error;
+        setUserCategories(data || []);
+        
+      } catch (error) {
+        console.error('Error fetching user categories for upload:', error);
       }
     };
 
@@ -99,33 +92,49 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
   const handleFileSelect = async (file: File) => {
     setSelectedFile(file);
     clearEnhancedLogs();
-    
-    if (!useEnhancedProcessing) {
-      alert('Please enable enhanced processing to upload statements');
-      return;
-    }
+    setUploadMinimized(false); // Show upload area during processing
+    setSecurityBreakdown(null);
 
     try {
       console.log('🚀 Starting Enhanced AI-powered PDF processing...');
       console.log('📂 Using user categories for processing:', userCategories.map(c => c.name));
       console.log('🏦 Bank:', bankName);
-      console.log('📅 Period:', manualMonth, manualYear);
+      console.log('📅 Period:', monthName, yearString);
       
       const result = await processStatement(
         file,
         bankName,
-        manualMonth,
-        manualYear,
+        monthName,
+        yearString,
         userCategories
       );
       
       console.log(`✅ Successfully extracted ${result.transactions.length} transactions using Enhanced AI`);
+      
+      // Set real security breakdown from the processing result
+      if (result.securityBreakdown) {
+        setSecurityBreakdown(result.securityBreakdown);
+        console.log('🔐 Real security breakdown received:', result.securityBreakdown);
+      }
+      
+      // Minimize upload area on success
+      setUploadMinimized(true);
+      
       onTransactionsExtracted(result.transactions);
       
     } catch (error) {
+      // Keep upload area expanded on error for retry
+      setUploadMinimized(false);
       console.error('❌ Failed to process PDF with Enhanced AI:', error);
-      alert('Failed to process PDF: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
+  };
+
+  // Clear errors when retrying
+  const handleRetry = () => {
+    clearEnhancedLogs();
+    setUploadMinimized(false);
+    setSelectedFile(null);
+    setSecurityBreakdown(null); // Clear security breakdown on retry
   };
 
   return (
@@ -136,161 +145,183 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
         </h2>
         
         <div className="space-y-4">
-          {/* Account and period info */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Account
-              </label>
-              <p className="text-sm text-gray-900">
-                {selectedAccount?.bank_name} - {selectedAccount?.account_type}
-              </p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Month
-              </label>
-              <p className="text-sm text-gray-900">
-                {new Date(selectedYear, selectedMonth - 1).toLocaleDateString('en-US', { 
-                  month: 'long', 
-                  year: 'numeric' 
-                })}
-              </p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Processing Mode
-              </label>
-              <p className="text-sm text-green-600 font-medium">
-                🤖 Enhanced AI with Validation
-              </p>
+          {/* Simplified Account Info - No Duplicates */}
+          <div className="p-4 bg-gray-50 rounded-lg border-l-4 border-blue-500">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="font-medium text-gray-900">
+                  {selectedAccount?.bank_name} - {selectedAccount?.account_type}
+                </h3>
+                <p className="text-sm text-gray-600">
+                  {monthName} {yearString} • Enhanced AI Processing with Security
+                </p>
+              </div>
+              <div className="text-right">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  🤖 AI Ready
+                </span>
+              </div>
             </div>
           </div>
 
-          {/* Enhanced Processing Configuration */}
-          <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <h3 className="font-medium text-blue-900 mb-3">Enhanced Processing Settings</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-blue-700 mb-2">
-                  Expected Bank Name
-                </label>
-                <Input
-                  value={bankName}
-                  onChange={(e) => setBankName(e.target.value)}
-                  placeholder="e.g., HDFC Bank"
-                  className="w-full"
-                />
+          {/* Dynamic File Upload Area */}
+          <div className={`transition-all duration-300 ${uploadMinimized ? 'transform scale-95 opacity-75' : ''}`}>
+            {uploadMinimized && !enhancedError ? (
+              /* Minimized Upload State */
+              <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-green-500">✅</span>
+                    <span className="text-sm font-medium text-green-800">
+                      File Uploaded: {selectedFile?.name}
+                    </span>
+                    <span className="text-xs text-green-600">
+                      ({((selectedFile?.size || 0) / 1024 / 1024).toFixed(2)} MB)
+                    </span>
+                  </div>
+                  <Button
+                    onClick={handleRetry}
+                    variant="secondary"
+                    size="sm"
+                    className="text-xs"
+                  >
+                    Upload Different File
+                  </Button>
+                </div>
               </div>
+            ) : (
+              /* Full Upload Area */
               <div>
-                <label className="block text-sm font-medium text-blue-700 mb-2">
-                  Expected Month
-                </label>
-                <Input
-                  value={manualMonth}
-                  onChange={(e) => setManualMonth(e.target.value)}
-                  placeholder="e.g., January"
-                  className="w-full"
+                <FileUpload
+                  onFileSelect={handleFileSelect}
+                  maxSize={5 * 1024 * 1024} // 5MB
                 />
+                {selectedFile && !uploadMinimized && (
+                  <p className="mt-2 text-sm text-gray-600">
+                    Selected: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
+                  </p>
+                )}
               </div>
-              <div>
-                <label className="block text-sm font-medium text-blue-700 mb-2">
-                  Expected Year
-                </label>
-                <Input
-                  value={manualYear}
-                  onChange={(e) => setManualYear(e.target.value)}
-                  placeholder="e.g., 2024"
-                  className="w-full"
-                />
-              </div>
-            </div>
-            <div className="mt-3 flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="enhanced-processing"
-                checked={useEnhancedProcessing}
-                onChange={(e) => {
-                  console.log('🔄 Enhanced processing toggled:', e.target.checked);
-                  setUseEnhancedProcessing(e.target.checked);
-                }}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-              />
-              <label htmlFor="enhanced-processing" className="text-sm text-blue-700">
-                Enable enhanced processing with validation and page-by-page analysis
-              </label>
-            </div>
-          </div>
-
-          {/* File upload */}
-          <div>
-            <FileUpload
-              onFileSelect={handleFileSelect}
-              maxSize={5 * 1024 * 1024} // 5MB
-            />
-            {selectedFile && (
-              <p className="mt-2 text-sm text-gray-600">
-                Selected: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
-              </p>
             )}
           </div>
 
-          {/* Enhanced Processing Status */}
-          {useEnhancedProcessing && (
-            <EnhancedProcessingStatus
-              isVisible={enhancedProcessing || progress !== null || enhancedLogs.length > 0}
-              progress={progress || undefined}
-              validationResult={validationResult || undefined}
-              pageResults={pageResults}
-              logs={enhancedLogs}
-              securityBreakdown={progress?.status === 'completed' ? {
-                accountNumbers: 5,
-                mobileNumbers: 2,
-                emails: 1,
-                panIds: 1,
-                customerIds: 0,
-                ifscCodes: 1,
-                cardNumbers: 0,
-                addresses: 0,
-                names: 0
-              } : undefined}
-            />
+          {/* Error Display with Retry Option */}
+          {enhancedError && (
+            <div className="p-4 bg-red-50 border-l-4 border-red-400 rounded-lg shadow-sm">
+              <div className="flex items-start">
+                <div className="flex-shrink-0">
+                  <span className="text-red-400 text-xl">⚠️</span>
+                </div>
+                <div className="ml-3 flex-1">
+                  <h4 className="font-medium text-red-800 mb-2">Statement Processing Failed</h4>
+                  <p className="text-sm text-red-700 mb-3">{enhancedError}</p>
+                  <div className="text-xs text-red-600 bg-red-100 p-2 rounded mb-3">
+                    <strong>💡 Quick fixes:</strong>
+                    <ul className="mt-1 list-disc list-inside space-y-1">
+                      <li>Check that bank name matches the statement exactly</li>
+                      <li>Verify month and year match the statement period</li>
+                      <li>Ensure PDF is readable and not password-protected</li>
+                      <li>Try uploading a different statement if this one is corrupted</li>
+                    </ul>
+                  </div>
+                  <Button
+                    onClick={handleRetry}
+                    variant="secondary"
+                    size="sm"
+                    className="text-red-700 border-red-300 hover:bg-red-100"
+                  >
+                    Try Again
+                  </Button>
+                </div>
+              </div>
+            </div>
           )}
 
-          {/* Error Display */}
-          {enhancedError && (
-            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-              <h4 className="font-medium text-red-800 mb-2">Processing Error</h4>
-              <p className="text-sm text-red-700">{enhancedError}</p>
+          {/* Security Status - Now Visible */}
+          {securityBreakdown && (
+            <div className="mt-4">
+              <SecurityStatus
+                breakdown={securityBreakdown}
+                isVisible={true}
+                isProcessing={false}
+              />
+            </div>
+          )}
+
+          {/* Enhanced Processing Status */}
+          <EnhancedProcessingStatus
+            isVisible={enhancedProcessing || progress !== null || processingLogs.length > 0}
+            progress={progress || undefined}
+            validationResult={validationResult || undefined}
+            pageResults={pageResults}
+            logs={processingLogs}
+            securityBreakdown={securityBreakdown} // Pass real security breakdown
+          />
+
+          {/* Security Status - Standalone Display */}
+          {securityBreakdown && !enhancedProcessing && (
+            <div className="mt-4">
+              <SecurityStatus
+                breakdown={securityBreakdown}
+                isVisible={true}
+                isProcessing={false}
+                showCountdown={false}
+              />
+            </div>
+          )}
+
+          {/* Security Status from Validation - Show even if validation fails */}
+          {!securityBreakdown && validationResult?.securityBreakdown && (
+            <div className="mt-4">
+              <SecurityStatus
+                breakdown={validationResult.securityBreakdown}
+                isVisible={true}
+                isProcessing={false}
+                showCountdown={false}
+              />
+            </div>
+          )}
+
+          {/* Processing Logs */}
+          {processingLogs.length > 0 && (
+            <div className="mt-4">
+              <ProcessingLogs 
+                logs={processingLogs}
+                isVisible={true}
+                isProcessing={enhancedProcessing}
+                onClear={clearEnhancedLogs}
+              />
+            </div>
+          )}
+
+          {/* Features List - Moved to Bottom */}
+          {!enhancedProcessing && !progress && (
+            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <h3 className="font-medium text-blue-900 mb-2">Enhanced AI Processing Features:</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-blue-700">
+                <ul className="space-y-1">
+                  <li>• ✅ Statement validation (bank, month, year verification)</li>
+                  <li>• 📄 Page-by-page processing to handle token limits</li>
+                  <li>• 🤖 Intelligent transaction categorization</li>
+                  <li>• 🔍 Real-time progress tracking with detailed status</li>
+                  <li>• 🔒 Advanced security protection for sensitive data</li>
+                </ul>
+                <ul className="space-y-1">
+                  <li>• 🎯 Queue management for multi-page documents</li>
+                  <li>• 📊 Processing analytics and performance metrics</li>
+                  <li>• 🔄 Automatic retry and error handling</li>
+                  <li>• 💾 Smart memory optimization</li>
+                  <li>• 📈 Enhanced accuracy with context awareness</li>
+                </ul>
+              </div>
             </div>
           )}
 
           {/* Action buttons */}
-          {enhancedProcessing && (
-            <div className="flex justify-end space-x-4">
-              <Button 
-                variant="secondary" 
-                onClick={onCancel}
-                disabled={enhancedProcessing}
-              >
-                Cancel
-              </Button>
-            </div>
-          )}
-
-          {/* Info section */}
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <h4 className="font-medium text-blue-900 mb-2">Enhanced AI Processing Features:</h4>
-            <ul className="text-sm text-blue-800 space-y-1">
-              <li>• ✅ Statement validation (bank, month, year verification)</li>
-              <li>• 📄 Page-by-page processing to handle token limits</li>
-              <li>• 🔍 Real-time progress tracking with detailed status</li>
-              <li>• 🛡️ Advanced security protection for sensitive data</li>
-              <li>• 🎯 Intelligent transaction categorization</li>
-              <li>• ⚙️ Queue management for multi-page documents</li>
-              <li>• 📊 Processing analytics and performance metrics</li>
-              <li>• 🔄 Automatic retry and error handling</li>
-            </ul>
+          <div className="flex justify-end space-x-3 pt-4 border-t">
+            <Button onClick={onCancel} variant="secondary">
+              Cancel
+            </Button>
           </div>
         </div>
       </Card>

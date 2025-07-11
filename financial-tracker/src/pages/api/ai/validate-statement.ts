@@ -6,6 +6,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { createLLMProvider } from '../../../lib/llm/LLMProviderFactory';
 import { getActiveLLMProvider } from '../../../lib/llm/config';
+import { sanitizeTextForLLM } from '../../../utils/dataSanitization';
 
 // Validation prompt template
 const createValidationPrompt = (bankName: string, month: string, year: string, pageContent: string) => {
@@ -121,8 +122,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    // Create validation prompt
-    const prompt = createValidationPrompt(bankName, month, year, pageContent);
+    // Sanitize the page content before sending to LLM for validation
+    const sanitizationResult = sanitizeTextForLLM(pageContent);
+    const sanitizedPageContent = sanitizationResult.sanitizedText;
+    
+    // Log sanitization summary for validation
+    if (sanitizationResult.detectedPatterns.length > 0) {
+      console.log('🔐 VALIDATION - Sanitized sensitive data before sending to LLM');
+      console.log('🔐 VALIDATION - Sanitization summary:', sanitizationResult.summary);
+    } else {
+      console.log('🔐 VALIDATION - No sensitive data detected in statement');
+    }
+
+    // Create validation prompt with sanitized content
+    const prompt = createValidationPrompt(bankName, month, year, sanitizedPageContent);
 
     // Use existing LLM provider instead of making HTTP calls
     const providerConfig = getActiveLLMProvider();
@@ -170,7 +183,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         llmResult = JSON.parse(jsonStr);
       } catch (parseError) {
         console.error('Failed to parse validation response:', parseError);
-        throw new Error('Failed to parse validation response');
+        // Use original content for fallback validation (bank detection needs unsanitized data)
+        llmResult = createFallbackValidation(bankName, month, year, pageContent);
       }
     } else {
       // For other providers, use the existing service but parse differently
@@ -182,7 +196,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       try {
         llmResult = JSON.parse(possibleJson);
       } catch {
-        // Fallback validation based on text content
+        // Fallback validation based on original text content (needs unsanitized data for bank detection)
         llmResult = createFallbackValidation(bankName, month, year, pageContent);
       }
     }
@@ -195,6 +209,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       validationResult = llmResult;
     } catch (parseError) {
       console.error('Failed to parse LLM validation response, creating fallback result');
+      // Use original content for fallback validation (bank detection needs unsanitized data)
       validationResult = createFallbackValidation(bankName, month, year, pageContent);
     }
 
@@ -208,7 +223,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       detectedBank: validationResult.detectedBank || null,
       detectedMonth: validationResult.detectedMonth || null,
       detectedYear: validationResult.detectedYear || null,
-      confidence: validationResult.confidence || 0
+      confidence: validationResult.confidence || 0,
+      securityBreakdown: sanitizationResult.summary // Include security breakdown from validation
     };
 
     console.log('Statement validation result:', {

@@ -24,6 +24,7 @@ export interface StatementValidationResult {
   detectedMonth: string | null;
   detectedYear: string | null;
   confidence: number;
+  securityBreakdown?: SecurityBreakdown;
 }
 
 export interface PageProcessingResult {
@@ -35,6 +36,7 @@ export interface PageProcessingResult {
   hasIncompleteTransactions: boolean;
   success: boolean;
   error?: string;
+  securityBreakdown?: SecurityBreakdown;
 }
 
 export interface QueueProgress {
@@ -448,10 +450,48 @@ export const useEnhancedAIProcessor = (): UseEnhancedAIProcessorReturn => {
       addLog(`🎉 Processing completed in ${processingTimeMs}ms`);
       addLog(`📊 Final results: ${finalizedTransactions.length} transactions extracted`);
 
+      // Aggregate security breakdown from all pages
+      const aggregatedSecurityBreakdown = pageResults.reduce((acc, pageResult) => {
+        if (pageResult.securityBreakdown) {
+          return {
+            accountNumbers: acc.accountNumbers + pageResult.securityBreakdown.accountNumbers,
+            mobileNumbers: acc.mobileNumbers + pageResult.securityBreakdown.mobileNumbers,
+            emails: acc.emails + pageResult.securityBreakdown.emails,
+            panIds: acc.panIds + pageResult.securityBreakdown.panIds,
+            customerIds: acc.customerIds + pageResult.securityBreakdown.customerIds,
+            ifscCodes: acc.ifscCodes + pageResult.securityBreakdown.ifscCodes,
+            cardNumbers: acc.cardNumbers + pageResult.securityBreakdown.cardNumbers,
+            addresses: acc.addresses + pageResult.securityBreakdown.addresses,
+            names: acc.names + pageResult.securityBreakdown.names,
+          };
+        }
+        return acc;
+      }, {
+        accountNumbers: 0,
+        mobileNumbers: 0,
+        emails: 0,
+        panIds: 0,
+        customerIds: 0,
+        ifscCodes: 0,
+        cardNumbers: 0,
+        addresses: 0,
+        names: 0,
+      });
+
+      // Log security summary
+      const totalItemsProtected = Object.values(aggregatedSecurityBreakdown).reduce((sum, count) => sum + count, 0);
+      if (totalItemsProtected > 0) {
+        addLog(`🔐 Security Summary: ${totalItemsProtected} sensitive items protected across all pages`);
+        console.log('🔐 Aggregated Security Breakdown:', aggregatedSecurityBreakdown);
+      } else {
+        addLog(`🔐 Security Summary: No sensitive data detected`);
+      }
+
       return {
         transactions: finalizedTransactions,
         validationResult: validation,
         pageResults,
+        securityBreakdown: aggregatedSecurityBreakdown,
         analytics: {
           totalPages,
           successfulPages,

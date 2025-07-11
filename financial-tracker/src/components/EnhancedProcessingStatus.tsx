@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { SecurityStatus } from './SecurityStatus';
 import { 
   QueueProgress, 
   StatementValidationResult, 
@@ -395,6 +396,16 @@ export const EnhancedProcessingStatus: React.FC<EnhancedProcessingStatusProps> =
               </AnimatePresence>
             </div>
           </motion.div>
+        )}
+
+        {/* Security Protection Status */}
+        {securityBreakdown && (
+          <SecurityStatus
+            breakdown={securityBreakdown}
+            isVisible={true}
+            isProcessing={progress?.status === 'processing' || progress?.status === 'validating'}
+            showCountdown={progress?.status === 'processing'}
+          />
         )}
       </motion.div>
     </AnimatePresence>
