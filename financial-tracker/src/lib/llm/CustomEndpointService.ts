@@ -31,6 +31,12 @@ export class CustomEndpointService implements LLMProvider {
       userCategories
     );
 
+    console.log('🔧 CUSTOM ENDPOINT - Complete prompt being sent:');
+    console.log('=' .repeat(100));
+    console.log(prompt);
+    console.log('=' .repeat(100));
+    console.log('🔧 CUSTOM ENDPOINT - Sending to:', this.endpoint);
+
     try {
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -56,6 +62,11 @@ export class CustomEndpointService implements LLMProvider {
 
       const data = await response.json();
       const text = data.response;
+
+      console.log('🔧 CUSTOM ENDPOINT - Raw response received:');
+      console.log('-' .repeat(50));
+      console.log(text);
+      console.log('-' .repeat(50));
 
       if (!text) {
         throw new Error('No response from custom endpoint');

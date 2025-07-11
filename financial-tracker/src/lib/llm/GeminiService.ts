@@ -43,10 +43,20 @@ export class GeminiService implements LLMProvider {
       userCategories
     );
 
+    console.log('💎 GEMINI SERVICE - Complete prompt being sent:');
+    console.log('=' .repeat(100));
+    console.log(prompt);
+    console.log('=' .repeat(100));
+
     try {
       const result = await this.model.generateContent(prompt);
       const response = await result.response;
       const text = response.text();
+      
+      console.log('💎 GEMINI SERVICE - Raw response from Gemini:');
+      console.log('-' .repeat(50));
+      console.log(text);
+      console.log('-' .repeat(50));
       
       // Extract usage information
       const usage: LLMUsage = {

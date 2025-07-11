@@ -53,7 +53,14 @@ export class AzureOpenAIService implements LLMProvider {
       userCategories
     );
 
+    console.log('🔷 AZURE OPENAI - Complete prompt being sent:');
+    console.log('=' .repeat(100));
+    console.log(prompt);
+    console.log('=' .repeat(100));
+
     const endpoint = `https://${this.resourceName}.openai.azure.com/openai/deployments/${this.deploymentName}/chat/completions?api-version=${this.apiVersion}`;
+
+    console.log('🔷 AZURE OPENAI - Sending to endpoint:', endpoint);
 
     try {
       const response = await fetch(endpoint, {
@@ -78,6 +85,11 @@ export class AzureOpenAIService implements LLMProvider {
 
       const data = await response.json();
       const text = data.choices?.[0]?.message?.content;
+
+      console.log('🔷 AZURE OPENAI - Raw response received:');
+      console.log('-' .repeat(50));
+      console.log(text);
+      console.log('-' .repeat(50));
 
       if (!text) {
         throw new Error('No response from Azure OpenAI API');
@@ -379,6 +391,8 @@ export class OpenAIService implements LLMProvider {
 
 // Factory function to create LLM provider instances
 export function createLLMProvider(config: LLMProviderType): LLMProvider {
+  console.log('🏭 FACTORY - Creating LLM provider:', config.provider_type);
+  
   switch (config.provider_type) {
     case 'gemini':
       if (!config.api_key) {
