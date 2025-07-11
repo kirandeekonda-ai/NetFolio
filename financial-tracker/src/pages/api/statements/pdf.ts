@@ -4,7 +4,7 @@ import fs from 'fs';
 import pdf from 'pdf-parse';
 import { createLLMProvider } from '../../../lib/llm/LLMProviderFactory';
 import { createEnhancedLLMService } from '../../../lib/llm/EnhancedLLMService';
-import { Transaction } from '../../../lib/llm/types';
+import { Transaction, SecurityBreakdown } from '../../../lib/llm/types';
 import { createSupabaseServerClient } from '@/utils/supabase';
 import { Category } from '@/types';
 
@@ -24,6 +24,7 @@ interface ProcessingAnalytics {
 interface APIResponse {
   transactions: Transaction[];
   analytics: ProcessingAnalytics;
+  securityBreakdown?: SecurityBreakdown;
 }
 
 interface ErrorResponse {
@@ -170,6 +171,17 @@ async function processWithProvider(
     let totalInputTokens = 0;
     let totalOutputTokens = 0;
     let pagesProcessed = 0;
+    let combinedSecurityBreakdown: SecurityBreakdown = {
+      accountNumbers: 0,
+      mobileNumbers: 0,
+      emails: 0,
+      panIds: 0,
+      customerIds: 0,
+      ifscCodes: 0,
+      cardNumbers: 0,
+      addresses: 0,
+      names: 0
+    };
     
     const pageText = pdfData.text;
     if (pageText.trim()) {
@@ -180,6 +192,14 @@ async function processWithProvider(
         totalInputTokens += result.usage.prompt_tokens;
         totalOutputTokens += result.usage.completion_tokens;
         pagesProcessed = 1; // For now, treating entire PDF as one page
+        
+        // Combine security breakdown
+        if (result.securityBreakdown) {
+          Object.keys(combinedSecurityBreakdown).forEach(key => {
+            const k = key as keyof SecurityBreakdown;
+            combinedSecurityBreakdown[k] += result.securityBreakdown![k];
+          });
+        }
       } catch (error) {
         console.error('Error processing page:', error);
         throw new Error(`Failed to process PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -198,6 +218,7 @@ async function processWithProvider(
     return res.status(200).json({
       transactions: uniqueTransactions,
       analytics,
+      securityBreakdown: combinedSecurityBreakdown
     });
 
   } catch (error) {

@@ -20,23 +20,10 @@ export class CustomEndpointService implements LLMProvider {
   }
 
   async extractTransactions(pageText: string, userCategories: Category[] = []): Promise<ExtractionResult> {
-    // Log user categories for debugging
-    console.log('🎯 CUSTOM ENDPOINT SERVICE - User categories received:', userCategories.length);
-    if (userCategories.length > 0) {
-      console.log('🎯 CUSTOM ENDPOINT SERVICE - Category names:', userCategories.map(cat => cat.name));
-    } else {
-      console.log('⚠️ CUSTOM ENDPOINT SERVICE - No user categories provided, using default examples');
-    }
 
     // Sanitize the input text to protect sensitive information
     const sanitizationResult = sanitizeTextForLLM(pageText);
     const sanitizedPageText = sanitizationResult.sanitizedText;
-    
-    // Log sanitization summary
-    if (sanitizationResult.detectedPatterns.length > 0) {
-      console.log('🔐 Sanitized sensitive data before sending to Custom Endpoint');
-      console.log('🔐 Sanitization summary:', sanitizationResult.summary);
-    }
 
     // Build prompt using centralized template service
     const prompt = transactionPromptBuilder.buildTransactionExtractionPrompt(
@@ -45,11 +32,6 @@ export class CustomEndpointService implements LLMProvider {
     );
 
     try {
-      console.log('=== PROMPT SENT TO CUSTOM ENDPOINT ===');
-      console.log('Endpoint:', this.endpoint);
-      console.log('Prompt:', prompt);
-      console.log('=== END OF PROMPT ===');
-      
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
@@ -75,11 +57,6 @@ export class CustomEndpointService implements LLMProvider {
       const data = await response.json();
       const text = data.response;
 
-      console.log('=== RESPONSE FROM CUSTOM ENDPOINT ===');
-      console.log('Raw response:', data);
-      console.log('Extracted text:', text);
-      console.log('=== END OF RESPONSE ===');
-
       if (!text) {
         throw new Error('No response from custom endpoint');
       }
@@ -98,11 +75,11 @@ export class CustomEndpointService implements LLMProvider {
         const jsonText = jsonMatch ? jsonMatch[0] : text;
         parsedResponse = JSON.parse(jsonText);
       } catch (parseError) {
-        console.error('Failed to parse custom endpoint response as JSON:', text);
         // Return empty transactions if parsing fails
         return {
           transactions: [],
-          usage
+          usage,
+          securityBreakdown: sanitizationResult.summary
         };
       }
 
@@ -125,7 +102,8 @@ export class CustomEndpointService implements LLMProvider {
 
       return {
         transactions: validTransactions,
-        usage
+        usage,
+        securityBreakdown: sanitizationResult.summary
       };
 
     } catch (error) {
@@ -136,8 +114,6 @@ export class CustomEndpointService implements LLMProvider {
 
   async testConnection(): Promise<{ success: boolean; error?: string }> {
     try {
-      console.log('Testing connection to custom endpoint:', this.endpoint);
-      
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
@@ -165,7 +141,6 @@ export class CustomEndpointService implements LLMProvider {
       const data = await response.json();
       
       if (data.response) {
-        console.log('Custom endpoint test successful:', data.response);
         return { success: true };
       } else {
         return {
@@ -175,7 +150,6 @@ export class CustomEndpointService implements LLMProvider {
       }
 
     } catch (error) {
-      console.error('Custom endpoint test failed:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'

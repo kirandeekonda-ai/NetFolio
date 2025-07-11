@@ -44,17 +44,9 @@ export class GeminiService implements LLMProvider {
     );
 
     try {
-      console.log(`Calling Gemini API with model: ${this.modelName}`);
-      console.log('=== PROMPT SENT TO GEMINI LLM ===');
-      console.log(prompt);
-      console.log('=== END OF PROMPT ===');
       const result = await this.model.generateContent(prompt);
       const response = await result.response;
       const text = response.text();
-      
-      console.log('=== RESPONSE FROM GEMINI LLM ===');
-      console.log(text);
-      console.log('=== END OF RESPONSE ===');
       
       // Extract usage information
       const usage: LLMUsage = {
@@ -70,22 +62,16 @@ export class GeminiService implements LLMProvider {
         const jsonText = jsonMatch ? jsonMatch[0] : text;
         parsedResponse = JSON.parse(jsonText);
       } catch (parseError) {
-        console.error('Failed to parse Gemini response as JSON:', text);
         return {
           transactions: [],
-          usage
+          usage,
+          securityBreakdown: sanitizationResult.summary
         };
       }
 
       // Map Gemini response to internal Transaction format
       const transactions: Transaction[] = Array.isArray(parsedResponse.transactions)
         ? parsedResponse.transactions.map((txn: any) => {
-            console.log(`[DEBUG] Raw transaction from Gemini:`, {
-              description: txn.description,
-              amount: txn.amount,
-              amountType: typeof txn.amount
-            });
-            
             // Determine transaction type based on amount sign
             const transaction_type = txn.amount > 0 ? 'income' : 'expense';
             
@@ -97,20 +83,14 @@ export class GeminiService implements LLMProvider {
               transaction_type: transaction_type, // New field for database
             };
             
-            console.log(`[DEBUG] Mapped transaction:`, {
-              description: mappedTransaction.description,
-              amount: mappedTransaction.amount,
-              amountType: typeof mappedTransaction.amount,
-              type: mappedTransaction.type
-            });
-            
             return mappedTransaction;
           }).filter((transaction: any) => this.isValidTransaction(transaction))
         : [];
 
       return {
         transactions,
-        usage
+        usage,
+        securityBreakdown: sanitizationResult.summary
       };
     } catch (error) {
       console.error('Error calling Gemini API:', error);
@@ -151,17 +131,13 @@ export class GeminiService implements LLMProvider {
    */
   async testConnection(): Promise<{ success: boolean; error?: string }> {
     try {
-      console.log(`Testing connection with model: ${this.modelName}`);
       const testPrompt = "Say hello";
       const result = await this.model.generateContent(testPrompt);
       const response = await result.response;
       const text = await response.text(); // Just to ensure the response is valid
       
-      console.log('Connection test successful, response:', text.substring(0, 100));
       return { success: true };
     } catch (error) {
-      console.error('Connection test failed:', error);
-      console.error('Model used:', this.modelName);
       
       let errorMessage = 'Connection test failed';
       if (error instanceof Error) {

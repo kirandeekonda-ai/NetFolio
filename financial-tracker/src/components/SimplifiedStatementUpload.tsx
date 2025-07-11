@@ -3,6 +3,8 @@ import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
 import { FileUpload } from '@/components/FileUpload';
+import { SecurityStatus } from '@/components/SecurityStatus';
+import { ProcessingLogs } from '@/components/ProcessingLogs';
 import { useAIPdfProcessor } from '@/hooks/useAIPdfProcessor';
 import { Transaction, BankAccount, Category } from '@/types';
 import { useUser, useSupabaseClient } from '@supabase/auth-helpers-react';
@@ -29,6 +31,18 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [userCategories, setUserCategories] = useState<Category[]>([]);
+  const [securityBreakdown, setSecurityBreakdown] = useState<{
+    accountNumbers: number;
+    mobileNumbers: number;
+    emails: number;
+    panIds: number;
+    customerIds: number;
+    ifscCodes: number;
+    cardNumbers: number;
+    addresses: number;
+    names: number;
+  } | null>(null);
+  const [showSecurityCountdown, setShowSecurityCountdown] = useState(false);
   
   const user = useUser();
   const supabase = useSupabaseClient();
@@ -71,6 +85,8 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
   const handleFileSelect = async (file: File) => {
     setSelectedFile(file);
     clearLogs();
+    setSecurityBreakdown(null);
+    setShowSecurityCountdown(false);
     
     // Auto-process the file immediately after selection
     setIsProcessing(true);
@@ -79,6 +95,25 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
       console.log('📂 Using user categories for processing:', userCategories.map(c => c.name));
       
       const result = await processFile(file, userCategories);
+      
+      // Handle security breakdown
+      if (result.securityBreakdown) {
+        setSecurityBreakdown(result.securityBreakdown);
+        const totalProtected = Object.values(result.securityBreakdown).reduce((sum, count) => sum + count, 0);
+        if (totalProtected > 0) {
+          console.log(`🔐 Protected ${totalProtected} sensitive data items`);
+          console.log(`🛡️ Review security details below - proceeding in 3 seconds...`);
+          setShowSecurityCountdown(true);
+          
+          // Add 3-second delay to let user see the security breakdown
+          console.log(`⏳ Pausing to display security information...`);
+          await new Promise(resolve => setTimeout(resolve, 3000));
+          setShowSecurityCountdown(false);
+          console.log(`▶️ Continuing with transaction processing...`);
+        } else {
+          console.log(`✅ No sensitive data detected in document`);
+        }
+      }
       
       console.log(`✅ Successfully extracted ${result.transactions.length} transactions using AI`);
       onTransactionsExtracted(result.transactions);
@@ -143,17 +178,32 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
             )}
           </div>
 
-          {/* Processing logs */}
-          {processingLogs.length > 0 && (
-            <div className="bg-gray-100 p-4 rounded-lg">
-              <h4 className="font-medium text-gray-900 mb-2">Processing Status:</h4>
-              <div className="space-y-1 max-h-32 overflow-y-auto">
-                {processingLogs.map((log, index) => (
-                  <p key={index} className="text-sm text-gray-700 font-mono">
-                    {log}
-                  </p>
-                ))}
-              </div>
+          {/* Processing logs and Security Status */}
+          {(processingLogs.length > 0 || securityBreakdown) && (
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Processing Status</h3>
+              {processingLogs.length > 0 && (
+                <ProcessingLogs 
+                  logs={processingLogs} 
+                  isVisible={true}
+                  isProcessing={isProcessing || aiProcessing}
+                  onClear={() => {
+                    clearLogs();
+                    setSecurityBreakdown(null);
+                    setShowSecurityCountdown(false);
+                  }}
+                />
+              )}
+              
+              {/* Security Status */}
+              {securityBreakdown && (
+                <SecurityStatus
+                  breakdown={securityBreakdown}
+                  isVisible={true}
+                  isProcessing={isProcessing || aiProcessing}
+                  showCountdown={showSecurityCountdown}
+                />
+              )}
             </div>
           )}
 

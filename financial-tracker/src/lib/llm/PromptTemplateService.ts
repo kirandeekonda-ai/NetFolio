@@ -290,9 +290,9 @@ export class TransactionExtractionPromptBuilder {
    */
   private buildCategorizationGuidelines(userCategories: Category[]): string {
     if (userCategories.length > 0) {
-      return `3. **Smart Categorization**: ONLY use the user's preferred categories listed above. Analyze the transaction description carefully and match to the most appropriate category from the user's list. If the description doesn't clearly match any of the user's categories, use "Uncategorized" instead of guessing.`;
+      return `3. **Smart Categorization - Think Like a Human Bank Statement Expert**: You are an experienced financial analyst who has read thousands of bank statements. Use your human expertise to understand transaction patterns and context. ONLY use the user's preferred categories listed above. Analyze the transaction description like a human expert would - look for subtle clues, abbreviations, and patterns that indicate the true nature of each transaction. Match to the most appropriate category from the user's list based on your expert understanding. If the description doesn't clearly match any of the user's categories, use "Uncategorized" instead of guessing.`;
     } else {
-      return `3. **Smart Categorization**: Analyze transaction descriptions carefully to suggest appropriate categories based on keywords and context:
+      return `3. **Smart Categorization - Think Like a Human Bank Statement Expert**: You are an experienced financial analyst who has read thousands of bank statements. Use your human expertise to understand transaction patterns, decode abbreviations, and infer the true purpose behind each transaction. Think like a human expert when analyzing descriptions:
        - Fuel stations, petrol pumps, gas stations → "transport" (e.g., "Fuel S/", "Petrol Pump", "HP Petrol")
        - Restaurants, food delivery, groceries → "food" (e.g., "Zomato", "Swiggy", "Restaurant", "Cafe")
        - Shopping malls, retail stores, e-commerce → "shopping" (e.g., "Amazon", "Flipkart", "Mall", "Store")
@@ -307,7 +307,7 @@ export class TransactionExtractionPromptBuilder {
        - Medical expenses, hospitals, pharmacy → "healthcare" (e.g., "HOSPITAL", "MEDICAL", "PHARMACY")
        - Transportation, taxi, bus, metro → "transport" (e.g., "UBER", "OLA", "METRO", "BUS")
        
-       **Important**: If the description doesn't clearly indicate a specific category, use "Uncategorized" rather than making an incorrect guess. It's better to be accurate than to mislead the user.`;
+       **Think Like a Human Expert**: Use your expertise to recognize patterns, decode banking abbreviations, understand merchant codes, and infer transaction purpose from contextual clues. If the description doesn't clearly indicate a specific category even with your expert analysis, use "Uncategorized" rather than making an incorrect guess. It's better to be accurate than to mislead the user.`;
     }
   }
 

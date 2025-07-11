@@ -5,6 +5,18 @@
  * Example using fetch:
  */
 
+export interface SecurityBreakdown {
+  accountNumbers: number;
+  mobileNumbers: number;
+  emails: number;
+  panIds: number;
+  customerIds: number;
+  ifscCodes: number;
+  cardNumbers: number;
+  addresses: number;
+  names: number;
+}
+
 export async function uploadPdfStatement(file: File): Promise<{
   transactions: Array<{
     date: string;
@@ -18,6 +30,7 @@ export async function uploadPdfStatement(file: File): Promise<{
     inputTokens: number;
     outputTokens: number;
   };
+  securityBreakdown?: SecurityBreakdown;
 }> {
   const formData = new FormData();
   formData.append('file', file);

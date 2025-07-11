@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { uploadPdfStatement } from '../lib/api/pdfStatementClient';
+import { uploadPdfStatement, SecurityBreakdown } from '../lib/api/pdfStatementClient';
 import { Transaction, Category } from '@/types';
 import { createCategoryMatcher } from '@/utils/categoryMatcher';
 
@@ -10,6 +10,7 @@ interface ProcessingResult {
     inputTokens: number;
     outputTokens: number;
   };
+  securityBreakdown?: SecurityBreakdown;
 }
 
 interface UseAIPdfProcessorReturn {
@@ -132,7 +133,8 @@ export const useAIPdfProcessor = (): UseAIPdfProcessorReturn => {
 
       return {
         transactions,
-        analytics: result.analytics
+        analytics: result.analytics,
+        securityBreakdown: result.securityBreakdown
       };
 
     } catch (err) {

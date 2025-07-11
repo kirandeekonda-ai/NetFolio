@@ -7,6 +7,7 @@ import { Button } from './Button';
 import { Input } from './Input';
 import { FileUpload } from './FileUpload';
 import { ProcessingLogs } from './ProcessingLogs';
+import { SecurityStatus } from './SecurityStatus';
 import { EnvironmentCheck } from './EnvironmentCheck';
 import { useAIPdfProcessor } from '@/hooks/useAIPdfProcessor';
 import { RootState } from '@/store';
@@ -56,6 +57,18 @@ export const StatementUploadForm: FC<StatementUploadFormProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [healthData, setHealthData] = useState<HealthData | null>(null);
   const [isCheckingHealth, setIsCheckingHealth] = useState(false);
+  const [securityBreakdown, setSecurityBreakdown] = useState<{
+    accountNumbers: number;
+    mobileNumbers: number;
+    emails: number;
+    panIds: number;
+    customerIds: number;
+    ifscCodes: number;
+    cardNumbers: number;
+    addresses: number;
+    names: number;
+  } | null>(null);
+  const [showSecurityCountdown, setShowSecurityCountdown] = useState(false);
 
   const selectedAccount = accounts.find(acc => acc.id === selectedAccountId);
   
@@ -171,6 +184,25 @@ export const StatementUploadForm: FC<StatementUploadFormProps> = ({
         addLog('🤖 Processing PDF with AI...');
         addLog(`🎯 Using ${userCategories.length} user categories for matching`);
         const result = await processFile(selectedFile, userCategories);
+        
+        // Handle security breakdown
+        if (result.securityBreakdown) {
+          setSecurityBreakdown(result.securityBreakdown);
+          const totalProtected = Object.values(result.securityBreakdown).reduce((sum, count) => sum + count, 0);
+          if (totalProtected > 0) {
+            addLog(`🔐 Protected ${totalProtected} sensitive data items`);
+            addLog(`🛡️ Review security details below - proceeding in 3 seconds...`);
+            setShowSecurityCountdown(true);
+          } else {
+            addLog(`✅ No sensitive data detected in document`);
+          }
+          
+          // Add 3-second delay to let user see the security breakdown
+          addLog(`⏳ Pausing to display security information...`);
+          await new Promise(resolve => setTimeout(resolve, 3000));
+          setShowSecurityCountdown(false);
+          addLog(`▶️ Continuing with transaction processing...`);
+        }
         
         if (result.transactions && result.transactions.length > 0) {
           extractedTransactions = result.transactions;
@@ -349,8 +381,20 @@ export const StatementUploadForm: FC<StatementUploadFormProps> = ({
                 onClear={() => {
                   setProcessingLogs([]);
                   clearAiLogs();
+                  setSecurityBreakdown(null);
+                  setShowSecurityCountdown(false);
                 }}
               />
+              
+              {/* Security Status */}
+              {securityBreakdown && (
+                <SecurityStatus
+                  breakdown={securityBreakdown}
+                  isVisible={true}
+                  isProcessing={isProcessing || aiProcessing}
+                  showCountdown={showSecurityCountdown}
+                />
+              )}
             </div>
           )}
 

@@ -20,28 +20,14 @@ export class EnhancedLLMService {
     
     // Create the actual provider instance
     this.provider = createLLMProvider(this.config);
-    
-    this.logInfo(`Initialized LLM service with provider: ${this.config.provider_type}`);
   }
 
   /**
    * Extract transactions with automatic provider switching
    */
   async extractTransactions(pageText: string, userCategories?: Category[]): Promise<ExtractionResult> {
-    const categoryCount = userCategories?.length || 0;
-    this.logInfo(`Starting transaction extraction with ${this.config.provider_type} provider and ${categoryCount} user categories`);
-    
-    if (categoryCount > 0) {
-      this.logInfo(`🎯 ENHANCED LLM SERVICE - User categories: ${userCategories!.map(cat => cat.name).join(', ')}`);
-    } else {
-      this.logInfo('⚠️ ENHANCED LLM SERVICE - No user categories provided');
-    }
-    
     try {
       const result = await this.provider.extractTransactions(pageText, userCategories);
-      
-      this.logInfo(`Transaction extraction successful: ${result.transactions.length} transactions found`);
-      this.logDebug('Extraction result:', result);
       
       return result;
     } catch (error) {
@@ -54,14 +40,10 @@ export class EnhancedLLMService {
    * Test connection with current provider
    */
   async testConnection(): Promise<{ success: boolean; error?: string }> {
-    this.logInfo(`Testing connection with ${this.config.provider_type} provider`);
-    
     try {
       const result = await this.provider.testConnection();
       
-      if (result.success) {
-        this.logInfo('Connection test successful');
-      } else {
+      if (!result.success) {
         this.logError('Connection test failed:', result.error);
       }
       
@@ -96,8 +78,6 @@ export class EnhancedLLMService {
    * Switch to a different provider (useful for testing)
    */
   async switchProvider(newProvider: LLMProviderType): Promise<void> {
-    this.logInfo(`Switching from ${this.config.provider_type} to ${newProvider.provider_type}`);
-    
     this.config = newProvider;
     this.provider = createLLMProvider(this.config);
     
@@ -106,8 +86,6 @@ export class EnhancedLLMService {
     if (!testResult.success) {
       throw new Error(`Failed to switch to new provider: ${testResult.error}`);
     }
-    
-    this.logInfo(`Successfully switched to ${newProvider.provider_type} provider`);
   }
 
   // Logging methods with environment-based configuration
