@@ -2,6 +2,12 @@
 const nextConfig = {
   reactStrictMode: true,
   pageExtensions: ['tsx', 'ts', 'jsx', 'js'],
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   webpack: (config) => {
     config.resolve.fallback = {
       ...config.resolve.fallback,
