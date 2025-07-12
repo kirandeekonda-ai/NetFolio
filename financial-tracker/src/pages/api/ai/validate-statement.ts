@@ -137,83 +137,117 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Create validation prompt with sanitized content
     const prompt = createValidationPrompt(bankName, month, year, sanitizedPageContent);
 
-    // Use existing LLM provider instead of making HTTP calls
+    // Use existing LLM provider
     const providerConfig = getActiveLLMProvider();
-    const llmProvider = createLLMProvider(providerConfig);
+    console.log('🔧 VALIDATION - Using LLM provider:', providerConfig.provider_type);
     
     console.log('🔍 VALIDATION - Complete prompt being sent to LLM:');
     console.log('=' .repeat(80));
     console.log(prompt);
     console.log('=' .repeat(80));
     
-    // Instead of using extractTransactions, make a direct HTTP call for validation
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-
-    // Add API key if provider has one
-    if (providerConfig.api_key) {
-      headers['Authorization'] = `Bearer ${providerConfig.api_key}`;
-    }
-
     let llmResult;
-    if (providerConfig.provider_type === 'custom') {
-      // For custom endpoint, make direct HTTP call
-      const response = await fetch(providerConfig.api_endpoint || '', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          prompt: prompt
-        }),
-      });
 
-      if (!response.ok) {
-        throw new Error('LLM service request failed');
-      }
+    try {
+      if (providerConfig.provider_type === 'custom') {
+        // For custom endpoint, make direct HTTP call
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+        };
 
-      const data = await response.json();
-      const text = data.response;
-      console.log('🔍 VALIDATION - Raw LLM response text:', text);
-      
-      // Parse the JSON response from the validation
-      try {
+        if (providerConfig.api_key) {
+          headers['Authorization'] = `Bearer ${providerConfig.api_key}`;
+        }
+
+        const response = await fetch(providerConfig.api_endpoint || '', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            prompt: prompt
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Custom endpoint validation request failed');
+        }
+
+        const data = await response.json();
+        const text = data.response;
+        console.log('🔍 VALIDATION - Raw custom endpoint response text:', text);
+        
+        // Parse the JSON response from the validation
+        const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || text.match(/\{[\s\S]*\}/);
+        const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : text;
+        llmResult = JSON.parse(jsonStr);
+
+      } else if (providerConfig.provider_type === 'gemini') {
+        // For Gemini, make direct API call for validation
+        const { GoogleGenerativeAI } = await import('@google/generative-ai');
+        const genAI = new GoogleGenerativeAI(providerConfig.api_key || '');
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+        
+        console.log('🔍 VALIDATION - Sending validation prompt to Gemini');
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
+        
+        console.log('🔍 VALIDATION - Raw Gemini response text:', text);
+        
         // Extract JSON from the response if it's wrapped in markdown
         const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || text.match(/\{[\s\S]*\}/);
         const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : text;
         llmResult = JSON.parse(jsonStr);
-      } catch (parseError) {
-        console.error('Failed to parse validation response:', parseError);
-        // Use original content for fallback validation (bank detection needs unsanitized data)
-        llmResult = createFallbackValidation(bankName, month, year, pageContent);
+
+      } else {
+        // For Azure OpenAI and other providers, use the provider factory
+        const llmProvider = createLLMProvider(providerConfig);
+        
+        // Use a simple approach - try to get a direct text response
+        // Since we can't guarantee all providers have validation methods, 
+        // we'll use the transaction extraction method but with validation prompt
+        console.log('🔍 VALIDATION - Using provider factory for:', providerConfig.provider_type);
+        
+        // This is a workaround - we use extractTransactions but with validation prompt
+        // The response should be JSON validation, not transactions
+        const extractionResult = await llmProvider.extractTransactions(prompt, []);
+        
+        // For validation, we expect the LLM to return validation JSON in the transactions field
+        // or we need to parse it differently
+        console.log('🔍 VALIDATION - Provider extraction result:', JSON.stringify(extractionResult, null, 2));
+        
+        // Try to find validation JSON in the response
+        const responseText = JSON.stringify(extractionResult);
+        const jsonMatch = responseText.match(/\{[\s\S]*"isValid"[\s\S]*\}/);
+        
+        if (jsonMatch) {
+          llmResult = JSON.parse(jsonMatch[0]);
+        } else {
+          // Fallback - no valid validation response
+          throw new Error('No valid validation response from provider');
+        }
       }
-    } else {
-      // For other providers, use the existing service but parse differently
-      const extractionResult = await llmProvider.extractTransactions(prompt, []);
-      console.log('🔍 VALIDATION - LLM extraction result:', JSON.stringify(extractionResult, null, 2));
-      
-      // The validation prompt should return JSON, try to parse from any text in the result
-      const possibleJson = JSON.stringify(extractionResult.transactions);
-      try {
-        llmResult = JSON.parse(possibleJson);
-      } catch {
-        // Fallback validation based on original text content (needs unsanitized data for bank detection)
-        llmResult = createFallbackValidation(bankName, month, year, pageContent);
-      }
+    } catch (error) {
+      console.error('LLM validation failed:', error);
+      // Use fallback validation based on text content
+      llmResult = createFallbackValidation(bankName, month, year, pageContent);
     }
 
-    // Parse the JSON response from LLM
+    // Parse and validate the LLM result
     let validationResult;
     try {
-      // For validation, we expect a different format than transaction extraction
       console.log('🔍 VALIDATION - Parsing LLM result:', llmResult);
       validationResult = llmResult;
+      
+      // Ensure all required fields are present
+      if (typeof validationResult.isValid !== 'boolean') {
+        throw new Error('Invalid validation response format');
+      }
     } catch (parseError) {
       console.error('Failed to parse LLM validation response, creating fallback result');
-      // Use original content for fallback validation (bank detection needs unsanitized data)
       validationResult = createFallbackValidation(bankName, month, year, pageContent);
     }
 
-    // Ensure all required fields are present
+    // Ensure all required fields are present and include security breakdown
     const result = {
       isValid: validationResult.isValid || false,
       bankMatches: validationResult.bankMatches || false,
@@ -237,17 +271,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.status(200).json(result);
 
   } catch (error) {
-    console.error('Error in statement validation:', error);
+    console.error('Validation endpoint error:', error);
     res.status(500).json({
-      isValid: false,
-      bankMatches: false,
-      monthMatches: false,
-      yearMatches: false,
-      errorMessage: error instanceof Error ? error.message : 'Validation service error',
-      detectedBank: null,
-      detectedMonth: null,
-      detectedYear: null,
-      confidence: 0
+      error: 'Validation failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 }
