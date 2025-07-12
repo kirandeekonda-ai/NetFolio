@@ -237,17 +237,6 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
             </div>
           )}
 
-          {/* Security Status - Now Visible */}
-          {securityBreakdown && (
-            <div className="mt-4">
-              <SecurityStatus
-                breakdown={securityBreakdown}
-                isVisible={true}
-                isProcessing={false}
-              />
-            </div>
-          )}
-
           {/* Enhanced Processing Status */}
           <EnhancedProcessingStatus
             isVisible={enhancedProcessing || progress !== null || processingLogs.length > 0}
@@ -257,30 +246,6 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
             logs={processingLogs}
             securityBreakdown={securityBreakdown} // Pass real security breakdown
           />
-
-          {/* Security Status - Standalone Display */}
-          {securityBreakdown && !enhancedProcessing && (
-            <div className="mt-4">
-              <SecurityStatus
-                breakdown={securityBreakdown}
-                isVisible={true}
-                isProcessing={false}
-                showCountdown={false}
-              />
-            </div>
-          )}
-
-          {/* Security Status from Validation - Show even if validation fails */}
-          {!securityBreakdown && validationResult?.securityBreakdown && (
-            <div className="mt-4">
-              <SecurityStatus
-                breakdown={validationResult.securityBreakdown}
-                isVisible={true}
-                isProcessing={false}
-                showCountdown={false}
-              />
-            </div>
-          )}
 
           {/* Processing Logs */}
           {processingLogs.length > 0 && (

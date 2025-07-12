@@ -368,35 +368,7 @@ export const EnhancedProcessingStatus: React.FC<EnhancedProcessingStatusProps> =
           </motion.div>
         )}
 
-        {/* Processing Logs */}
-        {logs.length > 0 && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="p-5 rounded-xl border-2 border-gray-200 bg-gray-50 shadow-md"
-          >
-            <h4 className="font-bold text-lg mb-4 flex items-center space-x-2">
-              <span>📋</span>
-              <span>Processing Logs</span>
-            </h4>
-            
-            <div className="bg-white rounded-lg border p-3 font-mono text-sm max-h-48 overflow-y-auto space-y-1">
-              <AnimatePresence>
-                {logs.slice(-50).map((log, index) => (
-                  <motion.div 
-                    key={index}
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -5 }}
-                    className="text-gray-700 border-b border-gray-100 pb-1"
-                  >
-                    {log}
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </div>
-          </motion.div>
-        )}
+
 
         {/* Security Protection Status */}
         {securityBreakdown && (
