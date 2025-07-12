@@ -5,7 +5,7 @@
 
 import { NextApiRequest, NextApiResponse } from 'next';
 import { createLLMProvider } from '../../../lib/llm/LLMProviderFactory';
-import { getActiveLLMProvider } from '../../../lib/llm/config';
+import { routeLLMRequest } from '../../../lib/llm/LLMRoutingService';
 
 // Page processing prompt template
 const createPageProcessingPrompt = (
@@ -118,9 +118,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       userCategories
     );
 
-    // Use existing LLM provider instead of making HTTP calls
-    const providerConfig = getActiveLLMProvider();
-    const llmProvider = createLLMProvider(providerConfig);
+    // Use the new LLM routing service to get the appropriate provider
+    const routingResult = await routeLLMRequest(req, res);
+    
+    if (!routingResult.success || !routingResult.provider) {
+      console.error('❌ LLM routing failed:', routingResult.error);
+      return res.status(400).json({ 
+        error: routingResult.error || 'No LLM provider configured'
+      });
+    }
+
+    console.log(`✅ Using LLM provider (${routingResult.source}):`, routingResult.provider.provider_type);
+    const llmProvider = createLLMProvider(routingResult.provider);
     
     console.log(`📄 PAGE ${pageNumber} - Complete prompt being sent to LLM:`);
     console.log('=' .repeat(80));
@@ -170,13 +179,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   } catch (error) {
     console.error(`Error processing page ${req.body.pageNumber}:`, error);
-    res.status(500).json({
+    
+    // Check if this is an LLM service error and provide clear messaging
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const isServiceError = errorMessage.includes('403') || 
+                          errorMessage.includes('401') || 
+                          errorMessage.includes('Forbidden') ||
+                          errorMessage.includes('Unauthorized') ||
+                          errorMessage.includes('API key') ||
+                          errorMessage.includes('quota') ||
+                          errorMessage.includes('GoogleGenerativeAI Error') ||
+                          errorMessage.includes('OpenAI Error') ||
+                          errorMessage.includes('Azure Error') ||
+                          errorMessage.includes('fetch');
+
+    const processingNotes = isServiceError 
+      ? `LLM service error: ${errorMessage}. Please check your LLM provider configuration and API keys.`
+      : `Processing error: ${errorMessage}`;
+
+    res.status(isServiceError ? 400 : 500).json({
       pageNumber: req.body.pageNumber || 1,
       totalPages: req.body.totalPages || 1,
       transactions: [],
       pageEndingBalance: req.body.previousBalance || 0,
-      processingNotes: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      hasIncompleteTransactions: false
+      processingNotes,
+      hasIncompleteTransactions: false,
+      serviceError: isServiceError
     });
   }
 }

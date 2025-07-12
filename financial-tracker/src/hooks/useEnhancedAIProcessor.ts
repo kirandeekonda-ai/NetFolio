@@ -5,8 +5,6 @@
 
 import { useState, useCallback } from 'react';
 import { Transaction, Category } from '@/types';
-import { isCustomEndpointAvailable, getActiveLLMProvider } from '@/lib/llm/config';
-import { createLLMProvider } from '@/lib/llm/LLMProviderFactory';
 
 // Types for the enhanced system
 export interface StatementValidationRequest {
@@ -215,171 +213,38 @@ export const useEnhancedAIProcessor = (): UseEnhancedAIProcessorReturn => {
     addLog(`🔍 Validating statement for ${request.bankName} - ${request.month}/${request.year}`);
 
     try {
-      // Check if custom endpoint is configured
-      const useCustomEndpoint = isCustomEndpointAvailable();
+      // Always use the validation API endpoint which now handles both custom endpoint and LLM providers
+      // This ensures consistent validation flow regardless of provider type
+      addLog(`🔧 Using validation API for consistent processing`);
       
-      if (useCustomEndpoint) {
-        // Use validation API for custom endpoint
-        addLog(`🔧 Using custom endpoint validation API`);
-        
-        const response = await fetch('/api/ai/validate-statement', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(request),
-        });
+      const response = await fetch('/api/ai/validate-statement', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request),
+      });
 
-        if (!response.ok) {
-          throw new Error('Custom endpoint validation API request failed');
-        }
-
-        const result = await response.json();
-        
-        if (result.isValid) {
-          addLog(`✅ Statement validation passed via custom endpoint`);
-        } else {
-          addLog(`❌ Statement validation failed via custom endpoint: ${result.errorMessage}`);
-        }
-
-        return result;
-      } else {
-        // For other LLM providers (Gemini, Azure OpenAI), use the LLM directly for validation
-        addLog(`🚀 Using configured LLM provider for direct validation`);
-        
-        const providerConfig = getActiveLLMProvider();
-        addLog(`🔧 Using LLM provider: ${providerConfig.provider_type}`);
-        
-        // Create validation prompt
-        const validationPrompt = `You are a specialized financial statement validator working for a smart personal finance app.
-
-Your task is to validate that the provided bank statement content matches the specified criteria before processing transactions.
-
-**VALIDATION REQUIREMENTS:**
-- Bank Name: ${request.bankName}
-- Statement Month: ${request.month}
-- Statement Year: ${request.year}
-
-**STATEMENT CONTENT TO VALIDATE:**
-${request.pageContent}
-
-**VALIDATION INSTRUCTIONS:**
-1. Carefully examine the statement content for bank name, month, and year information
-2. Look for headers, footers, dates, and bank identifiers
-3. Check if the statement belongs to the specified bank: "${request.bankName}"
-4. Verify if the statement is from the specified month: "${request.month}"
-5. Confirm if the statement is from the specified year: "${request.year}"
-
-Return ONLY a JSON response with this exact structure:
-
-{
-  "isValid": boolean,
-  "bankMatches": boolean,
-  "monthMatches": boolean,
-  "yearMatches": boolean,
-  "errorMessage": "string or null",
-  "detectedBank": "detected bank name or null",
-  "detectedMonth": "detected month or null",
-  "detectedYear": "detected year or null",
-  "confidence": number (0-100)
-}
-
-**VALIDATION RULES:**
-- Set isValid to true only if ALL criteria match (bank, month, year)
-- Provide specific error messages for mismatches
-- Include confidence score based on clarity of statement information
-- Be flexible with bank name variations (e.g., "HDFC Bank" vs "HDFC")
-- Accept month in various formats (MM, MMM, full month name)
-
-Return ONLY the JSON. No explanations or additional text.`;
-
-        try {
-          const llmProvider = createLLMProvider(providerConfig);
-          
-          // Use transaction extraction method with validation prompt
-          // The LLM will return validation JSON instead of transactions
-          const extractionResult = await llmProvider.extractTransactions(validationPrompt, []);
-          
-          addLog(`🔍 Raw LLM validation response received`);
-          console.log('🔍 VALIDATION - LLM extraction result:', JSON.stringify(extractionResult, null, 2));
-          
-          // Try to parse validation result from the extraction response
-          let validationResult;
-          
-          // Check if the response has the validation structure
-          if (extractionResult && typeof extractionResult === 'object') {
-            // Try to find validation JSON in the response
-            const responseText = JSON.stringify(extractionResult);
-            const jsonMatch = responseText.match(/\{[\s\S]*"isValid"[\s\S]*\}/);
-            
-            if (jsonMatch) {
-              validationResult = JSON.parse(jsonMatch[0]);
-            } else if (extractionResult.transactions && extractionResult.transactions.length > 0) {
-              // Sometimes the validation might be in the transactions field as text
-              const transactionText = JSON.stringify(extractionResult.transactions);
-              const validationMatch = transactionText.match(/\{[\s\S]*"isValid"[\s\S]*\}/);
-              if (validationMatch) {
-                validationResult = JSON.parse(validationMatch[0]);
-              }
-            }
-          }
-          
-          if (!validationResult || typeof validationResult.isValid !== 'boolean') {
-            throw new Error('Invalid validation response format from LLM');
-          }
-          
-          if (validationResult.isValid) {
-            addLog(`✅ Statement validation passed via ${providerConfig.provider_type}`);
-          } else {
-            addLog(`❌ Statement validation failed via ${providerConfig.provider_type}: ${validationResult.errorMessage}`);
-          }
-          
-          return {
-            isValid: validationResult.isValid || false,
-            bankMatches: validationResult.bankMatches || false,
-            monthMatches: validationResult.monthMatches || false,
-            yearMatches: validationResult.yearMatches || false,
-            errorMessage: validationResult.errorMessage || null,
-            detectedBank: validationResult.detectedBank || null,
-            detectedMonth: validationResult.detectedMonth || null,
-            detectedYear: validationResult.detectedYear || null,
-            confidence: validationResult.confidence || 0
-          };
-          
-        } catch (llmError) {
-          addLog(`⚠️ LLM validation failed, using fallback validation`);
-          console.error('LLM validation error:', llmError);
-          
-          // Fallback to basic text-based validation
-          const pageContent = request.pageContent.toLowerCase();
-          const bankName = request.bankName.toLowerCase();
-          const month = request.month.toLowerCase();
-          const year = request.year.toString();
-          
-          const bankMatches = pageContent.includes(bankName) || 
-                             pageContent.includes(bankName.replace(' bank', '')) ||
-                             pageContent.includes(bankName.split(' ')[0]);
-          
-          const monthMatches = pageContent.includes(month) ||
-                              pageContent.includes(month.substring(0, 3)) ||
-                              request.pageContent.includes(year + '-' + String(getMonthNumber(month)).padStart(2, '0'));
-          
-          const yearMatches = request.pageContent.includes(year);
-          const isValid = bankMatches && monthMatches && yearMatches;
-          
-          return {
-            isValid,
-            bankMatches,
-            monthMatches,
-            yearMatches,
-            errorMessage: isValid ? null : `Fallback validation - Bank: ${bankMatches ? 'OK' : 'FAIL'}, Month: ${monthMatches ? 'OK' : 'FAIL'}, Year: ${yearMatches ? 'OK' : 'FAIL'}`,
-            detectedBank: bankMatches ? request.bankName : null,
-            detectedMonth: monthMatches ? request.month : null,
-            detectedYear: yearMatches ? request.year : null,
-            confidence: isValid ? 75 : 25
-          };
-        }
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Validation API request failed');
       }
+
+      const result = await response.json();
+      
+      // Check if this is a service error from the API
+      if (result.serviceError) {
+        addLog(`🚨 LLM Service Error: ${result.errorMessage}`);
+        throw new Error(result.errorMessage);
+      }
+      
+      if (result.isValid) {
+        addLog(`✅ Statement validation passed`);
+      } else {
+        addLog(`❌ Statement validation failed: ${result.errorMessage}`);
+      }
+
+      return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Validation failed';
       addLog(`❌ Validation error: ${errorMessage}`);
@@ -427,6 +292,12 @@ Return ONLY the JSON. No explanations or additional text.`;
       }
 
       const result = await response.json();
+      
+      // Check if this is a service error from the page processing API
+      if (result.serviceError) {
+        addLog(`🚨 Page ${pageNumber} LLM Service Error: ${result.processingNotes}`);
+        throw new Error(result.processingNotes);
+      }
       
       addLog(`✅ Page ${pageNumber} processed: ${result.transactions.length} transactions found`);
       

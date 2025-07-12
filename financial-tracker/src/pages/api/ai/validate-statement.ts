@@ -5,7 +5,7 @@
 
 import { NextApiRequest, NextApiResponse } from 'next';
 import { createLLMProvider } from '../../../lib/llm/LLMProviderFactory';
-import { getActiveLLMProvider } from '../../../lib/llm/config';
+import { routeLLMRequest } from '../../../lib/llm/LLMRoutingService';
 import { sanitizeTextForLLM } from '../../../utils/dataSanitization';
 
 // Validation prompt template
@@ -137,9 +137,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Create validation prompt with sanitized content
     const prompt = createValidationPrompt(bankName, month, year, sanitizedPageContent);
 
-    // Use existing LLM provider
-    const providerConfig = getActiveLLMProvider();
-    console.log('🔧 VALIDATION - Using LLM provider:', providerConfig.provider_type);
+    // Use the new LLM routing service to get the appropriate provider
+    const routingResult = await routeLLMRequest(req, res);
+    
+    if (!routingResult.success || !routingResult.provider) {
+      console.error('❌ LLM routing failed:', routingResult.error);
+      return res.status(400).json({ 
+        error: routingResult.error || 'No LLM provider configured'
+      });
+    }
+
+    const providerConfig = routingResult.provider;
+    console.log(`✅ Using LLM provider (${routingResult.source}):`, providerConfig.provider_type);
     
     console.log('🔍 VALIDATION - Complete prompt being sent to LLM:');
     console.log('=' .repeat(80));
@@ -228,7 +237,40 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     } catch (error) {
       console.error('LLM validation failed:', error);
-      // Use fallback validation based on text content
+      
+      // Check if this is an LLM service error (API key, network, permissions, etc.)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const isServiceError = errorMessage.includes('403') || 
+                            errorMessage.includes('401') || 
+                            errorMessage.includes('Forbidden') ||
+                            errorMessage.includes('Unauthorized') ||
+                            errorMessage.includes('API key') ||
+                            errorMessage.includes('quota') ||
+                            errorMessage.includes('GoogleGenerativeAI Error') ||
+                            errorMessage.includes('OpenAI Error') ||
+                            errorMessage.includes('Azure Error') ||
+                            errorMessage.includes('fetch');
+
+      if (isServiceError) {
+        // This is an LLM service error - don't fallback, return clear error
+        console.error('🚨 LLM Service Error detected:', errorMessage);
+        return res.status(400).json({
+          isValid: false,
+          bankMatches: false,
+          monthMatches: false,
+          yearMatches: false,
+          errorMessage: `LLM service error: ${errorMessage}. Please check your LLM provider configuration and API keys.`,
+          detectedBank: null,
+          detectedMonth: null,
+          detectedYear: null,
+          confidence: 0,
+          securityBreakdown: sanitizationResult.summary,
+          serviceError: true // Flag to indicate this is a service error, not validation logic error
+        });
+      }
+      
+      // Only use fallback validation for non-service errors (e.g., parsing issues)
+      console.log('🔄 Using fallback validation for non-service error');
       llmResult = createFallbackValidation(bankName, month, year, pageContent);
     }
 
