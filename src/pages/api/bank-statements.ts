@@ -39,42 +39,54 @@ export default async function handler(
 async function handleGet(supabase: any, userId: string, req: NextApiRequest, res: NextApiResponse) {
   const { account_id, year, month } = req.query;
 
-  let query = supabase
-    .from('bank_statements')
-    .select(`
-      *,
-      bank_accounts!inner(
-        bank_name,
-        account_type,
-        account_nickname
-      )
-    `)
-    .eq('user_id', userId)
-    .order('statement_year', { ascending: false })
-    .order('statement_month', { ascending: false });
+  try {
+    let query = supabase
+      .from('bank_statements')
+      .select(`
+        *,
+        bank_accounts!bank_account_id(
+          bank_name,
+          account_type,
+          account_nickname
+        )
+      `)
+      .eq('user_id', userId)
+      .order('statement_year', { ascending: false })
+      .order('statement_month', { ascending: false });
 
-  // Filter by account if specified
-  if (account_id) {
-    query = query.eq('bank_account_id', account_id);
+    // Filter by account if specified
+    if (account_id) {
+      query = query.eq('bank_account_id', account_id);
+    }
+
+    // Filter by year if specified
+    if (year) {
+      const yearInt = parseInt(year as string);
+      if (isNaN(yearInt)) {
+        return res.status(400).json({ error: 'Invalid year parameter' });
+      }
+      query = query.eq('statement_year', yearInt);
+    }
+
+    // Filter by month if specified
+    if (month) {
+      const monthInt = parseInt(month as string);
+      if (isNaN(monthInt) || monthInt < 1 || monthInt > 12) {
+        return res.status(400).json({ error: 'Invalid month parameter' });
+      }
+      query = query.eq('statement_month', monthInt);
+    }
+
+    const { data: statements, error } = await query;
+
+    if (error) {
+      return res.status(400).json({ error: error.message });
+    }
+
+    return res.status(200).json({ statements: statements || [] });
+  } catch (error) {
+    return res.status(500).json({ error: 'Internal server error' });
   }
-
-  // Filter by year if specified
-  if (year) {
-    query = query.eq('statement_year', parseInt(year as string));
-  }
-
-  // Filter by month if specified
-  if (month) {
-    query = query.eq('statement_month', parseInt(month as string));
-  }
-
-  const { data: statements, error } = await query;
-
-  if (error) {
-    return res.status(400).json({ error: error.message });
-  }
-
-  return res.status(200).json({ statements });
 }
 
 // Create new bank statement record
