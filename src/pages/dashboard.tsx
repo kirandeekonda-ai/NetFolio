@@ -15,6 +15,7 @@ import { useRealtimeIntegration } from '@/hooks/useRealtimeIntegration';
 import { LoggingService } from '@/services/logging/LoggingService';
 import { EnhancedAnalytics } from '@/components/EnhancedAnalytics';
 import { DateRange } from '@/components/EnhancedAnalytics/types/analytics.types';
+import { balanceService, NetWorthSummary } from '@/services/BalanceService';
 import {
   ResponsiveContainer,
   BarChart,
@@ -44,10 +45,17 @@ const Dashboard: NextPage = () => {
     isLoading: loading,
     error,
     lastUpdated: lastFetch
-  } = useSelector((state: RootState) => state.enhancedTransactions);  const [dateRange, setDateRange] = useState({
+  } = useSelector((state: RootState) => state.enhancedTransactions);
+
+  const [dateRange, setDateRange] = useState({
     start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
     end: new Date().toISOString().split('T')[0]
   });
+
+  // State for bank account balances
+  const [netWorth, setNetWorth] = useState<NetWorthSummary | null>(null);
+  const [balanceLoading, setBalanceLoading] = useState(false);
+  const [balanceError, setBalanceError] = useState<string | null>(null);
 
   // Setup real-time integration
   useRealtimeIntegration();
@@ -55,8 +63,27 @@ const Dashboard: NextPage = () => {
   useEffect(() => {
     if (user) {
       dispatch(fetchTransactions({ userId: user.id }));
+      // Fetch actual bank account balances
+      fetchNetWorth();
     }
   }, [dispatch, user]);
+
+  const fetchNetWorth = async () => {
+    if (!user) return;
+    
+    setBalanceLoading(true);
+    setBalanceError(null);
+    
+    try {
+      const netWorthData = await balanceService.getNetWorth(user.id);
+      setNetWorth(netWorthData);
+    } catch (error) {
+      console.error('Error fetching net worth:', error);
+      setBalanceError('Failed to load account balances');
+    } finally {
+      setBalanceLoading(false);
+    }
+  };
 
   const handleDateRangeChange = (type: 'start' | 'end', value: string) => {
     setDateRange(prev => ({
@@ -162,14 +189,14 @@ const Dashboard: NextPage = () => {
     });
 
     return {
-      totalBalance: transactions.reduce((sum: number, t: Transaction) => sum + t.amount, 0),
+      totalBalance: netWorth?.total_balance || 0, // Use actual bank account balances
       monthlyIncome: income,
       monthlyExpenses: expenses,
       categoryData,
       monthlyData,
       filteredTransactionsCount: filteredTransactions.length,
     };
-  }, [transactions, dateRange]);
+  }, [transactions, dateRange, netWorth]);
 
   return (
     <Layout>
@@ -401,19 +428,51 @@ const Dashboard: NextPage = () => {
                     <div className="p-1.5 bg-blue-100 rounded-lg">
                       <span className="text-blue-600">💰</span>
                     </div>
-                    <div className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded">
-                      Net Worth
+                    <div className="flex items-center gap-2">
+                      <div className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                        Net Worth
+                      </div>
+                      <button 
+                        onClick={fetchNetWorth}
+                        disabled={balanceLoading}
+                        className="text-xs text-gray-500 hover:text-gray-700 transition-colors"
+                        title="Refresh balances"
+                      >
+                        {balanceLoading ? '🔄' : '↻'}
+                      </button>
                     </div>
                   </div>
                   <h3 className="text-sm font-medium text-gray-600 mb-1">
                     Total Balance
                   </h3>
-                  <p className="text-2xl font-bold text-gray-900 mb-2">
-                    {formatAmount(totalBalance)}
-                  </p>
-                  <span className={`text-xs px-2 py-1 rounded ${totalBalance >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                    {totalBalance >= 0 ? 'Positive' : 'Negative'}
-                  </span>
+                  {balanceLoading ? (
+                    <div className="text-2xl font-bold text-gray-400 mb-2">
+                      Loading...
+                    </div>
+                  ) : balanceError ? (
+                    <div className="text-2xl font-bold text-red-500 mb-2">
+                      Error
+                    </div>
+                  ) : (
+                    <p className="text-2xl font-bold text-gray-900 mb-2">
+                      {formatAmount(totalBalance)}
+                    </p>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <span className={`text-xs px-2 py-1 rounded ${totalBalance >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                      {totalBalance >= 0 ? 'Positive' : 'Negative'}
+                    </span>
+                    {netWorth && (
+                      <div className="text-xs text-gray-500">
+                        {netWorth.account_count} account{netWorth.account_count !== 1 ? 's' : ''}
+                      </div>
+                    )}
+                  </div>
+                  {netWorth?.last_updated && (
+                    <div className="text-xs text-gray-400 mt-2">
+                      Updated: {new Date(netWorth.last_updated).toLocaleDateString()}
+                    </div>
+                  )}
                 </Card>
 
                 {/* Income Card */}

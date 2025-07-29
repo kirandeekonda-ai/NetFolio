@@ -28,49 +28,147 @@ class RealtimeServiceImpl implements RealtimeServiceInterface {
   private pollingEnabled = false;
   private pollingInterval = 30000; // 30 seconds
   private pollingTimers = new Map<string, NodeJS.Timeout>();
+  private realtimeDisabled = false;
 
   constructor(client?: SupabaseClient) {
     this.client = client || supabase;
-    this.logger.info('Real-time service initialized');
+    
+    // Check if real-time should be disabled via environment variable
+    this.realtimeDisabled = process.env.NEXT_PUBLIC_DISABLE_REALTIME === 'true';
+    if (this.realtimeDisabled) {
+      this.pollingEnabled = true;
+      this.logger.info('Real-time service disabled via environment variable, using polling only');
+    } else {
+      this.logger.info('Real-time service initialized');
+    }
+    
     this.setupConnectionMonitoring();
   }
 
   // Connection management
   async connect(): Promise<void> {
+    if (this.realtimeDisabled) {
+      this.logger.info('Real-time disabled, using polling mode only');
+      this.updateConnectionStatus({
+        connected: false,
+        reconnectAttempts: 0,
+        error: 'Real-time disabled via configuration'
+      });
+      return;
+    }
+
     try {
       this.logger.info('Connecting to real-time service');
       
-      // Test connection with a simple heartbeat
-      const testChannel = this.client.channel('heartbeat');
+      // Test connection with a simple approach - just check if client is available
+      if (!this.client) {
+        throw new Error('Supabase client not available');
+      }
+
+      // Test basic connectivity with auth status
+      try {
+        const { data: { session } } = await this.client.auth.getSession();
+        this.logger.debug('Auth session check completed', { hasSession: !!session });
+      } catch (authError) {
+        this.logger.warn('Auth check failed, but continuing with realtime connection', authError as Error);
+      }
+
+      // Try to establish a test channel with shorter timeout and better error handling
+      const testChannel = this.client.channel('connectivity_test', {
+        config: {
+          presence: { key: 'test' }
+        }
+      });
       
       await new Promise<void>((resolve, reject) => {
+        let resolved = false;
+        
         const timeout = setTimeout(() => {
-          reject(new Error('Connection timeout'));
-        }, 5000);
+          if (!resolved) {
+            resolved = true;
+            this.logger.warn('Real-time connection timeout, falling back to polling mode');
+            // Don't reject, just enable polling mode
+            this.pollingEnabled = true;
+            this.updateConnectionStatus({
+              connected: false,
+              reconnectAttempts: this.connectionStatus.reconnectAttempts + 1,
+              error: 'Connection timeout - using polling mode'
+            });
+            resolve(); // Resolve instead of reject to allow app to continue
+          }
+        }, 3000); // Reduced timeout to 3 seconds
 
+        // Try multiple events for better compatibility
         testChannel
           .on('presence', { event: 'sync' }, () => {
-            clearTimeout(timeout);
-            this.updateConnectionStatus({
-              connected: true,
-              lastHeartbeat: new Date(),
-              reconnectAttempts: 0
-            });
-            resolve();
+            if (!resolved) {
+              resolved = true;
+              clearTimeout(timeout);
+              this.pollingEnabled = false;
+              this.updateConnectionStatus({
+                connected: true,
+                lastHeartbeat: new Date(),
+                reconnectAttempts: 0
+              });
+              this.logger.info('Real-time connection established via presence sync');
+              resolve();
+            }
           })
-          .subscribe();
+          .on('system', {}, () => {
+            if (!resolved) {
+              resolved = true;
+              clearTimeout(timeout);
+              this.pollingEnabled = false;
+              this.updateConnectionStatus({
+                connected: true,
+                lastHeartbeat: new Date(),
+                reconnectAttempts: 0
+              });
+              this.logger.info('Real-time connection established via system event');
+              resolve();
+            }
+          })
+          .subscribe((status) => {
+            this.logger.debug('Channel subscription status:', { status });
+            if (status === 'SUBSCRIBED' && !resolved) {
+              resolved = true;
+              clearTimeout(timeout);
+              this.pollingEnabled = false;
+              this.updateConnectionStatus({
+                connected: true,
+                lastHeartbeat: new Date(),
+                reconnectAttempts: 0
+              });
+              this.logger.info('Real-time connection established via subscription');
+              resolve();
+            } else if (status === 'CHANNEL_ERROR' && !resolved) {
+              this.logger.warn('Channel subscription error, enabling polling mode');
+              this.pollingEnabled = true;
+            }
+          });
       });
 
-      this.client.removeChannel(testChannel);
-      this.logger.info('Successfully connected to real-time service');
+      // Clean up test channel
+      try {
+        this.client.removeChannel(testChannel);
+      } catch (cleanupError) {
+        this.logger.warn('Error cleaning up test channel', cleanupError as Error);
+      }
+
+      if (this.pollingEnabled) {
+        this.logger.info('Real-time service running in polling mode');
+      } else {
+        this.logger.info('Successfully connected to real-time service');
+      }
     } catch (error) {
-      this.logger.error('Failed to connect to real-time service', error as Error);
+      this.logger.error('Failed to connect to real-time service, enabling polling mode', error as Error);
+      this.pollingEnabled = true;
       this.updateConnectionStatus({
         connected: false,
         reconnectAttempts: this.connectionStatus.reconnectAttempts + 1,
         error: (error as Error).message
       });
-      throw error;
+      // Don't throw error - let the app continue with polling mode
     }
   }
 
@@ -104,73 +202,93 @@ class RealtimeServiceImpl implements RealtimeServiceInterface {
       this.logger.info('Creating real-time subscription', { 
         subscriptionId, 
         table: config.table, 
-        userId: config.userId 
+        userId: config.userId,
+        pollingEnabled: this.pollingEnabled,
+        realtimeDisabled: this.realtimeDisabled
       });
 
-      const channel = this.client.channel(`${config.table}_${subscriptionId}`);
-      
-      // Set up postgres changes listener
-      const filter = config.filter || `user_id=eq.${config.userId}`;
-      
-      config.events.forEach(eventType => {
-        channel.on(
-          'postgres_changes' as any,
-          {
-            event: eventType,
-            schema: 'public',
-            table: config.table,
-            filter
-          },
-          (payload: any) => {
-            this.logger.debug('Received real-time event', {
-              table: config.table,
-              eventType: payload.eventType,
-              timestamp: new Date().toISOString()
-            });
-
-            const transformedPayload: RealtimePayload<T> = {
-              eventType: payload.eventType as RealtimeEventType,
-              new: payload.new as T,
-              old: payload.old as T,
-              table: config.table,
-              timestamp: new Date().toISOString()
-            };
-
-            callback(transformedPayload);
+      // If real-time is available and not disabled, set up the channel
+      if (!this.pollingEnabled && !this.realtimeDisabled) {
+        const channel = this.client.channel(`${config.table}_${subscriptionId}`, {
+          config: {
+            presence: { key: subscriptionId }
           }
-        );
-      });
-
-      // Subscribe to the channel
-      channel.subscribe((status) => {
-        this.logger.info('Subscription status changed', { subscriptionId, status });
+        });
         
-        if (status === 'SUBSCRIBED') {
-          this.updateConnectionStatus({
-            connected: true,
-            lastHeartbeat: new Date(),
-            reconnectAttempts: 0
-          });
-        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          this.handleSubscriptionError(subscriptionId, config, callback);
-        }
-      });
+        // Set up postgres changes listener
+        const filter = config.filter || `user_id=eq.${config.userId}`;
+        
+        config.events.forEach(eventType => {
+          channel.on(
+            'postgres_changes' as any,
+            {
+              event: eventType,
+              schema: 'public',
+              table: config.table,
+              filter
+            },
+            (payload: any) => {
+              this.logger.debug('Received real-time event', {
+                table: config.table,
+                eventType: payload.eventType,
+                timestamp: new Date().toISOString()
+              });
 
-      this.subscriptions.set(subscriptionId, channel);
+              const transformedPayload: RealtimePayload<T> = {
+                eventType: payload.eventType as RealtimeEventType,
+                new: payload.new as T,
+                old: payload.old as T,
+                table: config.table,
+                timestamp: new Date().toISOString()
+              };
 
-      // Set up polling fallback if enabled
-      if (this.pollingEnabled) {
-        this.setupPollingFallback(subscriptionId, config, callback);
+              callback(transformedPayload);
+            }
+          );
+        });
+
+        // Subscribe to the channel with error handling
+        channel.subscribe((status) => {
+          this.logger.info('Subscription status changed', { subscriptionId, status });
+          
+          if (status === 'SUBSCRIBED') {
+            this.updateConnectionStatus({
+              connected: true,
+              lastHeartbeat: new Date(),
+              reconnectAttempts: 0
+            });
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            this.logger.warn('Real-time subscription failed, falling back to polling', { 
+              subscriptionId, 
+              status 
+            });
+            this.handleSubscriptionError(subscriptionId, config, callback);
+          }
+        });
+
+        this.subscriptions.set(subscriptionId, channel);
       }
 
-      this.logger.info('Real-time subscription created', { subscriptionId });
+      // Always set up polling fallback (either as primary or backup)
+      this.setupPollingFallback(subscriptionId, config, callback);
+
+      const mode = this.realtimeDisabled ? 'polling-only' : 
+                   this.pollingEnabled ? 'polling' : 'realtime+polling';
+      
+      this.logger.info('Subscription created successfully', { 
+        subscriptionId, 
+        mode
+      });
       return subscriptionId;
     } catch (error) {
-      this.logger.error('Failed to create real-time subscription', error as Error, {
+      this.logger.error('Failed to create subscription, using polling only', error as Error, {
         subscriptionId,
         table: config.table
       });
-      throw error;
+
+      // Fallback to polling only
+      this.setupPollingFallback(subscriptionId, config, callback);
+      return subscriptionId;
     }
   }
 
