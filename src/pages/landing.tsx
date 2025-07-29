@@ -74,10 +74,18 @@ const LandingPage: NextPage = () => {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="text-center"
+            className="text-center space-y-4"
           >
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent mx-auto mb-4"></div>
+            <div className="relative">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent mx-auto mb-4"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-xl">🔐</span>
+              </div>
+            </div>
             <p className="text-gray-600">Loading your dashboard...</p>
+            <div className="text-xs text-gray-500">
+              Verifying authentication status...
+            </div>
           </motion.div>
         </div>
       </Layout>
@@ -92,10 +100,18 @@ const LandingPage: NextPage = () => {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="text-center"
+            className="text-center space-y-4"
           >
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent mx-auto mb-4"></div>
+            <div className="relative">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent mx-auto mb-4"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-xl">⚙️</span>
+              </div>
+            </div>
             <p className="text-gray-600">Setting up your experience...</p>
+            <div className="text-xs text-gray-500">
+              Loading your preferences and data...
+            </div>
           </motion.div>
         </div>
       </Layout>

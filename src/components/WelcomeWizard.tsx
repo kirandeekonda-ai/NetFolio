@@ -197,6 +197,10 @@ export const WelcomeWizard: FC<WelcomeWizardProps> = ({ user, onComplete }) => {
                   <span>Smart transaction categorization</span>
                 </li>
                 <li className="flex items-center space-x-2">
+                  <span>💰</span>
+                  <span>Real-time balance tracking</span>
+                </li>
+                <li className="flex items-center space-x-2">
                   <span>🤖</span>
                   <span>AI-powered insights</span>
                 </li>
@@ -206,6 +210,14 @@ export const WelcomeWizard: FC<WelcomeWizardProps> = ({ user, onComplete }) => {
                 </li>
               </ul>
             </div>
+            
+            {/* Progress Estimate */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <p className="text-sm text-gray-600">
+                ⏱️ Setup takes about 2-3 minutes
+              </p>
+            </div>
+            
             <Button onClick={handleNext} className="px-8 py-3">
               Let's Get Started
             </Button>
@@ -269,6 +281,11 @@ export const WelcomeWizard: FC<WelcomeWizardProps> = ({ user, onComplete }) => {
               <div className="text-4xl mb-4">💰</div>
               <h2 className="text-2xl font-bold text-gray-900">Choose your base currency</h2>
               <p className="text-gray-600 mt-2">This will be used for all your financial calculations</p>
+              <div className="bg-blue-50 p-3 rounded-lg mt-4">
+                <p className="text-sm text-blue-800">
+                  💡 You can change this later in settings
+                </p>
+              </div>
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-96 overflow-y-auto">
@@ -417,6 +434,11 @@ export const WelcomeWizard: FC<WelcomeWizardProps> = ({ user, onComplete }) => {
               <div className="text-4xl mb-4">🚀</div>
               <h2 className="text-2xl font-bold text-gray-900">How would you like to get started?</h2>
               <p className="text-gray-600 mt-2">Choose the method that works best for you</p>
+              <div className="bg-gradient-to-r from-green-50 to-blue-50 p-4 rounded-lg mt-4">
+                <p className="text-sm text-gray-700">
+                  🎯 <strong>Pro Tip:</strong> Uploading a statement gives you the fastest setup with real data!
+                </p>
+              </div>
             </div>
             
             <div className="space-y-4">

@@ -1,4 +1,4 @@
-import { FC, useEffect, useState } from 'react';
+import { FC, useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { useSelector, useDispatch } from 'react-redux';
 import { motion } from 'framer-motion';
@@ -11,6 +11,7 @@ import { formatAmount } from '@/utils/currency';
 import { useRealtimeIntegration } from '@/hooks/useRealtimeIntegration';
 import { fetchTransactions, refreshTransactions } from '@/store/enhancedTransactionsSlice';
 import { LoggingService } from '@/services/logging/LoggingService';
+import { balanceService } from '@/services/BalanceService';
 
 interface LandingDashboardProps {
   user: any;
@@ -116,8 +117,66 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user }) => {
   // Initialize real-time integration
   const realtimeIntegration = useRealtimeIntegration();
   
-  // Local state for refresh functionality
+  // Local state for refresh functionality and balance data
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [balanceData, setBalanceData] = useState<{
+    totalBalance: number;
+    isLoading: boolean;
+    lastUpdated: string | null;
+  }>({
+    totalBalance: 0,
+    isLoading: false,
+    lastUpdated: null,
+  });
+  
+  // Memoized calculations for better performance
+  const financialMetrics = useMemo(() => {
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+    
+    const monthlyTransactions = transactions.filter(t => {
+      const transactionDate = new Date(t.date);
+      return transactionDate.getMonth() === currentMonth && transactionDate.getFullYear() === currentYear;
+    });
+
+    const monthlyIncome = monthlyTransactions
+      .filter(t => t.type === 'income')
+      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
+    const monthlyExpenses = monthlyTransactions
+      .filter(t => t.type === 'expense')
+      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
+    const netBalance = monthlyIncome - monthlyExpenses;
+    const uncategorizedCount = transactions.filter(t => !t.category || t.category === 'Uncategorized').length;
+
+    return {
+      monthlyIncome,
+      monthlyExpenses,
+      netBalance,
+      uncategorizedCount,
+      totalTransactions: transactions.length,
+    };
+  }, [transactions]);
+
+  // Enhanced balance fetching with BalanceService
+  const fetchBalanceData = useCallback(async () => {
+    if (!user?.id) return;
+    
+    setBalanceData(prev => ({ ...prev, isLoading: true }));
+    
+    try {
+      const result = await balanceService.getNetWorth(user.id);
+      setBalanceData({
+        totalBalance: result.total_balance,
+        isLoading: false,
+        lastUpdated: new Date().toISOString(),
+      });
+    } catch (error) {
+      LoggingService.error('LandingDashboard: Failed to fetch balance data', error as Error);
+      setBalanceData(prev => ({ ...prev, isLoading: false }));
+    }
+  }, [user?.id]);
   
   // Initialize data on component mount
   useEffect(() => {
@@ -126,8 +185,18 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user }) => {
       
       try {
         LoggingService.info('LandingDashboard: Initializing financial data');
-        await dispatch(fetchTransactions({ userId: user.id })).unwrap();
-        LoggingService.info('LandingDashboard: Successfully loaded data', { transactionCount: transactions.length });
+        
+        // Load both transactions and balance data
+        const [transactionResult] = await Promise.allSettled([
+          dispatch(fetchTransactions({ userId: user.id })).unwrap(),
+          fetchBalanceData(),
+        ]);
+        
+        if (transactionResult.status === 'fulfilled') {
+          LoggingService.info('LandingDashboard: Successfully loaded data', { 
+            transactionCount: transactions.length 
+          });
+        }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         LoggingService.error('LandingDashboard: Failed to initialize data', error as Error);
@@ -140,49 +209,51 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user }) => {
     };
     
     initializeData();
-  }, [dispatch, user?.id]);
+  }, [dispatch, user?.id, fetchBalanceData]);
   
   // Manual refresh functionality
-  const handleRefresh = async () => {
+  const handleRefresh = useCallback(async () => {
     if (!user?.id) return;
     
     setIsRefreshing(true);
     try {
       LoggingService.info('LandingDashboard: Manual refresh triggered');
       dispatch(refreshTransactions());
-      await dispatch(fetchTransactions({ userId: user.id })).unwrap();
+      
+      // Refresh both transactions and balance data
+      await Promise.allSettled([
+        dispatch(fetchTransactions({ userId: user.id })).unwrap(),
+        fetchBalanceData(),
+      ]);
     } catch (error) {
       LoggingService.error('LandingDashboard: Manual refresh failed', error as Error);
     } finally {
       setIsRefreshing(false);
     }
-  };
+  }, [dispatch, user?.id, fetchBalanceData]);
 
-  // Calculate metrics from transactions
-  const currentMonth = new Date().getMonth();
-  const currentYear = new Date().getFullYear();
-  
-  const monthlyTransactions = transactions.filter(t => {
-    const transactionDate = new Date(t.date);
-    return transactionDate.getMonth() === currentMonth && transactionDate.getFullYear() === currentYear;
-  });
+  // Enhanced balance refresh
+  const handleBalanceRefresh = useCallback(async () => {
+    if (!user?.id || balanceData.isLoading) return;
+    await fetchBalanceData();
+  }, [user?.id, balanceData.isLoading, fetchBalanceData]);
 
-  const monthlyIncome = monthlyTransactions
-    .filter(t => t.type === 'income')
-    .reduce((sum, t) => sum + Math.abs(t.amount), 0);
-
-  const monthlyExpenses = monthlyTransactions
-    .filter(t => t.type === 'expense')
-    .reduce((sum, t) => sum + Math.abs(t.amount), 0);
-
-  const netBalance = monthlyIncome - monthlyExpenses;
-
-  const uncategorizedCount = transactions.filter(t => !t.category || t.category === 'Uncategorized').length;
-
-  // Get user's display name
-  const displayName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'there';
+  // Get user's display name with fallback
+  const displayName = useMemo(() => {
+    return user.user_metadata?.full_name || 
+           user.user_metadata?.name || 
+           user.email?.split('@')[0] || 
+           'there';
+  }, [user]);
 
   const quickActions = [
+    {
+      title: 'Manage Accounts',
+      description: 'Add or update your bank accounts',
+      icon: '🏦',
+      href: '/bank-accounts',
+      color: 'green'
+    },
     {
       title: 'Upload Statement',
       description: 'Import transactions from your bank',
@@ -195,14 +266,14 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user }) => {
       description: 'Organize your spending patterns',
       icon: '🏷️',
       href: '/categorize',
-      color: 'green'
+      color: 'purple'
     },
     {
       title: 'View Dashboard',
       description: 'See your financial insights',
       icon: '📊',
       href: '/dashboard',
-      color: 'purple'
+      color: 'blue'
     }
   ];
 
@@ -241,6 +312,17 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user }) => {
             <span className={isRefreshing ? 'animate-spin' : ''}>🔄</span>
             <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
           </Button>
+
+          {/* Balance Refresh Button */}
+          <Button
+            variant="secondary"
+            onClick={handleBalanceRefresh}
+            disabled={balanceData.isLoading}
+            className="flex items-center space-x-2 bg-green-50 text-green-700 hover:bg-green-100"
+          >
+            <span className={balanceData.isLoading ? 'animate-pulse' : ''}>🏦</span>
+            <span>{balanceData.isLoading ? 'Updating...' : 'Update Balances'}</span>
+          </Button>
         </div>
         
         {/* Error Display */}
@@ -273,7 +355,7 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user }) => {
             <span className="mr-3">⚡</span>
             Quick Actions
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {quickActions.map((action, index) => (
               <QuickActionButton
                 key={action.title}
@@ -289,12 +371,12 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user }) => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.2 }}
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
       >
         {isLoading ? (
           // Loading skeletons
           <>
-            {[...Array(4)].map((_, index) => (
+            {[...Array(3)].map((_, index) => (
               <Card key={index} className="p-6 bg-gradient-to-br from-white to-gray-50">
                 <div className="animate-pulse">
                   <div className="flex items-center justify-between">
@@ -312,39 +394,33 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user }) => {
           // Actual data cards
           <>
             <StatsCard
-              title="Monthly Income"
-              value={formatAmount(monthlyIncome)}
-              icon="💰"
-              color="green"
+              title="Total Balance"
+              value={balanceData.isLoading ? "Loading..." : formatAmount(balanceData.totalBalance)}
+              icon="🏦"
+              color="blue"
               trend={{
-                value: realtimeConnected ? "Real-time" : "Static data",
-                isPositive: realtimeConnected
+                value: balanceData.lastUpdated ? "Updated" : "Real-time",
+                isPositive: true
               }}
             />
             <StatsCard
-              title="Monthly Expenses"
-              value={formatAmount(monthlyExpenses)}
-              icon="💸"
+              title="This Month's Spending"
+              value={formatAmount(financialMetrics.monthlyExpenses)}
+              icon="�"
               color="red"
-            />
-            <StatsCard
-              title="Net Balance"
-              value={formatAmount(netBalance)}
-              icon="📈"
-              color={netBalance >= 0 ? "green" : "red"}
               trend={{
-                value: `${netBalance >= 0 ? '+' : ''}${formatAmount(netBalance)}`,
-                isPositive: netBalance >= 0
+                value: `${new Date().toLocaleDateString('en-US', { month: 'long' })}`,
+                isPositive: false
               }}
             />
             <StatsCard
               title="Total Transactions"
               value={transactions.length.toString()}
               icon="📊"
-              color="blue"
+              color="green"
               trend={{
-                value: `${uncategorizedCount} uncategorized`,
-                isPositive: uncategorizedCount === 0
+                value: `${financialMetrics.uncategorizedCount} uncategorized`,
+                isPositive: financialMetrics.uncategorizedCount === 0
               }}
             />
           </>
@@ -364,6 +440,26 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user }) => {
           </h2>
           
           <div className="space-y-4">
+            {/* Balance update notification */}
+            {balanceData.lastUpdated && (
+              <div className="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <span className="text-2xl">💰</span>
+                  <div>
+                    <h3 className="font-semibold text-green-800">
+                      Balance Data Updated
+                    </h3>
+                    <p className="text-green-700">
+                      Account balances refreshed at {new Date(balanceData.lastUpdated).toLocaleTimeString()}
+                    </p>
+                  </div>
+                </div>
+                <span className="text-green-600 font-semibold">
+                  {formatAmount(balanceData.totalBalance)}
+                </span>
+              </div>
+            )}
+
             {/* Loading state notification */}
             {isLoading && (
               <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-lg">
@@ -405,7 +501,7 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user }) => {
               </div>
             )}
 
-            {!isLoading && uncategorizedCount > 0 && (
+            {!isLoading && financialMetrics.uncategorizedCount > 0 && (
               <div className="flex items-center justify-between p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                 <div className="flex items-center space-x-3">
                   <span className="text-2xl">⚠️</span>
@@ -414,7 +510,7 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user }) => {
                       Uncategorized Transactions
                     </h3>
                     <p className="text-yellow-700">
-                      You have {uncategorizedCount} transactions that need categorizing
+                      You have {financialMetrics.uncategorizedCount} transactions that need categorizing
                     </p>
                   </div>
                 </div>
@@ -450,7 +546,7 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user }) => {
               </div>
             )}
 
-            {!isLoading && uncategorizedCount === 0 && transactions.length > 0 && realtimeConnected && (
+            {!isLoading && financialMetrics.uncategorizedCount === 0 && transactions.length > 0 && realtimeConnected && (
               <div className="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-lg">
                 <div className="flex items-center space-x-3">
                   <span className="text-2xl">✅</span>
