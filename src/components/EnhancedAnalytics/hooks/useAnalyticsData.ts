@@ -89,48 +89,84 @@ const calculateSpendingTrends = (
   startDate: Date, 
   endDate: Date
 ): TrendDataPoint[] => {
-  const dailyData = new Map<string, { income: number; expenses: number }>();
-  let runningBalance = 0;
-
-  // Initialize all days in range
-  const current = new Date(startDate);
-  while (current <= endDate) {
-    const dateKey = current.toISOString().split('T')[0];
-    dailyData.set(dateKey, { income: 0, expenses: 0 });
-    current.setDate(current.getDate() + 1);
+  // Determine aggregation level based on date range
+  const diffInDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+  
+  // Choose aggregation strategy based on range
+  let aggregationType: 'daily' | 'weekly' | 'monthly';
+  if (diffInDays <= 31) {
+    aggregationType = 'daily';
+  } else if (diffInDays <= 180) {
+    aggregationType = 'weekly';
+  } else {
+    aggregationType = 'monthly';
   }
 
-  // Aggregate transactions by day
+  const aggregatedData = new Map<string, { income: number; expenses: number; period: Date }>();
+  let runningBalance = 0;
+
+  // Aggregate transactions based on chosen strategy
   transactions.forEach(transaction => {
-    const date = new Date(transaction.transaction_date || transaction.date);
-    const dateKey = date.toISOString().split('T')[0];
-    const dayData = dailyData.get(dateKey);
+    const transactionDate = new Date(transaction.transaction_date || transaction.date);
+    let periodKey: string;
+    let periodDate: Date;
+
+    switch (aggregationType) {
+      case 'daily':
+        periodKey = transactionDate.toISOString().split('T')[0];
+        periodDate = new Date(transactionDate.getFullYear(), transactionDate.getMonth(), transactionDate.getDate());
+        break;
+      case 'weekly':
+        // Get start of week (Monday)
+        const weekStart = new Date(transactionDate);
+        weekStart.setDate(transactionDate.getDate() - transactionDate.getDay() + 1);
+        periodKey = weekStart.toISOString().split('T')[0];
+        periodDate = weekStart;
+        break;
+      case 'monthly':
+        periodKey = `${transactionDate.getFullYear()}-${String(transactionDate.getMonth() + 1).padStart(2, '0')}`;
+        periodDate = new Date(transactionDate.getFullYear(), transactionDate.getMonth(), 1);
+        break;
+    }
+
+    if (!aggregatedData.has(periodKey)) {
+      aggregatedData.set(periodKey, { income: 0, expenses: 0, period: periodDate });
+    }
+
+    const periodData = aggregatedData.get(periodKey)!;
+    const type = transaction.transaction_type || transaction.type;
     
-    if (dayData) {
-      const type = transaction.transaction_type || transaction.type;
-      if (type === 'income') {
-        dayData.income += transaction.amount;
-      } else if (type === 'expense') {
-        dayData.expenses += Math.abs(transaction.amount);
-      }
+    if (type === 'income') {
+      periodData.income += transaction.amount;
+    } else if (type === 'expense') {
+      periodData.expenses += Math.abs(transaction.amount);
     }
   });
 
-  // Convert to trend data points
-  return Array.from(dailyData.entries())
-    .map(([date, data]) => {
+  // Convert to trend data points and sort by date
+  return Array.from(aggregatedData.entries())
+    .map(([dateKey, data]) => {
       const netFlow = data.income - data.expenses;
       runningBalance += netFlow;
       
       return {
-        date,
+        date: data.period.toISOString().split('T')[0],
         income: data.income,
         expenses: data.expenses,
         netFlow,
         runningBalance
       };
     })
-    .sort((a, b) => a.date.localeCompare(b.date));
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map((point, index, array) => {
+      // Recalculate running balance properly after sorting
+      if (index === 0) {
+        point.runningBalance = point.netFlow;
+      } else {
+        point.runningBalance = array[index - 1].runningBalance + point.netFlow;
+      }
+      return point;
+    });
 };
 
 const calculateCategoryBreakdown = (transactions: Transaction[]): CategoryBreakdown[] => {

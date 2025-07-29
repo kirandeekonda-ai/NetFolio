@@ -28,21 +28,12 @@ interface SpendingTrendsChartProps {
   className?: string;
 }
 
-const TIME_PERIODS = [
-  { key: '7d', label: '7 Days' },
-  { key: '30d', label: '30 Days' },
-  { key: '90d', label: '90 Days' },
-  { key: '1y', label: '1 Year' },
-  { key: 'all', label: 'All Time' }
-];
-
 export const SpendingTrendsChart: React.FC<SpendingTrendsChartProps> = ({
   data,
   loading = false,
   height = 400,
   className = ''
 }) => {
-  const [selectedPeriod, setSelectedPeriod] = useState('30d');
   const [visibleLines, setVisibleLines] = useState({
     income: true,
     expenses: true,
@@ -50,21 +41,13 @@ export const SpendingTrendsChart: React.FC<SpendingTrendsChartProps> = ({
     runningBalance: false
   });
 
-  const filteredData = React.useMemo(() => {
-    if (!data.length || selectedPeriod === 'all') return data;
-    
-    const now = new Date();
-    const periodDays = {
-      '7d': 7,
-      '30d': 30,
-      '90d': 90,
-      '1y': 365
-    }[selectedPeriod] || 30;
-    
-    const cutoffDate = new Date(now.getTime() - periodDays * 24 * 60 * 60 * 1000);
-    
-    return data.filter(point => new Date(point.date) >= cutoffDate);
-  }, [data, selectedPeriod]);
+  // Use all data provided (date range is controlled by parent component)
+  const chartData = React.useMemo(() => {
+    return data.filter(point => {
+      // Only include days with actual transaction data to avoid flat lines
+      return point.income > 0 || point.expenses > 0;
+    });
+  }, [data]);
 
   const toggleLine = (lineKey: keyof typeof visibleLines) => {
     setVisibleLines(prev => ({
@@ -120,24 +103,6 @@ export const SpendingTrendsChart: React.FC<SpendingTrendsChartProps> = ({
               <p className="text-sm text-gray-600">Track your financial patterns over time</p>
             </div>
           </div>
-          
-          {/* Time Period Selector */}
-          <div className="flex items-center space-x-2">
-            {TIME_PERIODS.map(period => (
-              <Button
-                key={period.key}
-                onClick={() => setSelectedPeriod(period.key)}
-                variant={selectedPeriod === period.key ? 'primary' : 'secondary'}
-                className={`text-xs px-3 py-1.5 ${
-                  selectedPeriod === period.key 
-                    ? 'bg-purple-600 text-white' 
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {period.label}
-              </Button>
-            ))}
-          </div>
         </div>
 
         {/* Legend Controls */}
@@ -167,9 +132,9 @@ export const SpendingTrendsChart: React.FC<SpendingTrendsChartProps> = ({
 
         {/* Chart */}
         <div className="w-full" style={{ height }}>
-          {filteredData.length > 0 ? (
+          {chartData.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={filteredData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+              <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis 
                   dataKey="date" 
@@ -245,27 +210,27 @@ export const SpendingTrendsChart: React.FC<SpendingTrendsChartProps> = ({
         </div>
 
         {/* Summary Stats */}
-        {filteredData.length > 0 && (
+        {chartData.length > 0 && (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-6 border-t border-gray-200">
             {[
               {
                 label: 'Avg Daily Income',
-                value: filteredData.reduce((sum, d) => sum + d.income, 0) / filteredData.length,
+                value: chartData.reduce((sum: number, d: any) => sum + d.income, 0) / chartData.length,
                 color: 'text-green-600'
               },
               {
                 label: 'Avg Daily Expenses',
-                value: filteredData.reduce((sum, d) => sum + d.expenses, 0) / filteredData.length,
+                value: chartData.reduce((sum: number, d: any) => sum + d.expenses, 0) / chartData.length,
                 color: 'text-red-600'
               },
               {
                 label: 'Net Change',
-                value: filteredData[filteredData.length - 1]?.runningBalance - filteredData[0]?.runningBalance || 0,
+                value: chartData[chartData.length - 1]?.runningBalance - chartData[0]?.runningBalance || 0,
                 color: 'text-blue-600'
               },
               {
                 label: 'Best Day',
-                value: Math.max(...filteredData.map(d => d.netFlow)),
+                value: Math.max(...chartData.map((d: any) => d.netFlow)),
                 color: 'text-purple-600'
               }
             ].map((stat, index) => (
