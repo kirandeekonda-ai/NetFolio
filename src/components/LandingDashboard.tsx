@@ -4,6 +4,7 @@ import { useSelector } from 'react-redux';
 import { motion } from 'framer-motion';
 import { Card } from './Card';
 import { Button } from './Button';
+import { ServiceLayerDemo } from './ServiceLayerDemo';
 import { RootState } from '@/store';
 import { formatAmount } from '@/utils/currency';
 
@@ -353,6 +354,15 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user, profile }) =
           </Card>
         </motion.div>
       )}
+
+      {/* Service Layer Demo - Show new infrastructure */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.5 }}
+      >
+        <ServiceLayerDemo />
+      </motion.div>
     </div>
   );
 };
