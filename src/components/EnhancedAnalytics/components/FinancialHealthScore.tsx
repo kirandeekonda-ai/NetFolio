@@ -58,76 +58,74 @@ export const FinancialHealthScore: React.FC<FinancialHealthScoreProps> = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <Card className={`p-6 text-center ${className}`}>
-        {/* Header */}
-        <div className="mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-1">Financial Health Score</h3>
-          <p className="text-sm text-gray-600">Overall financial wellness assessment</p>
-        </div>
-
-        {/* Main Score Display */}
-        <div className="flex flex-col items-center mb-6">
-          {/* Circular Progress */}
-          <div className="relative w-28 h-28 mb-4">
-            <svg width="112" height="112" className="transform -rotate-90">
-              {/* Background circle */}
-              <circle
-                cx="56"
-                cy="56"
-                r="48"
-                stroke="#E5E7EB"
-                strokeWidth="8"
-                fill="none"
-              />
-              {/* Progress circle */}
-              <circle
-                cx="56"
-                cy="56"
-                r="48"
-                stroke={getCircleColor(metrics.score)}
-                strokeWidth="8"
-                fill="none"
-                strokeLinecap="round"
-                strokeDasharray={`${(metrics.score / 100) * 301.6} 301.6`}
-                className="transition-all duration-1000 ease-out"
-              />
-            </svg>
-            
-            {/* Score Text */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="text-center">
-                <div className={`text-3xl font-bold ${getScoreColor(metrics.score)}`}>
-                  {Math.round(metrics.score)}
+      <Card className={`p-4 h-full flex flex-col ${className}`}>
+        <h4 className="font-medium text-gray-900 mb-3">Financial Health Score</h4>
+        {/* Compact Horizontal Layout */}
+        <div className="flex items-center gap-4 flex-1">
+          {/* Left: Circular Score */}
+          <div className="flex-shrink-0">
+            <div className="relative w-20 h-20">
+              <svg width="80" height="80" className="transform -rotate-90">
+                {/* Background circle */}
+                <circle
+                  cx="40"
+                  cy="40"
+                  r="34"
+                  stroke="#E5E7EB"
+                  strokeWidth="6"
+                  fill="none"
+                />
+                {/* Progress circle */}
+                <circle
+                  cx="40"
+                  cy="40"
+                  r="34"
+                  stroke={getCircleColor(metrics.score)}
+                  strokeWidth="6"
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeDasharray={`${(metrics.score / 100) * 213.6} 213.6`}
+                  className="transition-all duration-1000 ease-out"
+                />
+              </svg>
+              
+              {/* Score Text */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-center">
+                  <div className={`text-xl font-bold ${getScoreColor(metrics.score)}`}>
+                    {Math.round(metrics.score)}
+                  </div>
+                  <div className="text-xs text-gray-500">/ 100</div>
                 </div>
-                <div className="text-xs text-gray-500">/ 100</div>
               </div>
             </div>
           </div>
-          
-          <div>
-            <p className={`text-lg font-semibold ${getScoreColor(metrics.score)}`}>
+
+          {/* Center: Score Info and Status */}
+          <div className="flex-1 min-w-0 flex flex-col justify-center">
+            <p className={`text-sm font-medium ${getScoreColor(metrics.score)} mb-3`}>
               {getScoreStatus(metrics.score)}
             </p>
-          </div>
-        </div>
-
-        {/* Key Metrics Grid */}
-        <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200">
-          <div className="text-center">
-            <div className="text-xs text-gray-500 mb-1">Savings Rate</div>
-            <div className="font-semibold text-gray-900">{metrics.savingsRate.toFixed(1)}%</div>
-          </div>
-          <div className="text-center">
-            <div className="text-xs text-gray-500 mb-1">Expense Ratio</div>
-            <div className="font-semibold text-gray-900">{metrics.expenseRatio.toFixed(1)}%</div>
-          </div>
-          <div className="text-center">
-            <div className="text-xs text-gray-500 mb-1">Diversification</div>
-            <div className="font-semibold text-blue-600">{metrics.categoryDiversification.toFixed(1)}%</div>
-          </div>
-          <div className="text-center">
-            <div className="text-xs text-gray-500 mb-1">Stability</div>
-            <div className="font-semibold text-green-600">{metrics.trendStability.toFixed(1)}%</div>
+            
+            {/* Compact Metrics Grid */}
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div>
+                <span className="text-gray-500">Savings:</span>
+                <span className="ml-1 font-medium">{metrics.savingsRate.toFixed(1)}%</span>
+              </div>
+              <div>
+                <span className="text-gray-500">Expenses:</span>
+                <span className="ml-1 font-medium">{metrics.expenseRatio.toFixed(1)}%</span>
+              </div>
+              <div>
+                <span className="text-gray-500">Diversity:</span>
+                <span className="ml-1 font-medium text-blue-600">{metrics.categoryDiversification.toFixed(1)}%</span>
+              </div>
+              <div>
+                <span className="text-gray-500">Stability:</span>
+                <span className="ml-1 font-medium text-green-600">{metrics.trendStability.toFixed(1)}%</span>
+              </div>
+            </div>
           </div>
         </div>
       </Card>

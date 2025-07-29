@@ -238,6 +238,64 @@ const Dashboard: NextPage = () => {
                 </div>
               </div>
             </div>
+            
+            {/* Quick Period Selector */}
+            <div className="mt-6 border-t pt-6">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-sm text-gray-600">Quick Select:</p>
+              </div>
+              
+              <div className="flex items-center gap-3 flex-wrap">
+                {[
+                  { label: '1M', icon: '🌱', months: 1, gradient: 'from-green-400 to-green-600', desc: 'Recent Activity' },
+                  { label: '3M', icon: '🌿', months: 3, gradient: 'from-blue-400 to-blue-600', desc: 'Quarterly Trends' },
+                  { label: '6M', icon: '🌳', months: 6, gradient: 'from-purple-400 to-purple-600', desc: 'Mid-term Patterns' },
+                  { label: '1Y', icon: '🌲', months: 12, gradient: 'from-orange-400 to-orange-600', desc: 'Annual Overview' }
+                ].map((period) => {
+                  const isActive = (() => {
+                    const diffInMs = new Date(dateRange.end).getTime() - new Date(dateRange.start).getTime();
+                    const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
+                    const expectedDays = period.months * 30; // Approximate
+                    return Math.abs(diffInDays - expectedDays) < 10; // Within 10 days tolerance
+                  })();
+                  
+                  return (
+                    <button
+                      key={period.label}
+                      onClick={() => {
+                        const end = new Date();
+                        const start = new Date();
+                        start.setMonth(start.getMonth() - period.months);
+                        handleDateRangeChange('start', start.toISOString().split('T')[0]);
+                        handleDateRangeChange('end', end.toISOString().split('T')[0]);
+                      }}
+                      className={`
+                        relative flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 hover:scale-105 transform
+                        ${isActive 
+                          ? `bg-gradient-to-r ${period.gradient} text-white shadow-lg` 
+                          : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200'
+                        }
+                      `}
+                    >
+                      <span className="text-xl">{period.icon}</span>
+                      <div className="text-left">
+                        <div className={`font-semibold ${isActive ? 'text-white' : 'text-gray-900'}`}>
+                          {period.label}
+                        </div>
+                        <div className={`text-xs ${isActive ? 'text-white/90' : 'text-gray-500'}`}>
+                          {period.desc}
+                        </div>
+                      </div>
+                      {isActive && (
+                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-white rounded-full flex items-center justify-center">
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </Card>
 
           {/* Error Handling */}
@@ -335,13 +393,13 @@ const Dashboard: NextPage = () => {
           {/* Show dashboard content when filtered transactions are available */}
           {transactions && transactions.length > 0 && filteredTransactionsCount > 0 && !loading && !error && (
             <>
-              {/* Summary Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              {/* Summary Cards - Compact Design */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 {/* Total Balance Card */}
-                <Card className="p-6 border-l-4 border-blue-500">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                      <span className="text-lg text-blue-600">💰</span>
+                <Card className="p-4 border-l-4 border-blue-500">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="p-1.5 bg-blue-100 rounded-lg">
+                      <span className="text-blue-600">💰</span>
                     </div>
                     <div className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded">
                       Net Worth
@@ -350,21 +408,19 @@ const Dashboard: NextPage = () => {
                   <h3 className="text-sm font-medium text-gray-600 mb-1">
                     Total Balance
                   </h3>
-                  <p className="text-3xl font-bold text-gray-900 mb-2">
+                  <p className="text-2xl font-bold text-gray-900 mb-2">
                     {formatAmount(totalBalance)}
                   </p>
-                  <div className="text-xs">
-                    <span className={`px-2 py-1 rounded ${totalBalance >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                      {totalBalance >= 0 ? 'Positive' : 'Negative'}
-                    </span>
-                  </div>
+                  <span className={`text-xs px-2 py-1 rounded ${totalBalance >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                    {totalBalance >= 0 ? 'Positive' : 'Negative'}
+                  </span>
                 </Card>
 
                 {/* Income Card */}
-                <Card className="p-6 border-l-4 border-green-500">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="p-2 bg-green-100 rounded-lg">
-                      <span className="text-lg text-green-600">📈</span>
+                <Card className="p-4 border-l-4 border-green-500">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="p-1.5 bg-green-100 rounded-lg">
+                      <span className="text-green-600">📈</span>
                     </div>
                     <div className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded">
                       Selected Period
@@ -373,21 +429,19 @@ const Dashboard: NextPage = () => {
                   <h3 className="text-sm font-medium text-gray-600 mb-1">
                     Total Income
                   </h3>
-                  <p className="text-3xl font-bold text-gray-900 mb-2">
+                  <p className="text-2xl font-bold text-gray-900 mb-2">
                     {formatAmount(monthlyIncome)}
                   </p>
-                  <div className="text-xs">
-                    <span className="px-2 py-1 rounded bg-green-100 text-green-700">
-                      Revenue
-                    </span>
-                  </div>
+                  <span className="text-xs px-2 py-1 rounded bg-green-100 text-green-700">
+                    Revenue
+                  </span>
                 </Card>
 
                 {/* Expenses Card */}
-                <Card className="p-6 border-l-4 border-red-500">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="p-2 bg-red-100 rounded-lg">
-                      <span className="text-lg text-red-600">📉</span>
+                <Card className="p-4 border-l-4 border-red-500">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="p-1.5 bg-red-100 rounded-lg">
+                      <span className="text-red-600">📉</span>
                     </div>
                     <div className="text-xs font-medium text-red-600 bg-red-50 px-2 py-1 rounded">
                       Selected Period
@@ -396,15 +450,15 @@ const Dashboard: NextPage = () => {
                   <h3 className="text-sm font-medium text-gray-600 mb-1">
                     Total Expenses
                   </h3>
-                  <p className="text-3xl font-bold text-gray-900 mb-2">
+                  <p className="text-2xl font-bold text-gray-900 mb-2">
                     {formatAmount(monthlyExpenses)}
                   </p>
-                  <div className="text-xs">
-                    <span className="px-2 py-1 rounded bg-red-100 text-red-700">
+                  <div className="flex flex-wrap gap-1">
+                    <span className="text-xs px-2 py-1 rounded bg-red-100 text-red-700">
                       Spending
                     </span>
                     {monthlyIncome > 0 && (
-                      <span className="ml-2 px-2 py-1 rounded bg-gray-100 text-gray-700">
+                      <span className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700">
                         {((monthlyExpenses / monthlyIncome) * 100).toFixed(0)}% of income
                       </span>
                     )}
@@ -413,7 +467,7 @@ const Dashboard: NextPage = () => {
               </div>
 
               {/* Enhanced Charts & Analytics Section */}
-              <div className="mt-8">
+              <div className="mt-6">
                 <EnhancedAnalytics 
                   transactions={transactions || []}
                   dateRange={dateRange}
