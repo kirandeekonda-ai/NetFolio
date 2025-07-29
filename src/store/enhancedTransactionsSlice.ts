@@ -36,28 +36,34 @@ export const fetchTransactions = createAsyncThunk(
       logger.info('Fetching transactions', { userId, accountId });
       const transactions = await DatabaseService.getTransactions(userId, accountId);
       
+      // Handle empty results (this is normal for new users)
+      if (!transactions || transactions.length === 0) {
+        logger.info('No transactions found for user', { userId, accountId });
+        return [];
+      }
+      
       // Transform database format to frontend format
       return transactions.map((t: any) => ({
         id: t.id!,
         user_id: t.user_id,
         bank_account_id: t.bank_account_id,
         bank_statement_id: t.bank_statement_id,
-        transaction_date: t.date,
+        transaction_date: t.transaction_date,
         description: t.description,
         amount: t.amount,
-        transaction_type: t.type === 'credit' ? 'income' : 'expense' as 'income' | 'expense' | 'transfer',
+        transaction_type: t.transaction_type === 'income' ? 'income' : 'expense' as 'income' | 'expense' | 'transfer',
         category_id: t.category_id,
-        category_name: t.category,
-        is_transfer: false,
+        category_name: t.category_name,
+        is_transfer: t.is_transfer || false,
         transfer_account_id: t.transfer_account_id,
         reference_number: t.reference_number,
         balance_after: t.balance_after,
         created_at: t.created_at || new Date().toISOString(),
         updated_at: t.updated_at || new Date().toISOString(),
         // Legacy fields for backward compatibility
-        date: t.date,
-        type: t.type === 'credit' ? 'income' : 'expense' as 'income' | 'expense',
-        category: t.category || 'Uncategorized'
+        date: t.transaction_date,
+        type: t.transaction_type === 'income' ? 'income' : 'expense' as 'income' | 'expense',
+        category: t.category_name || 'Uncategorized'
       }));
     } catch (error) {
       logger.error('Failed to fetch transactions', error as Error);

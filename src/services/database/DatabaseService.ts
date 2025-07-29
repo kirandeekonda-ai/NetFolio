@@ -34,7 +34,7 @@ class DatabaseServiceImpl implements DatabaseServiceInterface {
         .from('transactions')
         .select('*')
         .eq('user_id', userId)
-        .order('date', { ascending: false });
+        .order('transaction_date', { ascending: false });
 
       if (accountId) {
         query = query.eq('bank_account_id', accountId);

@@ -37,12 +37,14 @@ const Dashboard: NextPage = () => {
   const router = useRouter();
   const user = useUser();
 
-  const {
-    items: transactions,
-    isLoading: loading,
-    error,
-    lastUpdated: lastFetch
-  } = useSelector((state: RootState) => state.enhancedTransactions);  const [dateRange, setDateRange] = useState({
+  const { 
+    transactions, 
+    loading, 
+    error, 
+    lastFetch 
+  } = useSelector((state: RootState) => state.enhancedTransactions);
+
+  const [dateRange, setDateRange] = useState({
     start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
     end: new Date().toISOString().split('T')[0]
   });
@@ -72,7 +74,7 @@ const Dashboard: NextPage = () => {
 
   const handleDebugLog = () => {
     LoggingService.debug('Dashboard State:', {
-      transactionCount: transactions?.length || 0,
+      transactionCount: transactions.length,
       dateRange,
       loading,
       error,
@@ -90,20 +92,7 @@ const Dashboard: NextPage = () => {
     monthlyExpenses,
     categoryData,
     monthlyData,
-    filteredTransactionsCount,
   } = useMemo(() => {
-    // Add null check for transactions
-    if (!transactions || !Array.isArray(transactions)) {
-      return {
-        totalBalance: 0,
-        monthlyIncome: 0,
-        monthlyExpenses: 0,
-        categoryData: [],
-        monthlyData: [],
-        filteredTransactionsCount: 0,
-      };
-    }
-
     // Use the selected date range instead of current month
     const startDate = new Date(dateRange.start);
     const endDate = new Date(dateRange.end);
@@ -133,7 +122,7 @@ const Dashboard: NextPage = () => {
       }, {} as Record<string, number>);
 
     const categoryData = Object.entries(categoryTotals)
-      .map(([name, value]) => ({ name, value: value as number }))
+      .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
 
     // Monthly trend data for the current year (based on end date)
@@ -165,7 +154,6 @@ const Dashboard: NextPage = () => {
       monthlyExpenses: expenses,
       categoryData,
       monthlyData,
-      filteredTransactionsCount: filteredTransactions.length,
     };
   }, [transactions, dateRange]);
 
@@ -307,8 +295,8 @@ const Dashboard: NextPage = () => {
             </motion.div>
           )}
 
-          {/* Enhanced Empty State - Show when no transactions in current date range */}
-          {transactions && transactions.length === 0 && !loading && !error && (
+          {/* Enhanced Empty State */}
+          {transactions.length === 0 && !loading && !error && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -355,40 +343,6 @@ const Dashboard: NextPage = () => {
             </motion.div>
           )}
 
-          {/* No Data in Date Range State */}
-          {transactions && transactions.length > 0 && filteredTransactionsCount === 0 && !loading && !error && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-            >
-              <Card className="p-12 text-center bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 shadow-lg">
-                <div className="w-32 h-32 mx-auto mb-6 bg-gradient-to-br from-amber-100 to-orange-100 rounded-2xl flex items-center justify-center shadow-inner">
-                  <span className="text-5xl">📅</span>
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-3">
-                  No Transactions in Selected Date Range
-                </h3>
-                <p className="text-gray-600 mb-8 max-w-lg mx-auto leading-relaxed">
-                  There are no transactions for the selected date range. Try adjusting your date filter 
-                  or selecting a different time period to view your financial data.
-                </p>
-                <Button
-                  onClick={() => setDateRange({
-                    start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
-                    end: new Date().toISOString().split('T')[0]
-                  })}
-                  className="bg-gradient-to-r from-amber-500 to-orange-600 text-white px-8 py-4 rounded-xl hover:from-amber-600 hover:to-orange-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-                >
-                  <span className="flex items-center space-x-3">
-                    <span className="text-lg">🔄</span>
-                    <span className="font-semibold">Reset to Current Month</span>
-                  </span>
-                </Button>
-              </Card>
-            </motion.div>
-          )}
-
           {/* Enhanced Loading State */}
           {loading && (
             <motion.div
@@ -415,8 +369,8 @@ const Dashboard: NextPage = () => {
             </motion.div>
           )}
 
-          {/* Show dashboard content when filtered transactions are available */}
-          {transactions && transactions.length > 0 && filteredTransactionsCount > 0 && !loading && !error && (
+          {/* Show dashboard content when transactions are available */}
+          {transactions.length > 0 && !loading && !error && (
             <>
               {/* Enhanced Summary Cards */}
               <motion.div 
@@ -530,45 +484,19 @@ const Dashboard: NextPage = () => {
                 </motion.div>
               </motion.div>
 
-              {/* Enhanced Charts & Analytics Section */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.8 }}
-                className="mt-8"
-              >
-                <Card className="p-8 text-center bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 shadow-lg">
-                  <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
-                    <span className="text-3xl text-white">🚧</span>
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-3">Enhanced Charts & Analytics</h2>
-                  <p className="text-gray-600 mb-6 max-w-lg mx-auto">
-                    Advanced visualizations and insights coming soon! Interactive charts, spending trends, 
-                    and predictive analytics to help you make better financial decisions.
-                  </p>
-                  <div className="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-6">
-                    <Button 
-                      onClick={() => router.push('/statements')} 
-                      className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-6 py-3 rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-                    >
-                      <span className="flex items-center space-x-2">
-                        <span>📄</span>
-                        <span>Upload Statements</span>
-                      </span>
-                    </Button>
-                    <Button 
-                      onClick={() => router.push('/categorize')} 
-                      variant="secondary"
-                      className="px-6 py-3 rounded-xl border-2 border-gray-300 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-                    >
-                      <span className="flex items-center space-x-2">
-                        <span>🏷️</span>
-                        <span>Categorize Transactions</span>
-                      </span>
-                    </Button>
-                  </div>
-                </Card>
-              </motion.div>
+              {/* Charts and Quick Actions sections... */}
+              <div className="text-center p-8 bg-blue-50 rounded-xl">
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">🚧 Enhanced Charts & Analytics</h2>
+                <p className="text-gray-600 mb-4">Advanced visualizations and insights coming soon!</p>
+                <div className="flex justify-center space-x-4">
+                  <Button onClick={() => router.push('/statements')} className="bg-blue-600 text-white">
+                    📄 Upload Statements
+                  </Button>
+                  <Button onClick={() => router.push('/categorize')} variant="secondary">
+                    🏷️ Categorize Transactions
+                  </Button>
+                </div>
+              </div>
             </>
           )}
         

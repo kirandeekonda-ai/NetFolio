@@ -1,12 +1,16 @@
-import { FC } from 'react';
+import { FC, useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { motion } from 'framer-motion';
 import { Card } from './Card';
 import { Button } from './Button';
 import { ServiceLayerDemo } from './ServiceLayerDemo';
-import { RootState } from '@/store';
+import { ConnectionStatus } from './ConnectionStatus';
+import { RootState, AppDispatch } from '@/store';
 import { formatAmount } from '@/utils/currency';
+import { useRealtimeIntegration } from '@/hooks/useRealtimeIntegration';
+import { fetchTransactions, refreshTransactions } from '@/store/enhancedTransactionsSlice';
+import { LoggingService } from '@/services/logging/LoggingService';
 
 interface LandingDashboardProps {
   user: any;
@@ -102,9 +106,57 @@ const StatsCard: FC<StatsCardProps> = ({ title, value, icon, color, trend }) => 
   );
 };
 
-export const LandingDashboard: FC<LandingDashboardProps> = ({ user, profile }) => {
+export const LandingDashboard: FC<LandingDashboardProps> = ({ user }) => {
   const router = useRouter();
-  const transactions = useSelector((state: RootState) => state.transactions.items);
+  const dispatch = useDispatch<AppDispatch>();
+  
+  // Use enhanced Redux slice with real-time integration
+  const { items: transactions, isLoading, error, realtimeConnected, lastUpdated } = useSelector((state: RootState) => state.enhancedTransactions);
+  
+  // Initialize real-time integration
+  const realtimeIntegration = useRealtimeIntegration();
+  
+  // Local state for refresh functionality
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  // Initialize data on component mount
+  useEffect(() => {
+    const initializeData = async () => {
+      if (!user?.id) return;
+      
+      try {
+        LoggingService.info('LandingDashboard: Initializing financial data');
+        await dispatch(fetchTransactions({ userId: user.id })).unwrap();
+        LoggingService.info('LandingDashboard: Successfully loaded data', { transactionCount: transactions.length });
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        LoggingService.error('LandingDashboard: Failed to initialize data', error as Error);
+        
+        // Don't show error for empty results - this is normal for new users
+        if (errorMessage.includes('column') || errorMessage.includes('does not exist')) {
+          LoggingService.warn('LandingDashboard: Database schema issue, may need migration');
+        }
+      }
+    };
+    
+    initializeData();
+  }, [dispatch, user?.id]);
+  
+  // Manual refresh functionality
+  const handleRefresh = async () => {
+    if (!user?.id) return;
+    
+    setIsRefreshing(true);
+    try {
+      LoggingService.info('LandingDashboard: Manual refresh triggered');
+      dispatch(refreshTransactions());
+      await dispatch(fetchTransactions({ userId: user.id })).unwrap();
+    } catch (error) {
+      LoggingService.error('LandingDashboard: Manual refresh failed', error as Error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // Calculate metrics from transactions
   const currentMonth = new Date().getMonth();
@@ -156,7 +208,7 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user, profile }) =
 
   return (
     <div className="max-w-7xl mx-auto space-y-8">
-      {/* Header */}
+      {/* Header with Real-Time Status */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -166,9 +218,48 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user, profile }) =
         <h1 className="text-4xl font-bold text-gray-900 mb-2">
           Welcome back, {displayName}! 👋
         </h1>
-        <p className="text-xl text-gray-600">
+        <p className="text-xl text-gray-600 mb-4">
           Here's your financial overview
         </p>
+        
+        {/* Connection Status and Refresh */}
+        <div className="flex items-center justify-center space-x-4 mt-4">
+          <ConnectionStatus />
+          
+          {lastUpdated && (
+            <span className="text-sm text-gray-500">
+              Last updated: {new Date(lastUpdated).toLocaleTimeString()}
+            </span>
+          )}
+          
+          <Button
+            variant="secondary"
+            onClick={handleRefresh}
+            disabled={isRefreshing || isLoading}
+            className="flex items-center space-x-2"
+          >
+            <span className={isRefreshing ? 'animate-spin' : ''}>🔄</span>
+            <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
+          </Button>
+        </div>
+        
+        {/* Error Display */}
+        {error && (
+          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700">
+            <p className="text-sm">
+              ⚠️ {error.includes('column') || error.includes('does not exist') 
+                    ? 'Database connection issue. Please try refreshing the page.' 
+                    : `Unable to load financial data: ${error}`}
+            </p>
+            <Button
+              variant="secondary"
+              onClick={handleRefresh}
+              className="mt-2 text-xs"
+            >
+              Try Again
+            </Button>
+          </div>
+        )}
       </motion.div>
 
       {/* Quick Actions */}
@@ -193,44 +284,74 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user, profile }) =
         </Card>
       </motion.div>
 
-      {/* Snapshot Cards */}
+      {/* Snapshot Cards with Loading States */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.2 }}
         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
       >
-        <StatsCard
-          title="Monthly Income"
-          value={formatAmount(monthlyIncome)}
-          icon="💰"
-          color="green"
-          trend={{
-            value: "vs last month",
-            isPositive: true
-          }}
-        />
-        <StatsCard
-          title="Monthly Expenses"
-          value={formatAmount(monthlyExpenses)}
-          icon="💸"
-          color="red"
-        />
-        <StatsCard
-          title="Net Balance"
-          value={formatAmount(netBalance)}
-          icon="📈"
-          color={netBalance >= 0 ? "green" : "red"}
-        />
-        <StatsCard
-          title="Total Transactions"
-          value={transactions.length.toString()}
-          icon="📊"
-          color="blue"
-        />
+        {isLoading ? (
+          // Loading skeletons
+          <>
+            {[...Array(4)].map((_, index) => (
+              <Card key={index} className="p-6 bg-gradient-to-br from-white to-gray-50">
+                <div className="animate-pulse">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="h-4 bg-gray-200 rounded w-24 mb-2"></div>
+                      <div className="h-8 bg-gray-200 rounded w-32"></div>
+                    </div>
+                    <div className="w-12 h-12 bg-gray-200 rounded-lg"></div>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </>
+        ) : (
+          // Actual data cards
+          <>
+            <StatsCard
+              title="Monthly Income"
+              value={formatAmount(monthlyIncome)}
+              icon="💰"
+              color="green"
+              trend={{
+                value: realtimeConnected ? "Real-time" : "Static data",
+                isPositive: realtimeConnected
+              }}
+            />
+            <StatsCard
+              title="Monthly Expenses"
+              value={formatAmount(monthlyExpenses)}
+              icon="💸"
+              color="red"
+            />
+            <StatsCard
+              title="Net Balance"
+              value={formatAmount(netBalance)}
+              icon="📈"
+              color={netBalance >= 0 ? "green" : "red"}
+              trend={{
+                value: `${netBalance >= 0 ? '+' : ''}${formatAmount(netBalance)}`,
+                isPositive: netBalance >= 0
+              }}
+            />
+            <StatsCard
+              title="Total Transactions"
+              value={transactions.length.toString()}
+              icon="📊"
+              color="blue"
+              trend={{
+                value: `${uncategorizedCount} uncategorized`,
+                isPositive: uncategorizedCount === 0
+              }}
+            />
+          </>
+        )}
       </motion.div>
 
-      {/* Notifications Panel */}
+      {/* Notifications Panel with Enhanced States */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -243,7 +364,48 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user, profile }) =
           </h2>
           
           <div className="space-y-4">
-            {uncategorizedCount > 0 && (
+            {/* Loading state notification */}
+            {isLoading && (
+              <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <div className="animate-spin text-2xl">⏳</div>
+                  <div>
+                    <h3 className="font-semibold text-blue-800">
+                      Loading Financial Data
+                    </h3>
+                    <p className="text-blue-700">
+                      Fetching your latest transactions and calculations...
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Connection status notification */}
+            {!isLoading && !realtimeConnected && (
+              <div className="flex items-center justify-between p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <span className="text-2xl">📶</span>
+                  <div>
+                    <h3 className="font-semibold text-orange-800">
+                      Real-time Updates Unavailable
+                    </h3>
+                    <p className="text-orange-700">
+                      Data may not reflect the latest changes. Try refreshing.
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="secondary"
+                  onClick={handleRefresh}
+                  className="bg-orange-100 text-orange-800 hover:bg-orange-200"
+                >
+                  Refresh Now
+                </Button>
+              </div>
+            )}
+
+            {!isLoading && uncategorizedCount > 0 && (
               <div className="flex items-center justify-between p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                 <div className="flex items-center space-x-3">
                   <span className="text-2xl">⚠️</span>
@@ -266,7 +428,7 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user, profile }) =
               </div>
             )}
 
-            {transactions.length === 0 && (
+            {!isLoading && transactions.length === 0 && !error && (
               <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 <div className="flex items-center space-x-3">
                   <span className="text-2xl">📊</span>
@@ -288,16 +450,16 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user, profile }) =
               </div>
             )}
 
-            {uncategorizedCount === 0 && transactions.length > 0 && (
+            {!isLoading && uncategorizedCount === 0 && transactions.length > 0 && realtimeConnected && (
               <div className="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-lg">
                 <div className="flex items-center space-x-3">
                   <span className="text-2xl">✅</span>
                   <div>
                     <h3 className="font-semibold text-green-800">
-                      All Caught Up!
+                      All Systems Active!
                     </h3>
                     <p className="text-green-700">
-                      All your transactions are properly categorized
+                      Real-time sync active, all transactions categorized
                     </p>
                   </div>
                 </div>
@@ -307,8 +469,8 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user, profile }) =
         </Card>
       </motion.div>
 
-      {/* Recent Activity Preview */}
-      {transactions.length > 0 && (
+      {/* Recent Activity Preview with Loading States */}
+      {(transactions.length > 0 || isLoading) && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -319,37 +481,64 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user, profile }) =
               <h2 className="text-2xl font-semibold text-gray-900 flex items-center">
                 <span className="mr-3">📝</span>
                 Recent Activity
+                {realtimeConnected && (
+                  <span className="ml-3 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    ⚡ Live
+                  </span>
+                )}
               </h2>
               <Button
                 variant="secondary"
                 onClick={() => router.push('/dashboard')}
+                disabled={isLoading}
               >
                 View All
               </Button>
             </div>
             
             <div className="space-y-3">
-              {transactions.slice(0, 5).map((transaction) => (
-                <div key={transaction.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-3 h-3 rounded-full ${
-                      transaction.type === 'income' ? 'bg-green-500' : 'bg-red-500'
-                    }`}></div>
-                    <div>
-                      <p className="font-medium text-gray-900">{transaction.description}</p>
-                      <p className="text-sm text-gray-600">{transaction.date}</p>
+              {isLoading ? (
+                // Loading skeletons for transactions
+                <>
+                  {[...Array(5)].map((_, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg animate-pulse">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-3 h-3 bg-gray-200 rounded-full"></div>
+                        <div>
+                          <div className="h-4 bg-gray-200 rounded w-32 mb-1"></div>
+                          <div className="h-3 bg-gray-200 rounded w-20"></div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="h-4 bg-gray-200 rounded w-16 mb-1"></div>
+                        <div className="h-3 bg-gray-200 rounded w-12"></div>
+                      </div>
+                    </div>
+                  ))}
+                </>
+              ) : (
+                transactions.slice(0, 5).map((transaction: any) => (
+                  <div key={transaction.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-3 h-3 rounded-full ${
+                        transaction.type === 'income' ? 'bg-green-500' : 'bg-red-500'
+                      }`}></div>
+                      <div>
+                        <p className="font-medium text-gray-900">{transaction.description}</p>
+                        <p className="text-sm text-gray-600">{transaction.date}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className={`font-semibold ${
+                        transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {transaction.type === 'income' ? '+' : '-'}{formatAmount(Math.abs(transaction.amount))}
+                      </p>
+                      <p className="text-sm text-gray-500">{transaction.category || 'Uncategorized'}</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className={`font-semibold ${
-                      transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      {transaction.type === 'income' ? '+' : '-'}{formatAmount(Math.abs(transaction.amount))}
-                    </p>
-                    <p className="text-sm text-gray-500">{transaction.category || 'Uncategorized'}</p>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </Card>
         </motion.div>
