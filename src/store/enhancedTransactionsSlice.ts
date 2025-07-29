@@ -83,9 +83,9 @@ export const createTransaction = createAsyncThunk(
         bank_account_id: transactionData.bank_account_id || '',
         amount: transactionData.amount,
         description: transactionData.description,
-        date: transactionData.date || transactionData.transaction_date,
-        category: transactionData.category || transactionData.category_name,
-        type: transactionData.type === 'income' ? 'credit' : 'debit'
+        transaction_date: transactionData.date || transactionData.transaction_date,
+        category_name: transactionData.category || transactionData.category_name,
+        transaction_type: transactionData.type === 'income' ? 'credit' : 'debit'
       });
 
       // Transform back to frontend format - use the same transformation as fetchTransactions
@@ -94,12 +94,12 @@ export const createTransaction = createAsyncThunk(
         user_id: dbTransaction.user_id,
         bank_account_id: dbTransaction.bank_account_id,
         bank_statement_id: undefined,
-        transaction_date: dbTransaction.date,
+        transaction_date: dbTransaction.transaction_date,
         description: dbTransaction.description,
         amount: dbTransaction.amount,
-        transaction_type: dbTransaction.type === 'credit' ? 'income' : 'expense' as 'income' | 'expense' | 'transfer',
+        transaction_type: dbTransaction.transaction_type === 'credit' ? 'income' : 'expense' as 'income' | 'expense' | 'transfer',
         category_id: undefined,
-        category_name: dbTransaction.category,
+        category_name: dbTransaction.category_name,
         is_transfer: false,
         transfer_account_id: undefined,
         reference_number: undefined,
@@ -107,9 +107,9 @@ export const createTransaction = createAsyncThunk(
         created_at: dbTransaction.created_at || new Date().toISOString(),
         updated_at: dbTransaction.updated_at || new Date().toISOString(),
         // Legacy fields for backward compatibility
-        date: dbTransaction.date,
-        type: dbTransaction.type === 'credit' ? 'income' : 'expense' as 'income' | 'expense',
-        category: dbTransaction.category || 'Uncategorized'
+        date: dbTransaction.transaction_date,
+        type: dbTransaction.transaction_type === 'credit' ? 'income' : 'expense' as 'income' | 'expense',
+        category: dbTransaction.category_name || 'Uncategorized'
       };
     } catch (error) {
       logger.error('Failed to create transaction', error as Error);
@@ -128,14 +128,14 @@ export const updateTransaction = createAsyncThunk(
       if (updates.amount !== undefined) dbUpdates.amount = updates.amount;
       if (updates.description !== undefined) dbUpdates.description = updates.description;
       if (updates.date !== undefined || updates.transaction_date !== undefined) {
-        dbUpdates.date = updates.date || updates.transaction_date;
+        dbUpdates.transaction_date = updates.date || updates.transaction_date;
       }
       if (updates.category !== undefined || updates.category_name !== undefined) {
-        dbUpdates.category = updates.category || updates.category_name;
+        dbUpdates.category_name = updates.category || updates.category_name;
       }
       if (updates.type !== undefined || updates.transaction_type !== undefined) {
         const transactionType = updates.type || (updates.transaction_type === 'income' ? 'income' : 'expense');
-        dbUpdates.type = transactionType === 'income' ? 'credit' : 'debit';
+        dbUpdates.transaction_type = transactionType;
       }
 
       const dbTransaction = await DatabaseService.updateTransaction(id, dbUpdates);
@@ -146,12 +146,12 @@ export const updateTransaction = createAsyncThunk(
         user_id: dbTransaction.user_id,
         bank_account_id: dbTransaction.bank_account_id,
         bank_statement_id: updates.bank_statement_id,
-        transaction_date: dbTransaction.date,
+        transaction_date: dbTransaction.transaction_date,
         description: dbTransaction.description,
         amount: dbTransaction.amount,
-        transaction_type: dbTransaction.type === 'credit' ? 'income' : 'expense' as 'income' | 'expense' | 'transfer',
+        transaction_type: dbTransaction.transaction_type === 'credit' ? 'income' : 'expense' as 'income' | 'expense' | 'transfer',
         category_id: updates.category_id,
-        category_name: dbTransaction.category,
+        category_name: dbTransaction.category_name,
         is_transfer: updates.is_transfer || false,
         transfer_account_id: updates.transfer_account_id,
         reference_number: updates.reference_number,
@@ -159,9 +159,9 @@ export const updateTransaction = createAsyncThunk(
         created_at: dbTransaction.created_at || new Date().toISOString(),
         updated_at: dbTransaction.updated_at || new Date().toISOString(),
         // Legacy fields for backward compatibility
-        date: dbTransaction.date,
-        type: dbTransaction.type === 'credit' ? 'income' : 'expense' as 'income' | 'expense',
-        category: dbTransaction.category || 'Uncategorized'
+        date: dbTransaction.transaction_date,
+        type: dbTransaction.transaction_type === 'credit' ? 'income' : 'expense' as 'income' | 'expense',
+        category: dbTransaction.category_name || 'Uncategorized'
       };
     } catch (error) {
       logger.error('Failed to update transaction', error as Error);

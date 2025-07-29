@@ -12,9 +12,9 @@ export interface TransactionData {
   bank_account_id: string;
   amount: number;
   description: string;
-  date: string;
-  category?: string;
-  type: 'credit' | 'debit';
+  transaction_date: string;
+  category_name?: string;
+  transaction_type: 'credit' | 'debit';
   created_at?: string;
   updated_at?: string;
 }

@@ -516,7 +516,7 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user }) => {
                 </div>
                 <Button
                   variant="secondary"
-                  onClick={() => router.push('/categorize')}
+                  onClick={() => router.push('/categorize?filter=uncategorized')}
                   className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
                 >
                   Categorize Now

@@ -9,8 +9,9 @@ import { Button } from '@/components/Button';
 import { ToastProvider, useToast } from '@/components/Toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSelector, useDispatch } from 'react-redux';
-import { RootState } from '@/store';
-import { updateTransaction, setTransactions } from '@/store/transactionsSlice';
+import { RootState, AppDispatch } from '@/store';
+import { setTransactions } from '@/store/transactionsSlice';
+import { fetchTransactions, refreshTransactions, updateTransaction, updateTransactionFromRealtime } from '@/store/enhancedTransactionsSlice';
 import { setCategories } from '@/store/categoriesSlice';
 import { Transaction, Category } from '@/types';
 import { formatAmount } from '@/utils/currency';
@@ -20,11 +21,14 @@ import { supabase } from '@/utils/supabase';
 
 const Categorize: NextPage = () => {
   const router = useRouter();
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
   const user = useUser();
   const { toasts, addToast, removeToast, updateToast } = useToast();
-  const transactions = useSelector((state: RootState) => state.transactions.items);
+  
+  // Use enhanced transactions slice that has API integration
+  const { items: transactions, isLoading, error } = useSelector((state: RootState) => state.enhancedTransactions);
   const categories = useSelector((state: RootState) => state.categories.items);
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [currency, setCurrency] = useState<string>('INR');
@@ -93,6 +97,23 @@ const Categorize: NextPage = () => {
     fetchUserPreferences();
   }, [user]);
 
+  // Fetch transactions when component loads or user changes
+  useEffect(() => {
+    const loadTransactions = async () => {
+      if (user?.id && !isLoading) {
+        try {
+          console.log('Categorize page: Loading transactions for user', user.id);
+          await dispatch(fetchTransactions({ userId: user.id })).unwrap();
+          console.log('Categorize page: Transactions loaded successfully');
+        } catch (error) {
+          console.error('Categorize page: Failed to load transactions', error);
+        }
+      }
+    };
+
+    loadTransactions();
+  }, [user?.id, dispatch]);
+
   // Handle click outside to close dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -128,6 +149,8 @@ const Categorize: NextPage = () => {
   }, [transactions]);
 
   const filteredTransactions = useMemo(() => {
+    const shouldFilterUncategorized = router.query.filter === 'uncategorized';
+    
     return transactions
       .filter((transaction) => {
         // Filter out null/undefined transactions and ensure required fields exist
@@ -146,10 +169,22 @@ const Categorize: NextPage = () => {
         
         return true;
       })
-      .filter((transaction) =>
-        transaction.description.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-  }, [transactions, searchTerm]);
+      .filter((transaction) => {
+        // Apply search filter
+        const matchesSearch = transaction.description.toLowerCase().includes(searchTerm.toLowerCase());
+        
+        // If filtering for uncategorized, only show transactions without categories
+        if (shouldFilterUncategorized) {
+          const isUncategorized = !transaction.category_name || 
+                                 transaction.category_name === 'Uncategorized' || 
+                                 !transaction.category || 
+                                 transaction.category === 'Uncategorized';
+          return matchesSearch && isUncategorized;
+        }
+        
+        return matchesSearch;
+      });
+  }, [transactions, searchTerm, router.query.filter]);
 
   // Helper function to check if an ID is a valid UUID (not a mock ID)
   const isValidUUID = (id: string): boolean => {
@@ -165,16 +200,17 @@ const Categorize: NextPage = () => {
     console.log('Is valid UUID:', isValidUUID(transaction.id));
     console.log('New category:', category.name);
     
-    // Update Redux store immediately for UI feedback
-    dispatch(updateTransaction({
+    // Update Redux store immediately for UI feedback using the enhanced slice
+    const updatedTransaction = {
       ...transaction,
       category_name: category.name,
       category: category.name, // Keep legacy field in sync
-    }));
+    };
     
+    dispatch(updateTransactionFromRealtime(updatedTransaction));
     setOpenDropdown(null); // Close dropdown after selection
     
-    // If it's a valid UUID (persisted transaction), save immediately to database
+    // If it's a valid UUID (persisted transaction), save to database
     if (isValidUUID(transaction.id)) {
       try {
         const loadingToastId = addToast({
@@ -183,60 +219,46 @@ const Categorize: NextPage = () => {
           duration: 0
         });
 
-        const response = await fetch('/api/transactions/batch-update', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ 
-            updates: [{
-              id: transaction.id,
-              category_name: category.name,
-              transaction_type: transaction.transaction_type
-            }]
-          }),
-        });
+        // Use the enhanced slice's updateTransaction for database persistence
+        await dispatch(updateTransaction({
+          id: transaction.id,
+          updates: {
+            category_name: category.name,
+            category: category.name
+          }
+        })).unwrap();
 
-        const result = await response.json();
         removeToast(loadingToastId);
 
-        if (result.success) {
-          // Show brief success feedback
-          setHighlightedRows(new Set([transaction.id]));
-          addToast({
-            type: 'success',
-            message: `Category saved: ${category.name}`,
-            duration: 2000
-          });
+        // Show brief success feedback
+        setHighlightedRows(new Set([transaction.id]));
+        addToast({
+          type: 'success',
+          message: `Category saved: ${category.name}`,
+          duration: 2000
+        });
 
-          // Remove highlighting after 1 second
+        // Remove highlighting after 1 second
+        setTimeout(() => {
+          setHighlightedRows(new Set());
+        }, 1000);
+
+        // Check if all transactions are categorized and show completion message
+        const allTransactions = transactions.filter(t => t.id && isValidUUID(t.id));
+        const categorizedCount = allTransactions.filter(t => t.category_name && t.category_name !== 'Uncategorized').length;
+        
+        if (categorizedCount === allTransactions.length && allTransactions.length > 0) {
           setTimeout(() => {
-            setHighlightedRows(new Set());
-          }, 1000);
-
-          // Check if all transactions are categorized and show completion message
-          const allTransactions = transactions.filter(t => t.id && isValidUUID(t.id));
-          const categorizedCount = allTransactions.filter(t => t.category_name && t.category_name !== 'Uncategorized').length;
-          
-          if (categorizedCount === allTransactions.length && allTransactions.length > 0) {
-            setTimeout(() => {
-              addToast({
-                type: 'success',
-                message: '🎉 All transactions categorized! Ready to view your dashboard.',
-                duration: 5000,
-                action: {
-                  label: 'View Dashboard',
-                  onClick: () => router.push('/dashboard')
-                }
-              });
-            }, 2000);
-          }
-        } else {
-          addToast({
-            type: 'error',
-            message: 'Failed to save category',
-            duration: 3000
-          });
+            addToast({
+              type: 'success',
+              message: '🎉 All transactions categorized! Ready to view your dashboard.',
+              duration: 5000,
+              action: {
+                label: 'View Dashboard',
+                onClick: () => router.push('/dashboard')
+              }
+            });
+          }, 2000);
         }
       } catch (error) {
         console.error('Error saving category:', error);
@@ -444,6 +466,23 @@ const Categorize: NextPage = () => {
             />
           </div>
         </div>
+
+        {/* Show filter indicator when displaying only uncategorized transactions */}
+        {router.query.filter === 'uncategorized' && (
+          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="flex items-center space-x-3">
+              <span className="text-2xl">🏷️</span>
+              <div>
+                <h3 className="font-semibold text-yellow-800">
+                  Showing Uncategorized Transactions Only
+                </h3>
+                <p className="text-yellow-700 text-sm">
+                  Focus on categorizing {filteredTransactions.length} uncategorized transactions
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {showNoTransactionsMessage && (
           <Card className="mb-6">
