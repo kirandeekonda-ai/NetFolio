@@ -39,10 +39,6 @@ IMPORTANT: You MUST update the user with a single, short, concise sentence every
 
 1. **PowerShell Support**: Always use PowerShell-compatible commands since the user's default terminal is PowerShell. Ensure all terminal commands work correctly in PowerShell environment.
 
-2. **Project Directory**: When running development commands like `npm run dev`, always execute them from the correct project directory: `C:\Users\kdeekonda\CopilotPracticeProjects\Spyder\NetFolio\financial-tracker` NOT from the root NetFolio folder. The actual application resides in the financial-tracker subfolder.
-
-3. **Directory Navigation**: Before running any npm/development commands, ensure you're in the financial-tracker directory by using `cd` commands or specifying the full path.
-
 ### Fetch Tool (`functions.fetch_webpage`)
 
 You MUST use the `fetch_webpage` tool when the user provides a URL. Follow these steps exactly.

@@ -240,32 +240,6 @@ export const EnhancedAnalytics: React.FC<EnhancedAnalyticsProps> = ({
             height={400}
           />
         </div>
-
-        {/* Row 4: Placeholder for Future Components */}
-        <Card className="p-8 text-center bg-gradient-to-br from-gray-50 to-blue-50 border border-blue-200">
-          <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
-            <span className="text-3xl text-white">🚀</span>
-          </div>
-          <h3 className="text-2xl font-bold text-gray-900 mb-3">More Analytics Coming Soon!</h3>
-          <p className="text-gray-600 mb-6 max-w-lg mx-auto">
-            We're working on cash flow waterfall charts, predictive insights, spending goals tracking, 
-            and AI-powered financial recommendations to make your analytics even more powerful.
-          </p>
-          <div className="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-6">
-            <Button className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
-              <span className="flex items-center space-x-2">
-                <span>🔔</span>
-                <span>Notify Me</span>
-              </span>
-            </Button>
-            <Button variant="secondary">
-              <span className="flex items-center space-x-2">
-                <span>💡</span>
-                <span>Request Feature</span>
-              </span>
-            </Button>
-          </div>
-        </Card>
       </div>
     </motion.div>
   );
