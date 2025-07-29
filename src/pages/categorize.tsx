@@ -213,6 +213,24 @@ const Categorize: NextPage = () => {
           setTimeout(() => {
             setHighlightedRows(new Set());
           }, 1000);
+
+          // Check if all transactions are categorized and show completion message
+          const allTransactions = transactions.filter(t => t.id && isValidUUID(t.id));
+          const categorizedCount = allTransactions.filter(t => t.category_name && t.category_name !== 'Uncategorized').length;
+          
+          if (categorizedCount === allTransactions.length && allTransactions.length > 0) {
+            setTimeout(() => {
+              addToast({
+                type: 'success',
+                message: '🎉 All transactions categorized! Ready to view your dashboard.',
+                duration: 5000,
+                action: {
+                  label: 'View Dashboard',
+                  onClick: () => router.push('/dashboard')
+                }
+              });
+            }, 2000);
+          }
         } else {
           addToast({
             type: 'error',
@@ -411,6 +429,12 @@ const Categorize: NextPage = () => {
             >
               ← Back to Statements
             </Button>
+            <Button
+              onClick={() => router.push('/dashboard')}
+              className="bg-green-600 text-white text-sm"
+            >
+              📊 View Dashboard
+            </Button>
             <Input
               type="search"
               placeholder="Search transactions..."
@@ -482,6 +506,17 @@ const Categorize: NextPage = () => {
                 {filteredTransactions.length} transactions •{' '}
                 {filteredTransactions.filter(t => t.category).length} categorized
               </p>
+              
+              {/* Show dashboard navigation when all transactions are categorized */}
+              {filteredTransactions.length > 0 && 
+               filteredTransactions.filter(t => t.category_name && t.category_name !== 'Uncategorized').length === filteredTransactions.length && (
+                <Button
+                  onClick={() => router.push('/dashboard')}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  View Dashboard →
+                </Button>
+              )}
             </div>
           </>
         )}

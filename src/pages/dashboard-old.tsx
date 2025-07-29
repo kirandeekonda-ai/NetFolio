@@ -252,121 +252,119 @@ const Dashboard: NextPage = () => {
         {/* Show dashboard content when transactions are available */}
         {transactions.length > 0 && (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-              <Card className="p-6">
-                <h3 className="text-sm font-medium text-neutral-500 mb-2">
-                  Total Balance
-                </h3>
-                <p className="text-2xl font-bold text-primary">
-                  {formatAmount(totalBalance)}
-                </p>
-              </Card>
 
-              <Card className="p-6">
-                <h3 className="text-sm font-medium text-neutral-500 mb-2">
-                  Monthly Income
-                </h3>
-                <p className="text-2xl font-bold text-green-600">
-                  {formatAmount(monthlyIncome)}
-                </p>
-              </Card>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          <Card className="p-6">
+            <h3 className="text-sm font-medium text-neutral-500 mb-2">
+              Total Balance
+            </h3>
+            <p className="text-2xl font-bold text-primary">
+              {formatAmount(totalBalance)}
+            </p>
+          </Card>
 
-              <Card className="p-6">
-                <h3 className="text-sm font-medium text-neutral-500 mb-2">
-                  Monthly Expenses
-                </h3>
-                <p className="text-2xl font-bold text-red-600">
-                  {formatAmount(monthlyExpenses)}
-                </p>
-              </Card>
+          <Card className="p-6">
+            <h3 className="text-sm font-medium text-neutral-500 mb-2">
+              Monthly Income
+            </h3>
+            <p className="text-2xl font-bold text-green-600">
+              {formatAmount(monthlyIncome)}
+            </p>
+          </Card>
+
+          <Card className="p-6">
+            <h3 className="text-sm font-medium text-neutral-500 mb-2">
+              Monthly Expenses
+            </h3>
+            <p className="text-2xl font-bold text-red-600">
+              {formatAmount(monthlyExpenses)}
+            </p>
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card className="p-6">
+            <h2 className="text-lg font-semibold mb-4">Monthly Trend</h2>
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={monthlyData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip
+                    formatter={(value: number) => formatAmount(value)}
+                  />
+                  <Bar dataKey="income" name="Income" fill="#5A67D8" />
+                  <Bar dataKey="expenses" name="Expenses" fill="#FA8072" />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
+          </Card>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Category Breakdown Chart */}
-              <Card className="p-6">
-                <h3 className="text-lg font-semibold mb-4">Spending by Category</h3>
-                {categoryData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={categoryData}
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                        label={({ name, percent }: { name: string; percent?: number }) => 
-                          `${name} ${percent ? (percent * 100).toFixed(0) : '0'}%`}
-                      >
-                        {categoryData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(value) => [formatAmount(value as number), 'Amount']} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="text-center py-8">
-                    <p className="text-gray-500">No categorized expenses found for this month</p>
-                    <Button
-                      onClick={() => router.push('/categorize')}
-                      variant="secondary"
-                      className="mt-4"
-                    >
-                      Categorize Transactions
-                    </Button>
-                  </div>
-                )}
-              </Card>
+          <Card className="p-6">
+            <h2 className="text-lg font-semibold mb-4">Expense Categories</h2>
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={categoryData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                    label={({
+                      cx,
+                      cy,
+                      midAngle = 0,
+                      innerRadius = 0,
+                      outerRadius = 0,
+                      name,
+                      value = 0,
+                    }: {
+                      cx?: number;
+                      cy?: number;
+                      midAngle?: number;
+                      innerRadius?: number;
+                      outerRadius?: number;
+                      name?: string;
+                      value?: number;
+                    }) => {
+                      if (!cx || !cy) return null;
+                      const RADIAN = Math.PI / 180;
+                      const radius = innerRadius + (outerRadius - innerRadius) * 1.4;
+                      const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                      const y = cy + radius * Math.sin(-midAngle * RADIAN);
 
-              {/* Monthly Trends Chart */}
-              <Card className="p-6">
-                <h3 className="text-lg font-semibold mb-4">Monthly Trends</h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={monthlyData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip formatter={(value) => [formatAmount(value as number), '']} />
-                    <Bar dataKey="income" fill="#22C55E" name="Income" />
-                    <Bar dataKey="expenses" fill="#EF4444" name="Expenses" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </Card>
+                      return (
+                        <text
+                          x={x}
+                          y={y}
+                          fill="#2D3748"
+                          textAnchor={x > cx ? 'start' : 'end'}
+                          dominantBaseline="central"
+                          className="text-xs"
+                        >
+                          {`${name} (${formatAmount(value)})`}
+                        </text>
+                      );
+                    }}
+                  >
+                    {categoryData.map((entry, index) => (
+                      <Cell
+                        key={entry.name}
+                        fill={COLORS[index % COLORS.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value: number) => formatAmount(value)}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
             </div>
-
-            {/* Quick Actions */}
-            <Card className="p-6 mt-6">
-              <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Button
-                  onClick={() => router.push('/statements')}
-                  className="flex items-center space-x-2"
-                  variant="secondary"
-                >
-                  <span>📄</span>
-                  <span>Upload New Statement</span>
-                </Button>
-                <Button
-                  onClick={() => router.push('/categorize')}
-                  className="flex items-center space-x-2"
-                  variant="secondary"
-                >
-                  <span>🏷️</span>
-                  <span>Categorize Transactions</span>
-                </Button>
-                <Button
-                  onClick={() => router.push('/bank-accounts')}
-                  className="flex items-center space-x-2"
-                  variant="secondary"
-                >
-                  <span>🏦</span>
-                  <span>Manage Accounts</span>
-                </Button>
-              </div>
-            </Card>
-          </>
-        )}
+          </Card>
+        </div>
       </motion.div>
     </Layout>
   );

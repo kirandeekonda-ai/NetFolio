@@ -133,8 +133,21 @@ export class AzureOpenAIService implements LLMProvider {
             .filter((transaction: any) => this.isValidTransaction(transaction))
         : [];
 
+      // Extract balance data if present
+      const balance_data = parsedResponse.balance_data ? {
+        opening_balance: parsedResponse.balance_data.opening_balance,
+        closing_balance: parsedResponse.balance_data.closing_balance,
+        available_balance: parsedResponse.balance_data.available_balance,
+        current_balance: parsedResponse.balance_data.current_balance,
+        balance_confidence: parsedResponse.balance_data.balance_confidence || 0,
+        balance_extraction_notes: parsedResponse.balance_data.balance_extraction_notes || 'No balance information extracted'
+      } : undefined;
+
+      console.log('🔷 AZURE OPENAI - Balance data extracted:', balance_data);
+
       return {
         transactions,
+        balance_data,
         usage,
         securityBreakdown: sanitizationResult.summary
       };
@@ -315,8 +328,21 @@ export class OpenAIService implements LLMProvider {
             .filter((transaction: any) => this.isValidTransaction(transaction))
         : [];
 
+      // Extract balance data if present
+      const balance_data = parsedResponse.balance_data ? {
+        opening_balance: parsedResponse.balance_data.opening_balance,
+        closing_balance: parsedResponse.balance_data.closing_balance,
+        available_balance: parsedResponse.balance_data.available_balance,
+        current_balance: parsedResponse.balance_data.current_balance,
+        balance_confidence: parsedResponse.balance_data.balance_confidence || 0,
+        balance_extraction_notes: parsedResponse.balance_data.balance_extraction_notes || 'No balance information extracted'
+      } : undefined;
+
+      console.log('🤖 OPENAI - Balance data extracted:', balance_data);
+
       return {
         transactions,
+        balance_data,
         usage,
         securityBreakdown: sanitizationResult.summary
       };

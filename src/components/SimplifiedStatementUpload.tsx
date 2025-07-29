@@ -6,7 +6,7 @@ import { SecurityStatus } from '@/components/SecurityStatus';
 import { ProcessingLogs } from '@/components/ProcessingLogs';
 import { EnhancedProcessingStatus } from '@/components/EnhancedProcessingStatus';
 import { useEnhancedAIProcessor } from '@/hooks/useEnhancedAIProcessor';
-import { Transaction, BankAccount, Category } from '@/types';
+import { Transaction, BankAccount, Category, PageProcessingResult } from '@/types';
 import { useUser, useSupabaseClient } from '@supabase/auth-helpers-react';
 
 interface SecurityBreakdown {
@@ -26,7 +26,7 @@ interface SimplifiedStatementUploadProps {
   selectedAccountId: string;
   selectedMonth: number;
   selectedYear: number;
-  onTransactionsExtracted: (transactions: Transaction[]) => void;
+  onTransactionsExtracted: (transactions: Transaction[], pageResults?: PageProcessingResult[]) => void;
   onCancel: () => void;
   isReupload?: boolean;
 }
@@ -120,7 +120,7 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
       // Minimize upload area on success
       setUploadMinimized(true);
       
-      onTransactionsExtracted(result.transactions);
+      onTransactionsExtracted(result.transactions, result.pageResults);
       
     } catch (error) {
       // Keep upload area expanded on error for retry

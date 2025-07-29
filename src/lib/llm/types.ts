@@ -8,6 +8,15 @@ export interface Transaction {
   currency: string;
 }
 
+export interface BalanceData {
+  opening_balance: number | null;
+  closing_balance: number | null;
+  available_balance: number | null;
+  current_balance: number | null;
+  balance_confidence: number; // 0-100
+  balance_extraction_notes: string;
+}
+
 export interface LLMUsage {
   prompt_tokens: number;
   completion_tokens: number;
@@ -27,6 +36,7 @@ export interface SecurityBreakdown {
 
 export interface ExtractionResult {
   transactions: Transaction[];
+  balance_data?: BalanceData;
   usage: LLMUsage;
   securityBreakdown?: SecurityBreakdown;
 }

@@ -6,93 +6,45 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { createLLMProvider } from '../../../lib/llm/LLMProviderFactory';
 import { routeLLMRequest } from '../../../lib/llm/LLMRoutingService';
+import { transactionPromptBuilder } from '../../../lib/llm/PromptTemplateService';
+import { sanitizeTextForLLM } from '../../../utils/dataSanitization';
+import { Category } from '@/types';
 
-// Page processing prompt template
+// Enhanced page processing prompt template using centralized service
 const createPageProcessingPrompt = (
   pageContent: string,
   pageNumber: number,
   totalPages: number,
   previousBalance?: number,
-  userCategories?: string[]
+  userCategories?: Category[]
 ) => {
-  const categoriesText = userCategories?.length 
-    ? userCategories.join(', ') 
-    : 'Shopping, Entertainment, Travel, Food, Health, Education, Electronics';
-
-  return `You are a specialized financial statement analyst working for a smart personal finance app.
-
-You are processing **PAGE ${pageNumber} of ${totalPages}** from a bank statement.
-
-Your job is to extract **clean and accurate structured financial transactions** from this page only.
-
-${previousBalance !== undefined ? `**PREVIOUS PAGE ENDING BALANCE:** ${previousBalance}` : ''}
+  // Sanitize the page content first
+  const sanitizationResult = sanitizeTextForLLM(pageContent);
+  const sanitizedPageContent = sanitizationResult.sanitizedText;
+  
+  // Add page context to the content
+  const contextualizedContent = `
+**PAGE CONTEXT:**
+- This is page ${pageNumber} of ${totalPages} total pages
+- Extract only transactions visible on this page
+${previousBalance !== undefined ? `- Previous page ending balance: ${previousBalance}` : ''}
 
 **PAGE CONTENT TO PROCESS:**
-${pageContent}
+${sanitizedPageContent}
 
-**EXTRACTION INSTRUCTIONS:**
-Think like a human expert who has read thousands of bank statements:
+**ADDITIONAL INSTRUCTIONS FOR PAGE PROCESSING:**
+- Note if this page has incomplete transactions (continuing from previous page)
+- Maintain balance continuity from previous page if provided
+- Skip page headers and footers
+- Skip summary rows and totals for transactions (but extract balance information)
+- Focus only on individual transaction line items for the transactions array
+`;
 
-1. **Page Context Awareness**:
-   - This is page ${pageNumber} of ${totalPages} total pages
-   - Extract only transactions visible on this page
-   - Maintain balance continuity from previous page if provided
-   - Note if this page has incomplete transactions (continuing from previous page)
-
-2. **Pattern Intelligence**: 
-   - Decode abbreviations like POS, ACH, IMPS, LIC, etc.
-   - Recognize location names (e.g. HYDERABAD = fuel/travel)
-   - Know common financial terminology (e.g. 'premium' = insurance/health)
-
-3. **Smart Categorization Rules**:
-   Use these preferred categories: ${categoriesText}
-   
-   Apply intelligent mapping:
-   - Shopping → 'POS', 'Amazon', 'Mall', 'Retail'
-   - Travel → 'Fuel', 'Petrol', 'Train', 'Cab', 'Flight', city names
-   - Food → 'Cafe', 'Restaurant', 'Zomato', 'Swiggy'
-   - Health → 'Insurance', 'LIC', 'Pharmacy', 'Clinic'
-   - Entertainment → 'Netflix', 'Cinema', 'Games'
-   - Education → 'Udemy', 'School', 'Course'
-   - Electronics → 'Mobile', 'TV', 'Laptop', 'Apple'
-
-4. **Text Normalization**:
-   - Merge multi-line descriptions into single strings with proper spacing
-   - Never insert newline characters \\n inside descriptions
-   - Preserve original transaction description exactly as it appears
-
-5. **Amount Logic**:
-   - Debit/Dr/Withdrawal = negative amount (money OUT)
-   - Credit/Cr/Deposit = positive amount (money IN)
-   - Use actual transaction amounts, not balance changes
-
-6. **Page Processing Rules**:
-   - Skip opening/closing balance entries for this page
-   - Skip page headers and footers
-   - Skip summary rows and totals
-   - Focus only on individual transactions
-
-Return ONLY valid JSON with this structure:
-
-{
-  "pageNumber": ${pageNumber},
-  "totalPages": ${totalPages},
-  "transactions": [
-    {
-      "date": "YYYY-MM-DD",
-      "description": "exact original transaction description",
-      "amount": number,
-      "suggested_category": "category from preferred list",
-      "balance": number,
-      "confidence": number
-    }
-  ],
-  "pageEndingBalance": number,
-  "processingNotes": "any issues or observations about this page",
-  "hasIncompleteTransactions": boolean
-}
-
-**CRITICAL:** Return ONLY the JSON. No explanations or additional text.`;
+  // Use the enhanced transaction extraction prompt with balance detection
+  return transactionPromptBuilder.buildTransactionExtractionPrompt(
+    contextualizedContent,
+    userCategories || []
+  );
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -109,15 +61,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    // Create page processing prompt
-    const prompt = createPageProcessingPrompt(
-      pageContent,
-      pageNumber,
-      totalPages,
-      previousBalance,
-      userCategories
-    );
-
     // Use the new LLM routing service to get the appropriate provider
     const routingResult = await routeLLMRequest(req, res);
     
@@ -131,12 +74,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log(`✅ Using LLM provider (${routingResult.source}):`, routingResult.provider.provider_type);
     const llmProvider = createLLMProvider(routingResult.provider);
     
+    // Create page processing prompt with enhanced balance detection
+    const enhancedPrompt = createPageProcessingPrompt(
+      pageContent,
+      pageNumber,
+      totalPages,
+      previousBalance,
+      userCategories
+    );
+    
     console.log(`📄 PAGE ${pageNumber} - Complete prompt being sent to LLM:`);
     console.log('=' .repeat(80));
-    console.log(prompt);
+    console.log(enhancedPrompt);
     console.log('=' .repeat(80));
     
-    const llmResult = await llmProvider.extractTransactions(prompt, []);
+    const llmResult = await llmProvider.extractTransactions(enhancedPrompt, userCategories || []);
     console.log(`📄 PAGE ${pageNumber} - LLM response:`, JSON.stringify(llmResult, null, 2));
 
     // Create result from LLM extraction - map transactions to expected format
@@ -163,17 +115,60 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         balance: txn.balance,
         confidence: txn.confidence || 80
       })),
+      // Enhanced balance data from LLM extraction
+      balance_data: llmResult.balance_data || null,
       pageEndingBalance: previousBalance || 0,
-      processingNotes: `Processed ${llmResult.transactions?.length || 0} transactions`,
+      processingNotes: `Processed ${llmResult.transactions?.length || 0} transactions` + 
+                      (llmResult.balance_data ? ` and extracted balance data (confidence: ${llmResult.balance_data.balance_confidence}%)` : ''),
       hasIncompleteTransactions: false,
       securityBreakdown: llmResult.securityBreakdown
     };
 
     console.log(`Page ${pageNumber} processing result:`, {
       transactionCount: result.transactions.length,
+      balanceData: result.balance_data,
       endingBalance: result.pageEndingBalance,
       hasIssues: result.hasIncompleteTransactions
     });
+
+    // Save balance data to database if extracted and we have required info
+    if (result.balance_data && result.balance_data.balance_confidence > 0) {
+      try {
+        const { user_id, bank_statement_id } = req.body;
+        
+        if (user_id && bank_statement_id) {
+          console.log(`💾 Saving balance data for page ${pageNumber} with confidence ${result.balance_data.balance_confidence}%`);
+          
+          const saveResponse = await fetch(`${req.headers.origin || 'http://localhost:3000'}/api/balance-extractions/save`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              user_id,
+              bank_statement_id,
+              page_number: pageNumber,
+              balance_data: result.balance_data
+            })
+          });
+
+          if (saveResponse.ok) {
+            const saveResult = await saveResponse.json();
+            console.log(`✅ Balance data saved successfully for page ${pageNumber}:`, saveResult.balance_extraction?.id);
+          } else {
+            const errorText = await saveResponse.text();
+            console.error(`❌ Failed to save balance data for page ${pageNumber}:`, errorText);
+          }
+        } else {
+          console.warn(`⚠️ Missing user_id or bank_statement_id for saving balance data on page ${pageNumber}`);
+        }
+      } catch (saveError) {
+        console.error(`❌ Error saving balance data for page ${pageNumber}:`, saveError);
+        // Don't fail the entire page processing if balance save fails
+      }
+    } else {
+      console.log(`ℹ️ No balance data to save for page ${pageNumber} (confidence: ${result.balance_data?.balance_confidence || 0}%)`);
+    }
 
     res.status(200).json(result);
 

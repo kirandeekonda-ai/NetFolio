@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { useSession } from '@supabase/auth-helpers-react';
 import { useDispatch } from 'react-redux';
-import { BankAccount, BankStatement, StatementUpload, Transaction } from '@/types';
+import { BankAccount, BankStatement, StatementUpload, Transaction, PageProcessingResult } from '@/types';
 import { Layout } from '@/components/layout/Layout';
 import { StatementDashboard, StatementDashboardRef } from '@/components/StatementDashboard';
 import { SimplifiedStatementUpload } from '@/components/SimplifiedStatementUpload';
@@ -250,7 +250,7 @@ File: ${statement.file_name || 'N/A'}`);
     }
   };
 
-  const handleTransactionsExtracted = async (transactions: Transaction[]) => {
+  const handleTransactionsExtracted = async (transactions: Transaction[], pageResults?: PageProcessingResult[]) => {
     try {
       setIsLoading(true);
       
@@ -338,6 +338,46 @@ File: ${statement.file_name || 'N/A'}`);
           } catch (saveError) {
             console.error('Error saving transactions:', saveError);
             alert('Warning: Error saving transactions to database. You can still categorize them, but changes won\'t persist.');
+          }
+        }
+        
+        // Save balance data if available
+        if (pageResults && pageResults.length > 0) {
+          console.log(`Saving balance data from ${pageResults.length} pages...`);
+          
+          try {
+            let savedBalanceCount = 0;
+            for (const pageResult of pageResults) {
+              if (pageResult.balance_data && pageResult.success) {
+                const balanceResponse = await fetch('/api/balance-extractions/save', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    bank_statement_id: data.statement.id,
+                    page_number: pageResult.pageNumber,
+                    balance_data: pageResult.balance_data
+                  }),
+                });
+
+                if (balanceResponse.ok) {
+                  savedBalanceCount++;
+                  console.log(`✅ Saved balance data for page ${pageResult.pageNumber}`);
+                } else {
+                  const balanceError = await balanceResponse.json();
+                  console.error(`❌ Failed to save balance data for page ${pageResult.pageNumber}:`, balanceError);
+                }
+              }
+            }
+            
+            if (savedBalanceCount > 0) {
+              console.log(`✅ Successfully saved balance data from ${savedBalanceCount} pages`);
+            } else {
+              console.log('ℹ️ No balance data found in page results');
+            }
+          } catch (balanceError) {
+            console.error('❌ Error saving balance data:', balanceError);
           }
         }
         

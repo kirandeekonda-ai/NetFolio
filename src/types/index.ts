@@ -172,6 +172,26 @@ export interface StatementUpload {
   statement_end_date: string;
   file: File;
   extractedTransactions?: Transaction[];
+  pageResults?: PageProcessingResult[];
+}
+
+export interface PageProcessingResult {
+  pageNumber: number;
+  totalPages: number;
+  transactions: Transaction[];
+  balance_data?: {
+    opening_balance: number | null;
+    closing_balance: number | null;
+    available_balance: number | null;
+    current_balance: number | null;
+    balance_confidence: number;
+    balance_extraction_notes: string;
+  } | null;
+  pageEndingBalance: number;
+  processingNotes: string;
+  hasIncompleteTransactions: boolean;
+  success: boolean;
+  error?: string;
 }
 
 export interface Category {

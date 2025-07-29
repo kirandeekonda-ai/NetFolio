@@ -48,9 +48,9 @@ export class PromptTemplateService {
     this.registerTemplate({
       id: 'transaction_extraction',
       name: 'Transaction Extraction',
-      description: 'Extracts transaction data from bank statements',
+      description: 'Extracts transaction data from bank statements with balance detection',
       template: `
-    Analyze the bank statement or transaction data provided below and extract individual transactions. Your goal is to create a structured list of financial transactions with accurate categorization.
+    Analyze the bank statement or transaction data provided below and extract individual transactions AND balance information. Your goal is to create a structured list of financial transactions with accurate categorization AND detect account balance data.
 
     Return ONLY valid JSON with the following structure:
 
@@ -62,7 +62,15 @@ export class PromptTemplateService {
           "amount": number (positive for money IN/credits, negative for money OUT/debits),
           "suggested_category": "{{categoriesDescription}}"
         }
-      ]
+      ],
+      "balance_data": {
+        "opening_balance": number or null,
+        "closing_balance": number or null,
+        "available_balance": number or null,
+        "current_balance": number or null,
+        "balance_confidence": number (0-100),
+        "balance_extraction_notes": "description of balance data found or issues"
+      }
     }
 
     Critical Guidelines:
@@ -78,14 +86,27 @@ export class PromptTemplateService {
     
     {{categorizationGuidelines}}
     
-    4. **Data Filtering**: 
-       - Ignore opening/closing balance entries
-       - Skip summary rows and totals
-       - Focus only on individual transaction line items
+    4. **Balance Detection (NEW FEATURE)**: 
+       - Look for balance information in headers, footers, or balance columns
+       - Common balance labels: "Opening Balance", "Closing Balance", "Available Balance", "Current Balance", "Outstanding Balance"
+       - Balance amounts are typically larger numbers that appear at statement start/end
+       - Assign confidence score based on how clear the balance information is:
+         * 90-100: Clearly labeled balance with obvious amount
+         * 70-89: Balance amount found but label is unclear
+         * 40-69: Probable balance based on context clues
+         * 20-39: Possible balance but uncertain
+         * 0-19: No clear balance information found
+       - If no balance found, set all balance fields to null and confidence to 0
+       - Include notes about what balance information was found or why none was detected
     
-    5. **Multi-line Handling**: If transaction data spans multiple lines (common in Indian bank statements), merge them into a single coherent entry while preserving the complete description.
+    5. **Data Filtering**: 
+       - Ignore opening/closing balance entries IN THE TRANSACTIONS LIST (but DO extract them for balance_data)
+       - Skip summary rows and totals in transactions
+       - Focus only on individual transaction line items for transactions array
     
-    6. **Date Formatting**: Convert all dates to YYYY-MM-DD format regardless of the source format.
+    6. **Multi-line Handling**: If transaction data spans multiple lines (common in Indian bank statements), merge them into a single coherent entry while preserving the complete description.
+    
+    7. **Date Formatting**: Convert all dates to YYYY-MM-DD format regardless of the source format.
 
     Text to analyze:
     {{sanitizedPageText}}
