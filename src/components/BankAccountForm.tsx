@@ -1,9 +1,11 @@
-import { FC, useState } from 'react';
+import { FC, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { BankAccountCreate, BankAccountUpdate } from '@/types';
 import { Card } from './Card';
 import { Button } from './Button';
 import { Input } from './Input';
+import { supabase } from '@/utils/supabase';
+import { useUser } from '@supabase/auth-helpers-react';
 
 interface BankAccountFormProps {
   initialData?: Partial<BankAccountCreate>;
@@ -40,6 +42,9 @@ export const BankAccountForm: FC<BankAccountFormProps> = ({
   isLoading = false,
   isEdit = false,
 }) => {
+  const user = useUser();
+  const [userPreferredCurrency, setUserPreferredCurrency] = useState<string>('USD');
+  
   const [formData, setFormData] = useState<BankAccountCreate>({
     bank_name: initialData?.bank_name || '',
     account_type: initialData?.account_type || 'checking',
@@ -47,10 +52,36 @@ export const BankAccountForm: FC<BankAccountFormProps> = ({
     account_nickname: initialData?.account_nickname || '',
     starting_balance: initialData?.starting_balance || 0,
     starting_balance_date: initialData?.starting_balance_date || new Date().toISOString().split('T')[0],
-    currency: initialData?.currency || 'USD',
+    currency: initialData?.currency || userPreferredCurrency,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Fetch user's preferred currency from user_preferences
+  useEffect(() => {
+    const fetchUserCurrency = async () => {
+      if (user) {
+        const { data, error } = await supabase
+          .from('user_preferences')
+          .select('currency')
+          .eq('user_id', user.id)
+          .single();
+
+        if (data && data.currency) {
+          setUserPreferredCurrency(data.currency);
+          // Only update form data if not editing (editing should keep existing currency)
+          if (!isEdit && !initialData?.currency) {
+            setFormData(prev => ({
+              ...prev,
+              currency: data.currency
+            }));
+          }
+        }
+      }
+    };
+
+    fetchUserCurrency();
+  }, [user, isEdit, initialData?.currency]);
 
   const handleInputChange = (field: keyof BankAccountCreate, value: string | number) => {
     setFormData(prev => ({
@@ -247,6 +278,11 @@ export const BankAccountForm: FC<BankAccountFormProps> = ({
                 </option>
               ))}
             </select>
+            {!isEdit && (
+              <p className="mt-1 text-sm text-gray-500">
+                💡 Default set from your profile preferences. You can change this in Settings.
+              </p>
+            )}
           </div>
 
           {/* Form Actions */}
