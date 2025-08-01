@@ -64,13 +64,13 @@ export interface BankAccount {
   account_type: 'checking' | 'savings' | 'credit' | 'investment';
   account_number_last4?: string;
   account_nickname?: string;
-  starting_balance: number;
-  starting_balance_date: string;
-  current_balance?: number;
   currency: string;
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  // Statement-based balance fields (added by services)
+  current_balance?: number;
+  statement_balance_available?: boolean;
 }
 
 export interface BankStatement {
@@ -121,8 +121,6 @@ export interface AccountSummary {
   bank_name: string;
   account_type: string;
   account_nickname?: string;
-  starting_balance: number;
-  current_balance?: number;
   currency: string;
   is_active: boolean;
   statement_count: number;
@@ -148,8 +146,6 @@ export interface BankAccountCreate {
   account_type: 'checking' | 'savings' | 'credit' | 'investment';
   account_number_last4?: string;
   account_nickname?: string;
-  starting_balance: number;
-  starting_balance_date: string;
   currency?: string;
 }
 
@@ -158,8 +154,6 @@ export interface BankAccountUpdate {
   account_type?: 'checking' | 'savings' | 'credit' | 'investment';
   account_number_last4?: string;
   account_nickname?: string;
-  starting_balance?: number;
-  starting_balance_date?: string;
   currency?: string;
   is_active?: boolean;
 }

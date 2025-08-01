@@ -205,8 +205,6 @@ const BankAccountsPage: NextPage = () => {
                 account_type: editingAccount.account_type,
                 account_number_last4: editingAccount.account_number_last4 || '',
                 account_nickname: editingAccount.account_nickname || '',
-                starting_balance: editingAccount.starting_balance,
-                starting_balance_date: editingAccount.starting_balance_date,
                 currency: editingAccount.currency,
               } : undefined}
               onSubmit={editingAccount ? handleUpdateAccount : handleCreateAccount}

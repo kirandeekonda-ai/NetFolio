@@ -15,7 +15,8 @@ import { useRealtimeIntegration } from '@/hooks/useRealtimeIntegration';
 import { LoggingService } from '@/services/logging/LoggingService';
 import { EnhancedAnalytics } from '@/components/EnhancedAnalytics';
 import { DateRange } from '@/components/EnhancedAnalytics/types/analytics.types';
-import { balanceService, NetWorthSummary } from '@/services/BalanceService';
+import { balanceService } from '@/services/BalanceService';
+import SimplifiedBalanceService, { NetWorthSummary } from '@/services/SimplifiedBalanceService';
 import {
   ResponsiveContainer,
   BarChart,
@@ -75,10 +76,12 @@ const Dashboard: NextPage = () => {
     setBalanceError(null);
     
     try {
-      const netWorthData = await balanceService.getNetWorth(user.id);
+      console.log('🔍 Fetching net worth with Simplified Balance Service...');
+      const netWorthData = await SimplifiedBalanceService.getNetWorth(user.id);
       setNetWorth(netWorthData);
+      console.log('✅ Net worth updated:', netWorthData);
     } catch (error) {
-      console.error('Error fetching net worth:', error);
+      console.error('❌ Error fetching net worth:', error);
       setBalanceError('Failed to load account balances');
     } finally {
       setBalanceLoading(false);
@@ -471,6 +474,11 @@ const Dashboard: NextPage = () => {
                   {netWorth?.last_updated && (
                     <div className="text-xs text-gray-400 mt-2">
                       Updated: {new Date(netWorth.last_updated).toLocaleDateString()}
+                    </div>
+                  )}
+                  {netWorth?.latest_statement_month && netWorth.latest_statement_month !== 'No statements' && (
+                    <div className="text-xs text-blue-600 mt-1 font-medium">
+                      Latest Statement: {netWorth.latest_statement_month}
                     </div>
                   )}
                 </Card>

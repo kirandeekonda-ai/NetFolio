@@ -54,9 +54,9 @@ async function handleGet(supabase: any, userId: string, res: NextApiResponse) {
 
 async function handlePost(supabase: any, userId: string, body: BankAccountCreate, res: NextApiResponse) {
   // Validate required fields
-  if (!body.bank_name || !body.account_type || body.starting_balance === undefined || !body.starting_balance_date) {
+  if (!body.bank_name || !body.account_type) {
     return res.status(400).json({
-      error: 'Missing required fields: bank_name, account_type, starting_balance, starting_balance_date'
+      error: 'Missing required fields: bank_name, account_type'
     });
   }
 
@@ -68,24 +68,13 @@ async function handlePost(supabase: any, userId: string, body: BankAccountCreate
     });
   }
 
-  // Validate starting balance date
-  const startingDate = new Date(body.starting_balance_date);
-  if (isNaN(startingDate.getTime())) {
-    return res.status(400).json({
-      error: 'Invalid starting_balance_date format. Use YYYY-MM-DD'
-    });
-  }
-
   const accountData = {
     user_id: userId,
     bank_name: body.bank_name.trim(),
     account_type: body.account_type,
     account_number_last4: body.account_number_last4?.trim() || null,
     account_nickname: body.account_nickname?.trim() || null,
-    starting_balance: body.starting_balance,
-    starting_balance_date: body.starting_balance_date,
     currency: body.currency || 'USD',
-    current_balance: body.starting_balance, // Initialize current balance to starting balance
   };
 
   const { data: account, error } = await supabase
@@ -116,16 +105,6 @@ async function handlePut(supabase: any, userId: string, accountId: string, body:
     }
   }
 
-  // Validate starting balance date if provided
-  if (body.starting_balance_date) {
-    const startingDate = new Date(body.starting_balance_date);
-    if (isNaN(startingDate.getTime())) {
-      return res.status(400).json({
-        error: 'Invalid starting_balance_date format. Use YYYY-MM-DD'
-      });
-    }
-  }
-
   const updateData: any = {
     updated_at: new Date().toISOString(),
   };
@@ -135,8 +114,6 @@ async function handlePut(supabase: any, userId: string, accountId: string, body:
   if (body.account_type !== undefined) updateData.account_type = body.account_type;
   if (body.account_number_last4 !== undefined) updateData.account_number_last4 = body.account_number_last4?.trim() || null;
   if (body.account_nickname !== undefined) updateData.account_nickname = body.account_nickname?.trim() || null;
-  if (body.starting_balance !== undefined) updateData.starting_balance = body.starting_balance;
-  if (body.starting_balance_date !== undefined) updateData.starting_balance_date = body.starting_balance_date;
   if (body.currency !== undefined) updateData.currency = body.currency;
   if (body.is_active !== undefined) updateData.is_active = body.is_active;
 

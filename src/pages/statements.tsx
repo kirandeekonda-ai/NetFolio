@@ -143,6 +143,20 @@ File: ${statement.file_name || 'N/A'}`);
 
       // Use transactions from uploadData directly (from AI processing)
       const transactionsToUse = uploadData.extractedTransactions || extractedTransactions;
+      
+      // Extract closing balance from page results for single source of truth
+      let closingBalance = null;
+      if (uploadData.pageResults && uploadData.pageResults.length > 0) {
+        console.log('🔍 Extracting closing balance from page results...');
+        // Get closing balance from the last page that has balance data
+        for (let i = uploadData.pageResults.length - 1; i >= 0; i--) {
+          if (uploadData.pageResults[i].balance_data?.closing_balance !== null) {
+            closingBalance = uploadData.pageResults[i].balance_data?.closing_balance || null;
+            console.log(`💰 Found closing balance: ₹${closingBalance} on page ${uploadData.pageResults[i].pageNumber}`);
+            break;
+          }
+        }
+      }
 
       // If we're reuploading, first delete the existing statement
       if (reuploadStatementId) {
@@ -156,7 +170,7 @@ File: ${statement.file_name || 'N/A'}`);
         }
       }
 
-      // Create the new statement record
+      // Create the new statement record with closing balance
       const statementData = {
         bank_account_id: uploadData.bank_account_id,
         statement_month: uploadData.statement_month,
@@ -165,6 +179,7 @@ File: ${statement.file_name || 'N/A'}`);
         statement_end_date: uploadData.statement_end_date,
         file_name: uploadData.file.name,
         file_size_mb: Math.round((uploadData.file.size / (1024 * 1024)) * 100) / 100,
+        closing_balance: closingBalance, // Single source of truth
       };
 
       const response = await fetch('/api/bank-statements', {

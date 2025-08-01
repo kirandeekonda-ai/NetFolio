@@ -132,10 +132,13 @@ export const BankAccountList: FC<BankAccountListProps> = ({
                     <div className="flex items-center space-x-6">
                       <div className="text-right">
                         <div className="text-2xl font-bold text-gray-900">
-                          {formatCurrency(account.current_balance || account.starting_balance, account.currency)}
+                          {account.statement_balance_available 
+                            ? formatCurrency(account.current_balance || 0, account.currency)
+                            : 'Upload Statement'
+                          }
                         </div>
                         <div className="text-sm text-gray-500">
-                          Current Balance
+                          {account.statement_balance_available ? 'Statement Balance' : 'No Balance Data'}
                         </div>
                       </div>
                       
@@ -217,10 +220,13 @@ export const BankAccountList: FC<BankAccountListProps> = ({
                     <div className="flex items-center space-x-6">
                       <div className="text-right">
                         <div className="text-2xl font-bold text-gray-600">
-                          {formatCurrency(account.current_balance || account.starting_balance, account.currency)}
+                          {account.statement_balance_available 
+                            ? formatCurrency(account.current_balance || 0, account.currency)
+                            : 'Upload Statement'
+                          }
                         </div>
                         <div className="text-sm text-gray-500">
-                          Last Balance
+                          {account.statement_balance_available ? 'Last Statement' : 'No Balance Data'}
                         </div>
                       </div>
                       
@@ -262,11 +268,13 @@ export const BankAccountList: FC<BankAccountListProps> = ({
           <div className="text-center">
             <div className="text-2xl font-bold text-blue-900">
               {formatCurrency(
-                activeAccounts.reduce((sum, acc) => sum + (acc.current_balance || acc.starting_balance), 0),
+                activeAccounts
+                  .filter(acc => acc.statement_balance_available)
+                  .reduce((sum, acc) => sum + (acc.current_balance || 0), 0),
                 activeAccounts[0]?.currency || 'USD'
               )}
             </div>
-            <div className="text-sm text-blue-700">Total Balance</div>
+            <div className="text-sm text-blue-700">Total Statement Balance</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-blue-900">

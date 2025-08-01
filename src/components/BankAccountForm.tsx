@@ -50,8 +50,6 @@ export const BankAccountForm: FC<BankAccountFormProps> = ({
     account_type: initialData?.account_type || 'checking',
     account_number_last4: initialData?.account_number_last4 || '',
     account_nickname: initialData?.account_nickname || '',
-    starting_balance: initialData?.starting_balance || 0,
-    starting_balance_date: initialData?.starting_balance_date || new Date().toISOString().split('T')[0],
     currency: initialData?.currency || userPreferredCurrency,
   });
 
@@ -106,10 +104,6 @@ export const BankAccountForm: FC<BankAccountFormProps> = ({
 
     if (!formData.account_type) {
       newErrors.account_type = 'Account type is required';
-    }
-
-    if (!formData.starting_balance_date) {
-      newErrors.starting_balance_date = 'Starting balance date is required';
     }
 
     if (formData.account_number_last4 && formData.account_number_last4.length !== 4) {
@@ -222,42 +216,6 @@ export const BankAccountForm: FC<BankAccountFormProps> = ({
             <p className="mt-1 text-sm text-gray-500">
               Only the last 4 digits for security and identification
             </p>
-          </div>
-
-          {/* Starting Balance and Date */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="starting_balance" className="block text-sm font-medium text-gray-700 mb-2">
-                Starting Balance
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-                  {currencies.find(c => c.code === formData.currency)?.symbol}
-                </span>
-                <Input
-                  id="starting_balance"
-                  type="number"
-                  step="0.01"
-                  value={formData.starting_balance}
-                  onChange={(e) => handleInputChange('starting_balance', parseFloat(e.target.value) || 0)}
-                  className="pl-8"
-                  disabled={isLoading}
-                />
-              </div>
-            </div>
-            <div>
-              <label htmlFor="starting_balance_date" className="block text-sm font-medium text-gray-700 mb-2">
-                Balance Date *
-              </label>
-              <Input
-                id="starting_balance_date"
-                type="date"
-                value={formData.starting_balance_date}
-                onChange={(e) => handleInputChange('starting_balance_date', e.target.value)}
-                error={errors.starting_balance_date}
-                disabled={isLoading}
-              />
-            </div>
           </div>
 
           {/* Currency */}

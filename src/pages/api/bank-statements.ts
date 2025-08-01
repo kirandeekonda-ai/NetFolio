@@ -98,7 +98,8 @@ async function handlePost(supabase: any, userId: string, body: any, res: NextApi
     statement_start_date, 
     statement_end_date,
     file_name,
-    file_size_mb
+    file_size_mb,
+    closing_balance
   } = body;
 
   // Validate required fields
@@ -142,6 +143,7 @@ async function handlePost(supabase: any, userId: string, body: any, res: NextApi
     statement_end_date,
     file_name: file_name || null,
     file_size_mb: file_size_mb || null,
+    closing_balance: closing_balance || null, // Single source of truth
     processing_status: 'pending',
     transaction_count: 0,
     total_credits: 0,

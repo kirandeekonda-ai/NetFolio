@@ -38,11 +38,11 @@ const currencies = [
 ];
 
 const financialGoals = [
-  { id: 'budgeting', title: 'Better Budgeting', description: 'Track spending and stay within limits', icon: '📊' },
-  { id: 'saving', title: 'Increase Savings', description: 'Build an emergency fund and save more', icon: '💰' },
-  { id: 'investing', title: 'Start Investing', description: 'Grow wealth through investments', icon: '📈' },
-  { id: 'debt', title: 'Pay Off Debt', description: 'Eliminate debts and improve credit', icon: '💳' },
-  { id: 'overview', title: 'Financial Overview', description: 'Get a complete picture of finances', icon: '🔍' },
+  { id: 'budgeting', title: 'Better Budgeting', description: 'Track spending and stay within limits', icon: '📊', available: true },
+  { id: 'saving', title: 'Increase Savings', description: 'Build an emergency fund and save more', icon: '💰', available: false },
+  { id: 'investing', title: 'Start Investing', description: 'Grow wealth through investments', icon: '📈', available: false },
+  { id: 'debt', title: 'Pay Off Debt', description: 'Eliminate debts and improve credit', icon: '💳', available: false },
+  { id: 'overview', title: 'Financial Overview', description: 'Get a complete picture of finances', icon: '🔍', available: false },
 ];
 
 const startingMethods = [
@@ -81,8 +81,6 @@ export const WelcomeWizard: FC<WelcomeWizardProps> = ({ user, onComplete }) => {
       bank_name: '',
       account_type: 'checking' as 'checking' | 'savings' | 'credit' | 'investment',
       account_nickname: '',
-      starting_balance: 0,
-      starting_balance_date: new Date().toISOString().split('T')[0],
     },
   });
 
@@ -98,7 +96,9 @@ export const WelcomeWizard: FC<WelcomeWizardProps> = ({ user, onComplete }) => {
     }
   };
 
-  const handleGoalToggle = (goalId: string) => {
+  const handleGoalToggle = (goalId: string, available: boolean) => {
+    if (!available) return; // Prevent selection of unavailable goals
+    
     setFormData(prev => ({
       ...prev,
       goals: prev.goals.includes(goalId)
@@ -142,8 +142,6 @@ export const WelcomeWizard: FC<WelcomeWizardProps> = ({ user, onComplete }) => {
           bank_name: formData.bankAccount.bank_name,
           account_type: formData.bankAccount.account_type,
           account_nickname: formData.bankAccount.account_nickname || null,
-          starting_balance: formData.bankAccount.starting_balance,
-          starting_balance_date: formData.bankAccount.starting_balance_date,
           currency: formData.currency,
         };
 
@@ -239,23 +237,38 @@ export const WelcomeWizard: FC<WelcomeWizardProps> = ({ user, onComplete }) => {
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {financialGoals.map((goal) => (
-                <button
-                  key={goal.id}
-                  onClick={() => handleGoalToggle(goal.id)}
-                  className={`p-4 rounded-lg border-2 transition-all duration-200 text-left ${
-                    formData.goals.includes(goal.id)
-                      ? 'border-primary bg-blue-50 shadow-md'
-                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                  }`}
-                >
-                  <div className="flex items-start space-x-3">
-                    <span className="text-2xl">{goal.icon}</span>
-                    <div>
-                      <h3 className="font-semibold text-gray-900">{goal.title}</h3>
-                      <p className="text-sm text-gray-600 mt-1">{goal.description}</p>
+                <div key={goal.id} className="relative">
+                  <button
+                    onClick={() => handleGoalToggle(goal.id, goal.available)}
+                    disabled={!goal.available}
+                    className={`w-full p-4 rounded-lg border-2 transition-all duration-200 text-left ${
+                      !goal.available 
+                        ? 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-70'
+                        : formData.goals.includes(goal.id)
+                        ? 'border-primary bg-blue-50 shadow-md'
+                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-start space-x-3">
+                      <span className={`text-2xl ${!goal.available ? 'opacity-50' : ''}`}>{goal.icon}</span>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <h3 className={`font-semibold ${!goal.available ? 'text-gray-500' : 'text-gray-900'}`}>
+                            {goal.title}
+                          </h3>
+                          {!goal.available && (
+                            <span className="bg-gradient-to-r from-purple-500 to-blue-500 text-white text-xs px-2 py-1 rounded-full font-medium">
+                              Coming Soon
+                            </span>
+                          )}
+                        </div>
+                        <p className={`text-sm mt-1 ${!goal.available ? 'text-gray-400' : 'text-gray-600'}`}>
+                          {goal.description}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                </button>
+                  </button>
+                </div>
               ))}
             </div>
 
@@ -373,35 +386,6 @@ export const WelcomeWizard: FC<WelcomeWizardProps> = ({ user, onComplete }) => {
                   value={formData.bankAccount.account_nickname}
                   onChange={(e) => handleBankAccountChange('account_nickname', e.target.value)}
                   placeholder="e.g., Main Checking"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Current Balance
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-                    {currencies.find(c => c.code === formData.currency)?.symbol}
-                  </span>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={formData.bankAccount.starting_balance}
-                    onChange={(e) => handleBankAccountChange('starting_balance', parseFloat(e.target.value) || 0)}
-                    className="pl-8"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Balance Date
-                </label>
-                <Input
-                  type="date"
-                  value={formData.bankAccount.starting_balance_date}
-                  onChange={(e) => handleBankAccountChange('starting_balance_date', e.target.value)}
                 />
               </div>
             </div>
