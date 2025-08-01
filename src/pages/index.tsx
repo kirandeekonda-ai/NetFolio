@@ -1,43 +1,93 @@
 import { NextPage } from 'next';
 import { useEffect, useState } from 'react';
-import { useSession } from '@supabase/auth-helpers-react';
+import { useSession, useSupabaseClient } from '@supabase/auth-helpers-react';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
 
+interface UserFlowState {
+  hasCompletedOnboarding: boolean;
+  hasAccounts: boolean;
+  hasTransactions: boolean;
+  lastVisit: string | null;
+}
+
 const IndexPage: NextPage = () => {
   const session = useSession();
+  const supabase = useSupabaseClient();
   const router = useRouter();
   const [loadingStage, setLoadingStage] = useState('initializing');
+  const [userState, setUserState] = useState<UserFlowState | null>(null);
 
+  // Intelligent routing based on user state
   useEffect(() => {
-    const stages = ['initializing', 'authenticating', 'redirecting'];
-    let currentStageIndex = 0;
-
-    const progressInterval = setInterval(() => {
-      if (currentStageIndex < stages.length - 1) {
-        currentStageIndex++;
-        setLoadingStage(stages[currentStageIndex]);
-      }
-    }, 800);
-
-    const timeout = setTimeout(() => {
-      clearInterval(progressInterval);
-      
-      if (session) {
+    const determineUserFlow = async () => {
+      if (!session?.user) {
+        // Not authenticated - go to marketing landing page
         setLoadingStage('redirecting');
-        // Add slight delay for better UX
+        setTimeout(() => router.push('/auth/landing'), 500);
+        return;
+      }
+
+      try {
+        setLoadingStage('analyzing');
+
+        // Check user preferences for onboarding completion
+        const { data: preferences } = await supabase
+          .from('user_preferences')
+          .select('onboarded')
+          .eq('user_id', session.user.id)
+          .single();
+
+        // Check if user has bank accounts
+        const { data: accounts } = await supabase
+          .from('bank_accounts')
+          .select('id')
+          .eq('user_id', session.user.id)
+          .limit(1);
+
+        // Check if user has transactions (using Redux store count since no DB table)
+        // In a real app, this would query the transactions table
+        const hasTransactions = false; // Will be updated when transactions table exists
+
+        const flowState: UserFlowState = {
+          hasCompletedOnboarding: preferences?.onboarded || false,
+          hasAccounts: (accounts?.length || 0) > 0,
+          hasTransactions,
+          lastVisit: new Date().toISOString()
+        };
+
+        setUserState(flowState);
+
+        // Intelligent routing logic
+        setLoadingStage('routing');
+        
+        if (!flowState.hasCompletedOnboarding) {
+          // First-time user - go to onboarding
+          setTimeout(() => router.push('/onboarding'), 300);
+        } else if (!flowState.hasAccounts) {
+          // Onboarded but no accounts - go to quick-start
+          setTimeout(() => router.push('/quick-start'), 300);
+        } else {
+          // Established user - go to main landing dashboard
+          setTimeout(() => router.push('/landing'), 300);
+        }
+
+      } catch (error) {
+        console.error('Error determining user flow:', error);
+        // Fallback to landing page on error
+        setLoadingStage('redirecting');
         setTimeout(() => router.push('/landing'), 300);
-      } else {
-        setLoadingStage('redirecting');
-        setTimeout(() => router.push('/auth'), 300);
       }
-    }, 1500);
-
-    return () => {
-      clearInterval(progressInterval);
-      clearTimeout(timeout);
     };
-  }, [session, router]);
+
+    // Add a small delay for better UX
+    const timer = setTimeout(() => {
+      setLoadingStage('authenticating');
+      setTimeout(determineUserFlow, 400);
+    }, 600);
+
+    return () => clearTimeout(timer);
+  }, [session, router, supabase]);
 
   const getLoadingMessage = () => {
     switch (loadingStage) {
@@ -45,6 +95,10 @@ const IndexPage: NextPage = () => {
         return 'Initializing NetFolio...';
       case 'authenticating':
         return 'Checking authentication...';
+      case 'analyzing':
+        return 'Analyzing your account setup...';
+      case 'routing':
+        return 'Personalizing your experience...';
       case 'redirecting':
         return session ? 'Taking you to your dashboard...' : 'Loading sign-in...';
       default:
@@ -58,10 +112,31 @@ const IndexPage: NextPage = () => {
         return '🚀';
       case 'authenticating':
         return '🔐';
+      case 'analyzing':
+        return '🔍';
+      case 'routing':
+        return '🎯';
       case 'redirecting':
         return session ? '📊' : '🔑';
       default:
         return '💼';
+    }
+  };
+
+  const getProgressWidth = () => {
+    switch (loadingStage) {
+      case 'initializing':
+        return '20%';
+      case 'authenticating':
+        return '40%';
+      case 'analyzing':
+        return '60%';
+      case 'routing':
+        return '80%';
+      case 'redirecting':
+        return '100%';
+      default:
+        return '0%';
     }
   };
 
@@ -126,8 +201,11 @@ const IndexPage: NextPage = () => {
               <span className={loadingStage === 'initializing' ? 'text-blue-600 font-medium' : ''}>
                 Initialize
               </span>
-              <span className={loadingStage === 'authenticating' ? 'text-blue-600 font-medium' : ''}>
+              <span className={['authenticating', 'analyzing'].includes(loadingStage) ? 'text-blue-600 font-medium' : ''}>
                 Authenticate
+              </span>
+              <span className={loadingStage === 'routing' ? 'text-blue-600 font-medium' : ''}>
+                Analyze
               </span>
               <span className={loadingStage === 'redirecting' ? 'text-blue-600 font-medium' : ''}>
                 Navigate
@@ -137,10 +215,7 @@ const IndexPage: NextPage = () => {
               <motion.div
                 className="bg-gradient-to-r from-blue-500 to-indigo-500 h-2 rounded-full"
                 initial={{ width: '0%' }}
-                animate={{ 
-                  width: loadingStage === 'initializing' ? '33%' : 
-                         loadingStage === 'authenticating' ? '66%' : '100%' 
-                }}
+                animate={{ width: getProgressWidth() }}
                 transition={{ duration: 0.5, ease: "easeInOut" }}
               />
             </div>

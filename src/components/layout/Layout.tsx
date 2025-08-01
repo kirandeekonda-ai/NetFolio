@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useSession } from '@supabase/auth-helpers-react';
+import { UserFlowGuide } from '@/components/UserFlowGuide';
 
 interface LayoutProps {
   children: ReactNode;
@@ -136,6 +137,12 @@ export const Layout: FC<LayoutProps> = ({ children }) => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
           >
+            {/* Show UserFlowGuide only on main pages, not onboarding/quick-start */}
+            {!router.pathname.includes('/onboarding') && 
+             !router.pathname.includes('/quick-start') && 
+             !router.pathname.includes('/auth') && (
+              <UserFlowGuide />
+            )}
             {children}
           </motion.div>
         </div>

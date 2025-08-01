@@ -227,7 +227,7 @@ export const BankAccountList: FC<BankAccountListProps> = ({
                       <div className="flex items-center space-x-2">
                         <Button
                           variant="secondary"
-                          onClick={() => onEdit(account)}
+                          onClick={() => onDeactivate(account.id)}
                           disabled={isLoading}
                         >
                           Reactivate
