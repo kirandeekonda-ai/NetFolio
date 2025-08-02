@@ -138,158 +138,260 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <Card className="p-6">
-        <h2 className="text-xl font-semibold mb-4">
-          {isReupload ? 'Re-upload' : 'Upload'} Bank Statement
-        </h2>
-        
-        <div className="space-y-4">
-          {/* Simplified Account Info - No Duplicates */}
-          <div className="p-4 bg-gray-50 rounded-lg border-l-4 border-blue-500">
-            <div className="flex justify-between items-center">
-              <div>
-                <h3 className="font-medium text-gray-900">
-                  {selectedAccount?.bank_name} - {selectedAccount?.account_type}
-                </h3>
-                <p className="text-sm text-gray-600">
-                  {monthName} {yearString} • Enhanced AI Processing with Security
-                </p>
+    <div className="max-w-5xl mx-auto space-y-8">
+      {/* Premium Header */}
+      <div className="text-center space-y-4">
+        <div className="inline-flex items-center space-x-3 px-6 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-full border border-blue-200/50">
+          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
+            <span className="text-white text-lg">📤</span>
+          </div>
+          <h1 className="text-xl font-semibold bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent">
+            {isReupload ? 'Re-upload Statement' : 'Upload Bank Statement'}
+          </h1>
+        </div>
+        <p className="text-gray-600 max-w-2xl mx-auto">
+          Securely upload your bank statement and let our AI extract and categorize transactions automatically
+        </p>
+      </div>
+
+      {/* Modern Account Info Card */}
+      <div className="relative">
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-indigo-500/20 rounded-3xl blur-xl"></div>
+        <div className="relative bg-white/80 backdrop-blur-xl rounded-3xl p-8 border border-white/30 shadow-2xl">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-6">
+              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
+                <span className="text-white text-2xl">🏦</span>
               </div>
-              <div className="text-right">
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                  🤖 AI Ready
-                </span>
+              <div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-1">
+                  {selectedAccount?.bank_name}
+                </h3>
+                <div className="flex items-center space-x-4 text-sm text-gray-600">
+                  <span className="inline-flex items-center space-x-1">
+                    <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
+                    <span>{selectedAccount?.account_type}</span>
+                  </span>
+                  <span className="inline-flex items-center space-x-1">
+                    <span className="w-2 h-2 bg-emerald-400 rounded-full"></span>
+                    <span>{monthName} {yearString}</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-col items-end space-y-2">
+              <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-gradient-to-r from-emerald-100 to-teal-100 text-emerald-800 border border-emerald-200/50">
+                <span className="w-2 h-2 bg-emerald-400 rounded-full mr-2 animate-pulse"></span>
+                AI Processing Ready
+              </span>
+              <div className="flex items-center space-x-2 text-xs text-gray-500">
+                <span>🔒 Bank-grade security</span>
+                <span>•</span>
+                <span>🤖 Smart extraction</span>
               </div>
             </div>
           </div>
+        </div>
+      </div>
 
-          {/* Dynamic File Upload Area */}
-          <div className={`transition-all duration-300 ${uploadMinimized ? 'transform scale-95 opacity-75' : ''}`}>
-            {uploadMinimized && !enhancedError ? (
-              /* Minimized Upload State */
-              <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+      {/* Premium File Upload Section */}
+      <div className="relative">
+        <div className={`transition-all duration-500 ease-out ${uploadMinimized ? 'transform scale-98 opacity-90' : ''}`}>
+          {uploadMinimized && !enhancedError ? (
+            /* Success State - Minimized */
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/20 to-teal-500/20 rounded-3xl blur-lg"></div>
+              <div className="relative bg-gradient-to-r from-emerald-50 to-teal-50 backdrop-blur-xl rounded-3xl p-6 border border-emerald-200/50 shadow-xl">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-green-500">✅</span>
-                    <span className="text-sm font-medium text-green-800">
-                      File Uploaded: {selectedFile?.name}
-                    </span>
-                    <span className="text-xs text-green-600">
-                      ({((selectedFile?.size || 0) / 1024 / 1024).toFixed(2)} MB)
-                    </span>
+                  <div className="flex items-center space-x-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg">
+                      <span className="text-white text-xl">✓</span>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-emerald-900 mb-1">File Successfully Uploaded</h3>
+                      <div className="flex items-center space-x-4 text-sm text-emerald-700">
+                        <span className="flex items-center space-x-1">
+                          <span>📄</span>
+                          <span className="font-medium">{selectedFile?.name}</span>
+                        </span>
+                        <span className="flex items-center space-x-1">
+                          <span>📊</span>
+                          <span>{((selectedFile?.size || 0) / 1024 / 1024).toFixed(2)} MB</span>
+                        </span>
+                      </div>
+                    </div>
                   </div>
                   <Button
                     onClick={handleRetry}
                     variant="secondary"
-                    size="sm"
-                    className="text-xs"
+                    className="bg-white/70 hover:bg-white text-emerald-700 border-emerald-200 shadow-sm"
                   >
-                    Upload Different File
+                    <span className="flex items-center space-x-2">
+                      <span>🔄</span>
+                      <span>Change File</span>
+                    </span>
                   </Button>
                 </div>
               </div>
-            ) : (
-              /* Full Upload Area */
-              <div>
+            </div>
+          ) : (
+            /* Upload Area - Full State */
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-400/10 to-indigo-500/10 rounded-3xl blur-2xl"></div>
+              <div className="relative bg-white/90 backdrop-blur-xl rounded-3xl p-8 border border-white/50 shadow-2xl">
                 <FileUpload
                   onFileSelect={handleFileSelect}
                   maxSize={5 * 1024 * 1024} // 5MB
                 />
                 {selectedFile && !uploadMinimized && (
-                  <p className="mt-2 text-sm text-gray-600">
-                    Selected: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
-                  </p>
+                  <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-blue-200/50">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+                        <span className="text-white">📄</span>
+                      </div>
+                      <div>
+                        <p className="font-medium text-blue-900">{selectedFile.name}</p>
+                        <p className="text-sm text-blue-700">
+                          {(selectedFile.size / 1024 / 1024).toFixed(2)} MB • Ready for processing
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
-            )}
-          </div>
+            </div>
+          )}
+        </div>
+      </div>
 
-          {/* Error Display with Retry Option */}
-          {enhancedError && (
-            <div className="p-4 bg-red-50 border-l-4 border-red-400 rounded-lg shadow-sm">
-              <div className="flex items-start">
-                <div className="flex-shrink-0">
-                  <span className="text-red-400 text-xl">⚠️</span>
-                </div>
-                <div className="ml-3 flex-1">
-                  <h4 className="font-medium text-red-800 mb-2">Statement Processing Failed</h4>
-                  <p className="text-sm text-red-700 mb-3">{enhancedError}</p>
-                  <div className="text-xs text-red-600 bg-red-100 p-2 rounded mb-3">
-                    <strong>💡 Quick fixes:</strong>
-                    <ul className="mt-1 list-disc list-inside space-y-1">
-                      <li>Check that bank name matches the statement exactly</li>
-                      <li>Verify month and year match the statement period</li>
-                      <li>Ensure PDF is readable and not password-protected</li>
-                      <li>Try uploading a different statement if this one is corrupted</li>
-                    </ul>
+      {/* Premium Error Display */}
+      {enhancedError && (
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-red-400/20 to-pink-500/20 rounded-3xl blur-xl"></div>
+          <div className="relative bg-gradient-to-r from-red-50 to-pink-50 backdrop-blur-xl rounded-3xl p-8 border border-red-200/50 shadow-xl">
+            <div className="flex items-start space-x-6">
+              <div className="w-16 h-16 bg-gradient-to-br from-red-500 to-pink-600 rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0">
+                <span className="text-white text-2xl">⚠️</span>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xl font-semibold text-red-900 mb-3">Processing Failed</h3>
+                <p className="text-red-800 mb-6 leading-relaxed">{enhancedError}</p>
+                
+                <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 mb-6">
+                  <h4 className="font-semibold text-red-900 mb-3 flex items-center">
+                    <span className="mr-2">💡</span>
+                    Quick Solutions
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-red-800">
+                    <div className="flex items-start space-x-2">
+                      <span className="text-red-500 mt-0.5">•</span>
+                      <span>Verify bank name matches statement exactly</span>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <span className="text-red-500 mt-0.5">•</span>
+                      <span>Check month and year are correct</span>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <span className="text-red-500 mt-0.5">•</span>
+                      <span>Ensure PDF is readable and not protected</span>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <span className="text-red-500 mt-0.5">•</span>
+                      <span>Try a different statement if corrupted</span>
+                    </div>
                   </div>
-                  <Button
-                    onClick={handleRetry}
-                    variant="secondary"
-                    size="sm"
-                    className="text-red-700 border-red-300 hover:bg-red-100"
-                  >
-                    Try Again
-                  </Button>
                 </div>
+                
+                <Button
+                  onClick={handleRetry}
+                  className="bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white shadow-lg"
+                >
+                  <span className="flex items-center space-x-2">
+                    <span>🔄</span>
+                    <span>Try Again</span>
+                  </span>
+                </Button>
               </div>
             </div>
-          )}
-
-          {/* Enhanced Processing Status */}
-          <EnhancedProcessingStatus
-            isVisible={enhancedProcessing || progress !== null || processingLogs.length > 0}
-            progress={progress || undefined}
-            validationResult={validationResult || undefined}
-            pageResults={pageResults}
-            logs={processingLogs}
-            securityBreakdown={securityBreakdown} // Pass real security breakdown
-          />
-
-          {/* Processing Logs */}
-          {processingLogs.length > 0 && (
-            <div className="mt-4">
-              <ProcessingLogs 
-                logs={processingLogs}
-                isVisible={true}
-                isProcessing={enhancedProcessing}
-                onClear={clearEnhancedLogs}
-              />
-            </div>
-          )}
-
-          {/* Features List - Moved to Bottom */}
-          {!enhancedProcessing && !progress && (
-            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <h3 className="font-medium text-blue-900 mb-2">Enhanced AI Processing Features:</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-blue-700">
-                <ul className="space-y-1">
-                  <li>• ✅ Statement validation (bank, month, year verification)</li>
-                  <li>• 📄 Page-by-page processing to handle token limits</li>
-                  <li>• 🤖 Intelligent transaction categorization</li>
-                  <li>• 🔍 Real-time progress tracking with detailed status</li>
-                  <li>• 🔒 Advanced security protection for sensitive data</li>
-                </ul>
-                <ul className="space-y-1">
-                  <li>• 🎯 Queue management for multi-page documents</li>
-                  <li>• 📊 Processing analytics and performance metrics</li>
-                  <li>• 🔄 Automatic retry and error handling</li>
-                  <li>• 💾 Smart memory optimization</li>
-                  <li>• 📈 Enhanced accuracy with context awareness</li>
-                </ul>
-              </div>
-            </div>
-          )}
-
-          {/* Action buttons */}
-          <div className="flex justify-end space-x-3 pt-4 border-t">
-            <Button onClick={onCancel} variant="secondary">
-              Cancel
-            </Button>
           </div>
         </div>
-      </Card>
+      )}
+
+      {/* Enhanced Processing Status */}
+      <EnhancedProcessingStatus
+        isVisible={enhancedProcessing || progress !== null || processingLogs.length > 0}
+        progress={progress || undefined}
+        validationResult={validationResult || undefined}
+        pageResults={pageResults}
+        logs={processingLogs}
+        securityBreakdown={securityBreakdown}
+      />
+
+      {/* Processing Logs */}
+      {processingLogs.length > 0 && (
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-gray-400/10 to-slate-500/10 rounded-3xl blur-xl"></div>
+          <div className="relative bg-white/90 backdrop-blur-xl rounded-3xl border border-white/50 shadow-xl overflow-hidden">
+            <ProcessingLogs 
+              logs={processingLogs}
+              isVisible={true}
+              isProcessing={enhancedProcessing}
+              onClear={clearEnhancedLogs}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Premium Features Showcase */}
+      {!enhancedProcessing && !progress && (
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-400/10 to-indigo-500/10 rounded-3xl blur-xl"></div>
+          <div className="relative bg-gradient-to-br from-blue-50/80 to-indigo-50/80 backdrop-blur-xl rounded-3xl p-8 border border-blue-200/30 shadow-xl">
+            <div className="text-center mb-8">
+              <div className="inline-flex items-center space-x-3 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full shadow-lg mb-4">
+                <span className="text-white text-lg">🚀</span>
+                <h3 className="font-semibold text-white">AI-Powered Processing Features</h3>
+              </div>
+              <p className="text-blue-800 max-w-2xl mx-auto">
+                Experience next-generation statement processing with advanced AI and enterprise-grade security
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[
+                { icon: '🔍', title: 'Smart Validation', desc: 'Validates bank, month, and year automatically' },
+                { icon: '📄', title: 'Page Processing', desc: 'Handles multi-page documents intelligently' },
+                { icon: '🤖', title: 'Auto Categorization', desc: 'AI categorizes transactions accurately' },
+                { icon: '�', title: 'Real-time Tracking', desc: 'Live progress with detailed status updates' },
+                { icon: '🔒', title: 'Advanced Security', desc: 'Bank-grade protection for sensitive data' },
+                { icon: '⚡', title: 'Smart Processing', desc: 'Optimized memory and error handling' },
+              ].map((feature, index) => (
+                <div key={index} className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-white/50 shadow-lg hover:shadow-xl transition-all duration-300">
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center mb-4 shadow-lg">
+                    <span className="text-white text-xl">{feature.icon}</span>
+                  </div>
+                  <h4 className="font-semibold text-blue-900 mb-2">{feature.title}</h4>
+                  <p className="text-sm text-blue-700 leading-relaxed">{feature.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Premium Action Footer */}
+      <div className="flex justify-end">
+        <Button 
+          onClick={onCancel} 
+          variant="secondary"
+          className="bg-white/70 hover:bg-white text-gray-700 border-gray-200 shadow-lg backdrop-blur-sm"
+        >
+          <span className="flex items-center space-x-2">
+            <span>←</span>
+            <span>Back to Statements</span>
+          </span>
+        </Button>
+      </div>
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import { NextPage } from 'next';
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { Layout } from '@/components/layout/Layout';
 import { Card } from '@/components/Card';
@@ -7,6 +7,7 @@ import { Table } from '@/components/Table';
 import { Input } from '@/components/Input';
 import { Button } from '@/components/Button';
 import { ToastProvider, useToast } from '@/components/Toast';
+import { Portal } from '@/components/Portal';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '@/store';
@@ -31,6 +32,8 @@ const Categorize: NextPage = () => {
   
   const [searchTerm, setSearchTerm] = useState('');
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; right: number; isNearBottom: boolean } | null>(null);
+  const [dropdownButtonRef, setDropdownButtonRef] = useState<HTMLButtonElement | null>(null);
   const [currency, setCurrency] = useState<string>('INR');
   const [showNoTransactionsMessage, setShowNoTransactionsMessage] = useState(false);
   const [currentStatement, setCurrentStatement] = useState<any>(null);
@@ -117,8 +120,16 @@ const Categorize: NextPage = () => {
   // Handle click outside to close dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      // Don't close if clicking inside the portal dropdown
+      const target = event.target as Element;
+      if (target.closest('[data-dropdown-portal]')) {
+        return;
+      }
+      
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setOpenDropdown(null);
+        setDropdownPosition(null);
+        setDropdownButtonRef(null);
       }
     };
 
@@ -130,6 +141,17 @@ const Categorize: NextPage = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [openDropdown]);
+
+  // Function to calculate dropdown position
+  const calculateDropdownPosition = useCallback((buttonElement: HTMLButtonElement, isNearBottom: boolean) => {
+    const buttonRect = buttonElement.getBoundingClientRect();
+    
+    return {
+      top: isNearBottom ? buttonRect.top - 8 : buttonRect.bottom + 8,
+      right: window.innerWidth - buttonRect.right,
+      isNearBottom
+    };
+  }, []);
 
   // Debug: Log when transactions change
   useEffect(() => {
@@ -186,6 +208,39 @@ const Categorize: NextPage = () => {
       });
   }, [transactions, searchTerm, router.query.filter]);
 
+  // Update dropdown position on scroll
+  useEffect(() => {
+    let animationFrameId: number;
+    
+    const handleScroll = () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+      
+      animationFrameId = requestAnimationFrame(() => {
+        if (openDropdown && dropdownButtonRef) {
+          const currentIndex = filteredTransactions.findIndex(t => t.id === openDropdown);
+          const isNearBottom = currentIndex >= filteredTransactions.length - 3;
+          const newPosition = calculateDropdownPosition(dropdownButtonRef, isNearBottom);
+          setDropdownPosition(newPosition);
+        }
+      });
+    };
+
+    if (openDropdown && dropdownButtonRef) {
+      window.addEventListener('scroll', handleScroll, { passive: true });
+      window.addEventListener('resize', handleScroll, { passive: true });
+      
+      return () => {
+        window.removeEventListener('scroll', handleScroll);
+        window.removeEventListener('resize', handleScroll);
+        if (animationFrameId) {
+          cancelAnimationFrame(animationFrameId);
+        }
+      };
+    }
+  }, [openDropdown, dropdownButtonRef, filteredTransactions, calculateDropdownPosition]);
+
   // Helper function to check if an ID is a valid UUID (not a mock ID)
   const isValidUUID = (id: string): boolean => {
     // UUID v4 regex pattern
@@ -199,6 +254,7 @@ const Categorize: NextPage = () => {
     console.log('Transaction description:', transaction.description);
     console.log('Is valid UUID:', isValidUUID(transaction.id));
     console.log('New category:', category.name);
+    console.log('Current transaction object:', transaction);
     
     // Update Redux store immediately for UI feedback using the enhanced slice
     const updatedTransaction = {
@@ -207,8 +263,12 @@ const Categorize: NextPage = () => {
       category: category.name, // Keep legacy field in sync
     };
     
+    console.log('Updated transaction:', updatedTransaction);
+    
     dispatch(updateTransactionFromRealtime(updatedTransaction));
     setOpenDropdown(null); // Close dropdown after selection
+    setDropdownPosition(null); // Clear dropdown position
+    setDropdownButtonRef(null); // Clear button reference
     
     // If it's a valid UUID (persisted transaction), save to database
     if (isValidUUID(transaction.id)) {
@@ -336,83 +396,45 @@ const Categorize: NextPage = () => {
         return (
           <div className="relative" ref={dropdownRef}>
             <motion.button
+              ref={(ref) => {
+                if (openDropdown === item.id) {
+                  setDropdownButtonRef(ref);
+                }
+              }}
               onClick={(e) => {
                 e.stopPropagation();
-                setOpenDropdown(openDropdown === item.id ? null : item.id);
+                if (openDropdown === item.id) {
+                  setOpenDropdown(null);
+                  setDropdownPosition(null);
+                  setDropdownButtonRef(null);
+                } else {
+                  const buttonElement = e.currentTarget;
+                  const newPosition = calculateDropdownPosition(buttonElement, isNearBottom);
+                  setDropdownPosition(newPosition);
+                  setDropdownButtonRef(buttonElement);
+                  setOpenDropdown(item.id);
+                }
               }}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className={`px-3 py-1 rounded-label text-sm transition-all duration-200 hover:shadow-sm ${
+              className={`px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 border shadow-sm ${
                 isHighlighted 
-                  ? 'bg-green-200 text-green-800 shadow-md scale-105' 
-                  : `${style.bg} ${style.text}`
+                  ? 'bg-green-100 text-green-800 border-green-200 shadow-md scale-105' 
+                  : categoryName === 'Uncategorized'
+                    ? 'bg-white/90 text-gray-600 border-gray-200 hover:bg-white hover:border-gray-300'
+                    : `${style.bg} ${style.text} border-gray-200`
               }`}
-              style={!isHighlighted ? style.style : undefined}
+              style={!isHighlighted && categoryName !== 'Uncategorized' ? style.style : undefined}
             >
               {categoryName === 'Uncategorized' ? 'Select Category' : categoryName}
               <motion.span
-                className="ml-2 inline-block"
+                className="ml-2 inline-block text-xs"
                 animate={{ rotate: openDropdown === item.id ? 180 : 0 }}
                 transition={{ duration: 0.2 }}
               >
                 ▼
               </motion.span>
             </motion.button>
-            
-            <AnimatePresence>
-              {openDropdown === item.id && (
-                <motion.div
-                  initial={{ opacity: 0, y: isNearBottom ? 10 : -10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: isNearBottom ? 10 : -10, scale: 0.95 }}
-                  transition={{ duration: 0.15, ease: "easeOut" }}
-                  className="absolute z-50 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden"
-                  style={{ 
-                    minWidth: '200px',
-                    maxHeight: '300px',
-                    overflowY: 'auto',
-                    right: '0',
-                    ...(isNearBottom 
-                      ? { bottom: '100%', marginBottom: '8px' } 
-                      : { top: '100%', marginTop: '8px' }
-                    )
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <div className="py-1">
-                    {categories.map((category, index) => {
-                      const categoryStyle = getCategoryColorStyle(category.name, categories);
-                      const isSelected = category.name === value;
-                      return (
-                        <motion.button
-                          key={category.id}
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.02 }}
-                          onClick={() => handleCategoryChange(item, category)}
-                          className={`w-full px-4 py-2 text-left text-sm transition-all duration-150 flex items-center justify-between hover:bg-gray-50 ${
-                            isSelected ? `${categoryStyle.bg} ${categoryStyle.text}` : 'text-gray-700'
-                          }`}
-                          style={isSelected ? categoryStyle.style : undefined}
-                          whileHover={{ backgroundColor: isSelected ? undefined : '#f9fafb' }}
-                        >
-                          <span>{category.name}</span>
-                          {isSelected && (
-                            <motion.span
-                              initial={{ scale: 0 }}
-                              animate={{ scale: 1 }}
-                              className="text-xs"
-                            >
-                              ✓
-                            </motion.span>
-                          )}
-                        </motion.button>
-                      );
-                    })}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
           </div>
         );
       },
@@ -420,146 +442,313 @@ const Categorize: NextPage = () => {
     },
   ];
 
+  // Render dropdown in portal
+  const renderDropdown = () => {
+    if (!openDropdown || !dropdownPosition) return null;
+
+    const currentItem = filteredTransactions.find(t => t.id === openDropdown);
+    if (!currentItem) return null;
+
+    const categoryName = currentItem.category_name || currentItem?.category || 'Uncategorized';
+
+    return (
+      <Portal>
+        <AnimatePresence>
+          <motion.div
+            initial={{ opacity: 0, y: dropdownPosition.isNearBottom ? 10 : -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: dropdownPosition.isNearBottom ? 10 : -10, scale: 0.95 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
+            className="fixed bg-white rounded-xl shadow-2xl border border-gray-200/50 overflow-hidden z-[9999]"
+            data-dropdown-portal
+            style={{ 
+              minWidth: '200px',
+              maxHeight: '300px',
+              overflowY: 'auto',
+              top: dropdownPosition.isNearBottom ? dropdownPosition.top - 300 : dropdownPosition.top,
+              right: dropdownPosition.right,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="py-1">
+              {categories.map((category, index) => {
+                const categoryStyle = getCategoryColorStyle(category.name, categories);
+                const isSelected = category.name === categoryName;
+                return (
+                  <motion.button
+                    key={category.id}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.02 }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      console.log('Dropdown option clicked:', category.name);
+                      handleCategoryChange(currentItem, category);
+                    }}
+                    className={`w-full px-4 py-3 text-left text-sm font-medium transition-all duration-150 flex items-center justify-between hover:bg-gray-50 cursor-pointer ${
+                      isSelected ? `${categoryStyle.bg} ${categoryStyle.text}` : 'text-gray-700'
+                    }`}
+                    style={isSelected ? categoryStyle.style : undefined}
+                    whileHover={{ backgroundColor: isSelected ? undefined : '#f9fafb' }}
+                  >
+                    <span>{category.name}</span>
+                    {isSelected && (
+                      <motion.span
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="text-xs"
+                      >
+                        ✓
+                      </motion.span>
+                    )}
+                  </motion.button>
+                );
+              })}
+            </div>
+          </motion.div>
+        </AnimatePresence>
+      </Portal>
+    );
+  };
+
   return (
     <Layout>
       <ToastProvider toasts={toasts} onRemove={removeToast} />
       
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
+      <motion.div 
+        className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-6"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6 }}
       >
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-heading font-bold">
-              {currentStatement ? 'Categorize Statement Transactions' : 'Categorize Transactions'}
-            </h1>
-            {currentStatement && (
-              <p className="text-sm text-gray-600 mt-1">
-                {currentStatement.statement_month}/{currentStatement.statement_year} Statement
-                {currentStatement.bank_account_id && ' • '}
-                <span className="font-medium">
-                  {filteredTransactions.length} transactions
-                </span>
-              </p>
-            )}
-          </div>
-          <div className="flex space-x-4 items-center">
-            <Button
-              onClick={() => router.push('/statements')}
-              variant="secondary"
-              className="text-sm"
-            >
-              ← Back to Statements
-            </Button>
-            <Button
-              onClick={() => router.push('/dashboard')}
-              className="bg-green-600 text-white text-sm"
-            >
-              📊 View Dashboard
-            </Button>
-            <Input
-              type="search"
-              placeholder="Search transactions..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="max-w-xs"
-            />
-          </div>
-        </div>
-
-        {/* Show filter indicator when displaying only uncategorized transactions */}
-        {router.query.filter === 'uncategorized' && (
-          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <div className="flex items-center space-x-3">
-              <span className="text-2xl">🏷️</span>
-              <div>
-                <h3 className="font-semibold text-yellow-800">
-                  Showing Uncategorized Transactions Only
-                </h3>
-                <p className="text-yellow-700 text-sm">
-                  Focus on categorizing {filteredTransactions.length} uncategorized transactions
-                </p>
+        {/* Modern Header Section */}
+        <motion.div 
+          className="mb-8"
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.1, duration: 0.5 }}
+        >
+          <div className="backdrop-blur-xl bg-white/70 rounded-3xl shadow-2xl border border-white/20 p-8">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center">
+                  <span className="text-2xl">🏷️</span>
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+                    {currentStatement ? 'Categorize Statement Transactions' : 'Categorize Transactions'}
+                  </h1>
+                  {currentStatement ? (
+                    <p className="text-gray-600 mt-1">
+                      {currentStatement.statement_month}/{currentStatement.statement_year} Statement • 
+                      <span className="font-medium ml-1">{filteredTransactions.length} transactions</span>
+                    </p>
+                  ) : (
+                    <p className="text-gray-600 mt-1">Organize your financial data with smart categorization</p>
+                  )}
+                </div>
+              </div>
+              
+              {/* Navigation Buttons */}
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => router.push('/statements')}
+                  className="px-4 py-2 bg-white/60 backdrop-blur-sm border border-white/30 rounded-xl 
+                           hover:bg-white/80 text-gray-700 font-medium transition-all duration-200 
+                           shadow-sm hover:shadow-md"
+                >
+                  ← Statements
+                </button>
+                <button
+                  onClick={() => router.push('/dashboard')}
+                  className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl 
+                           hover:from-green-600 hover:to-emerald-700 font-medium transition-all duration-200 
+                           shadow-sm hover:shadow-md"
+                >
+                  📊 Dashboard
+                </button>
               </div>
             </div>
+
+            {/* Quick Stats */}
+            <div className="grid grid-cols-3 gap-6 mb-6">
+              <div className="bg-white/40 backdrop-blur-sm rounded-2xl p-4 text-center">
+                <div className="text-2xl font-bold text-gray-900">{filteredTransactions.length}</div>
+                <div className="text-sm text-gray-600">Total Transactions</div>
+              </div>
+              <div className="bg-white/40 backdrop-blur-sm rounded-2xl p-4 text-center">
+                <div className="text-2xl font-bold text-green-600">
+                  {filteredTransactions.filter(t => t.category_name && t.category_name !== 'Uncategorized').length}
+                </div>
+                <div className="text-sm text-gray-600">Categorized</div>
+              </div>
+              <div className="bg-white/40 backdrop-blur-sm rounded-2xl p-4 text-center">
+                <div className="text-2xl font-bold text-orange-600">
+                  {filteredTransactions.filter(t => !t.category_name || t.category_name === 'Uncategorized').length}
+                </div>
+                <div className="text-sm text-gray-600">Pending</div>
+              </div>
+            </div>
+
+            {/* Search Control */}
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
+                <span className="text-gray-500 text-lg">🔍</span>
+              </div>
+              <input
+                type="text"
+                placeholder="Search transactions..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 bg-white/90 border border-gray-200 rounded-2xl shadow-sm
+                         focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-300
+                         placeholder-gray-400 text-gray-900 transition-all duration-200"
+              />
+            </div>
           </div>
+        </motion.div>
+
+        {/* Filter Indicator */}
+        {router.query.filter === 'uncategorized' && (
+          <motion.div 
+            className="mb-6"
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.4 }}
+          >
+            <div className="backdrop-blur-xl bg-gradient-to-r from-yellow-50/80 to-orange-50/80 rounded-2xl shadow-lg border border-yellow-200/30 p-6">
+              <div className="flex items-center space-x-4">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-yellow-400 to-orange-500 flex items-center justify-center">
+                  <span className="text-xl">�</span>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-yellow-900 text-lg">
+                    Focus Mode: Uncategorized Transactions
+                  </h3>
+                  <p className="text-yellow-800 text-sm">
+                    Showing {filteredTransactions.length} uncategorized transactions for efficient processing
+                  </p>
+                </div>
+              </div>
+            </div>
+          </motion.div>
         )}
 
+        {/* No Transactions Message */}
         {showNoTransactionsMessage && (
-          <Card className="mb-6">
-            <div className="text-center p-6">
-              <div className="text-4xl mb-4">⚠️</div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                Statement Uploaded Successfully
-              </h2>
-              <p className="text-gray-600 mb-4">
-                Your statement was uploaded but no transactions were extracted. This could happen if:
-              </p>
-              <ul className="text-left text-sm text-gray-600 max-w-md mx-auto space-y-1">
-                <li>• The file format is not supported by the AI processor</li>
-                <li>• The statement is empty or has no transaction data</li>
-                <li>• The statement format is unclear or contains only images</li>
-              </ul>
-              <div className="mt-4">
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            className="mb-6"
+          >
+            <div className="backdrop-blur-xl bg-white/70 rounded-3xl shadow-2xl border border-white/20 p-8">
+              <div className="text-center">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-r from-yellow-400 to-orange-500 flex items-center justify-center mx-auto mb-4">
+                  <span className="text-3xl">⚠️</span>
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-3">
+                  Statement Uploaded Successfully
+                </h2>
+                <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                  Your statement was uploaded but no transactions were extracted. This could happen if:
+                </p>
+                <div className="bg-gray-50/80 rounded-2xl p-4 mb-6 max-w-lg mx-auto">
+                  <ul className="text-left text-sm text-gray-700 space-y-2">
+                    <li className="flex items-center space-x-2">
+                      <span className="text-orange-500">•</span>
+                      <span>The file format is not supported by the AI processor</span>
+                    </li>
+                    <li className="flex items-center space-x-2">
+                      <span className="text-orange-500">•</span>
+                      <span>The statement is empty or has no transaction data</span>
+                    </li>
+                    <li className="flex items-center space-x-2">
+                      <span className="text-orange-500">•</span>
+                      <span>The statement format is unclear or contains only images</span>
+                    </li>
+                  </ul>
+                </div>
                 <button
                   onClick={() => setShowNoTransactionsMessage(false)}
-                  className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+                  className="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-2xl 
+                           hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 
+                           font-medium shadow-lg hover:shadow-xl transform hover:scale-105"
                 >
                   Dismiss
                 </button>
               </div>
             </div>
-          </Card>
+          </motion.div>
         )}
 
+        {/* Main Content */}
         {filteredTransactions.length === 0 && !showNoTransactionsMessage ? (
-          <Card>
-            <div className="text-center p-8">
-              <div className="text-6xl mb-4">📊</div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                No Transactions to Categorize
-              </h2>
-              <p className="text-gray-600 mb-6">
-                Upload a bank statement to start categorizing transactions.
-              </p>
-              <button
-                onClick={() => router.push('/statements')}
-                className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
-              >
-                Upload Statement
-              </button>
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.3, duration: 0.5 }}
+          >
+            <div className="backdrop-blur-xl bg-white/70 rounded-3xl shadow-2xl border border-white/20 p-12">
+              <div className="text-center">
+                <div className="w-20 h-20 rounded-3xl bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center mx-auto mb-6">
+                  <span className="text-4xl">📊</span>
+                </div>
+                <h2 className="text-3xl font-bold text-gray-900 mb-4">
+                  Ready to Categorize
+                </h2>
+                <p className="text-gray-600 mb-8 text-lg max-w-md mx-auto">
+                  Upload a bank statement to start organizing your financial transactions with AI-powered categorization.
+                </p>
+                <button
+                  onClick={() => router.push('/statements')}
+                  className="px-8 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-2xl 
+                           hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 
+                           font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 text-lg"
+                >
+                  Upload Statement →
+                </button>
+              </div>
             </div>
-          </Card>
+          </motion.div>
         ) : (
           <>
-            <Card className="overflow-visible">
-              <div className="overflow-x-auto">
+            {/* Transactions Table */}
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.4, duration: 0.5 }}
+              className="backdrop-blur-xl bg-white/70 rounded-3xl shadow-2xl border border-white/20 overflow-visible"
+            >
+              <div className="overflow-x-auto overflow-y-visible">
                 <Table
                   data={filteredTransactions}
                   columns={columns}
                 />
               </div>
-            </Card>
+            </motion.div>
 
-            <div className="mt-6 flex justify-between items-center">
-              <p className="text-sm text-neutral-500">
-                {filteredTransactions.length} transactions •{' '}
-                {filteredTransactions.filter(t => t.category).length} categorized
-              </p>
-              
-              {/* Show dashboard navigation when all transactions are categorized */}
-              {filteredTransactions.length > 0 && 
-               filteredTransactions.filter(t => t.category_name && t.category_name !== 'Uncategorized').length === filteredTransactions.length && (
-                <Button
-                  onClick={() => router.push('/dashboard')}
-                  className="bg-green-600 hover:bg-green-700 text-white"
-                >
-                  View Dashboard →
-                </Button>
-              )}
-            </div>
+            {/* Bottom Stats */}
+            <motion.div 
+              className="mt-8 text-center"
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.5, duration: 0.5 }}
+            >
+              <div className="backdrop-blur-xl bg-white/60 rounded-2xl shadow-lg border border-white/20 px-6 py-3 inline-block">
+                <p className="text-gray-700 font-medium">
+                  <span className="text-blue-600 font-bold">{filteredTransactions.length}</span> transactions • 
+                  <span className="text-green-600 font-bold ml-2">
+                    {filteredTransactions.filter(t => t.category_name && t.category_name !== 'Uncategorized').length}
+                  </span> categorized
+                </p>
+              </div>
+            </motion.div>
           </>
         )}
       </motion.div>
+      {renderDropdown()}
     </Layout>
   );
 };

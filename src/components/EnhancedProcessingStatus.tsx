@@ -66,65 +66,73 @@ export const EnhancedProcessingStatus: React.FC<EnhancedProcessingStatusProps> =
   return (
     <AnimatePresence>
       <motion.div 
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -20 }}
-        className="mt-6 space-y-4"
+        exit={{ opacity: 0, y: -30 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="space-y-6"
       >
-        {/* Main Progress Header */}
+        {/* Modern Main Progress Header */}
         {progress && (
-          <motion.div 
-            layout
-            className={`p-6 rounded-xl border-2 ${getStatusColor(progress.status)} shadow-lg`}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center space-x-4">
-                <motion.span 
-                  className="text-3xl"
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-indigo-500/20 rounded-3xl blur-xl"></div>
+            <motion.div 
+              layout
+              className="relative bg-white/90 backdrop-blur-xl rounded-3xl p-8 border border-white/50 shadow-2xl"
+            >
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center space-x-6">
+                <motion.div
+                  className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-2xl"
                   animate={{ 
-                    scale: progress.status === 'processing' ? [1, 1.1, 1] : 1,
-                    rotate: progress.status === 'processing' ? [0, 5, -5, 0] : 0 
+                    scale: progress.status === 'processing' ? [1, 1.05, 1] : 1,
+                    rotate: progress.status === 'processing' ? [0, 2, -2, 0] : 0 
                   }}
                   transition={{ 
                     repeat: progress.status === 'processing' ? Infinity : 0,
-                    duration: 2 
+                    duration: 3,
+                    ease: "easeInOut"
                   }}
                 >
-                  {getStatusIcon(progress.status)}
-                </motion.span>
+                  <span className="text-2xl text-white">
+                    {getStatusIcon(progress.status)}
+                  </span>
+                </motion.div>
                 <div>
-                  <h3 className="font-bold text-xl capitalize">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-1 capitalize">
                     {progress.status.replace('_', ' ')} Statement
                   </h3>
-                  <p className="text-sm opacity-80 font-medium">
+                  <p className="text-lg text-gray-600 font-medium">
                     {progress.currentOperation}
                   </p>
                 </div>
               </div>
               <div className="text-right">
                 <motion.div 
-                  className="text-3xl font-bold"
+                  className="text-4xl font-light text-gray-800 mb-1"
                   animate={{ 
-                    scale: progress.status === 'completed' ? [1, 1.2, 1] : 1 
+                    scale: progress.status === 'completed' ? [1, 1.1, 1] : 1 
                   }}
-                  transition={{ duration: 0.5 }}
+                  transition={{ duration: 0.8 }}
                 >
                   {Math.round(progress.percentComplete)}%
                 </motion.div>
-                <div className="text-sm opacity-80">
+                <div className="text-sm text-gray-500 font-medium">
                   Page {progress.currentPage} of {progress.totalPages}
                 </div>
               </div>
             </div>
 
-            {/* Animated Progress Bar */}
-            <div className="w-full bg-white bg-opacity-40 rounded-full h-4 mb-4 overflow-hidden">
+            {/* Modern Animated Progress Bar */}
+            <div className="w-full bg-gradient-to-r from-gray-200 to-gray-300 rounded-full h-4 mb-6 overflow-hidden shadow-inner">
               <motion.div 
-                className="h-4 rounded-full bg-current shadow-sm"
+                className="h-4 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 shadow-lg relative overflow-hidden"
                 initial={{ width: 0 }}
                 animate={{ width: `${progress.percentComplete}%` }}
-                transition={{ duration: 0.5, ease: "easeOut" }}
-              />
+                transition={{ duration: 0.8, ease: "easeOut" }}
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse"></div>
+              </motion.div>
             </div>
 
             {/* Progress Statistics Grid */}
@@ -152,7 +160,8 @@ export const EnhancedProcessingStatus: React.FC<EnhancedProcessingStatusProps> =
                 <div className="text-xs opacity-80">Total Pages</div>
               </div>
             </div>
-          </motion.div>
+            </motion.div>
+          </div>
         )}
 
         {/* Statement Validation Results */}

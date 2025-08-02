@@ -59,17 +59,25 @@ export const UserFlowGuide: React.FC = () => {
           .select('id')
           .eq('user_id', session.user.id);
 
-        // For now, mock transaction data since we don't have a transactions table
-        // In a real app, this would query the transactions table
-        const mockUserState: UserState = {
+        // Check if user has uploaded statements (since we track statements, not individual transactions in DB)
+        const { data: statements } = await supabase
+          .from('bank_statements')
+          .select('id, transaction_count')
+          .eq('user_id', session.user.id);
+
+        // Calculate transaction data from statements
+        const totalTransactions = statements?.reduce((sum, stmt) => sum + (stmt.transaction_count || 0), 0) || 0;
+        const hasTransactions = totalTransactions > 0;
+
+        const userState: UserState = {
           hasAccounts: (accounts?.length || 0) > 0,
-          hasTransactions: false, // Will be updated when transactions table exists
-          hasUncategorized: false,
-          transactionCount: 0,
+          hasTransactions,
+          hasUncategorized: false, // We don't track uncategorized in DB yet
+          transactionCount: totalTransactions,
           uncategorizedCount: 0
         };
 
-        setUserState(mockUserState);
+        setUserState(userState);
       } catch (error) {
         console.error('Error fetching user state:', error);
       } finally {
