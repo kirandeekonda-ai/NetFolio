@@ -17,3 +17,17 @@ body {
   @apply bg-neutral-light-gray text-neutral-dark-charcoal;
   font-family: 'Inter', sans-serif;
 }
+
+/* Prevent interaction with background elements when dropdown is open */
+body.dropdown-open * {
+  pointer-events: none;
+}
+
+body.dropdown-open [data-dropdown],
+body.dropdown-open [data-dropdown] *,
+body.dropdown-open [role="listbox"],
+body.dropdown-open [role="listbox"] *,
+body.dropdown-open .dropdown-container,
+body.dropdown-open .dropdown-container * {
+  pointer-events: auto !important;
+}
