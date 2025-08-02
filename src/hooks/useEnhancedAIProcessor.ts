@@ -100,6 +100,7 @@ export interface UseEnhancedAIProcessorReturn {
   error: string | null;
   processingLogs: string[];
   clearLogs: () => void;
+  liveSecurityBreakdown: SecurityBreakdown | null; // Add live security breakdown
 }
 
 // Helper function to get month number from month name
@@ -120,6 +121,8 @@ export const useEnhancedAIProcessor = (): UseEnhancedAIProcessorReturn => {
   const [pageResults, setPageResults] = useState<PageProcessingResult[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [processingLogs, setProcessingLogs] = useState<string[]>([]);
+  // Add real-time security breakdown tracking
+  const [liveSecurityBreakdown, setLiveSecurityBreakdown] = useState<SecurityBreakdown | null>(null);
 
   const addLog = useCallback((message: string) => {
     const timestamp = new Date().toLocaleTimeString();
@@ -134,6 +137,43 @@ export const useEnhancedAIProcessor = (): UseEnhancedAIProcessorReturn => {
     setValidationResult(null);
     setPageResults([]);
     setError(null);
+  }, []);
+
+  // Add function to update live security breakdown
+  const updateLiveSecurityBreakdown = useCallback((pageSecurityBreakdown: SecurityBreakdown) => {
+    setLiveSecurityBreakdown(prev => {
+      if (!prev) {
+        // First page - initialize with current breakdown
+        addLog(`🔐 Security scanning started - detected ${Object.values(pageSecurityBreakdown).reduce((sum, count) => sum + count, 0)} items on first page`);
+        return { ...pageSecurityBreakdown };
+      }
+      
+      // Accumulate the counts from each page
+      const newBreakdown = {
+        accountNumbers: prev.accountNumbers + pageSecurityBreakdown.accountNumbers,
+        mobileNumbers: prev.mobileNumbers + pageSecurityBreakdown.mobileNumbers,
+        emails: prev.emails + pageSecurityBreakdown.emails,
+        panIds: prev.panIds + pageSecurityBreakdown.panIds,
+        customerIds: prev.customerIds + pageSecurityBreakdown.customerIds,
+        ifscCodes: prev.ifscCodes + pageSecurityBreakdown.ifscCodes,
+        cardNumbers: prev.cardNumbers + pageSecurityBreakdown.cardNumbers,
+        addresses: prev.addresses + pageSecurityBreakdown.addresses,
+        names: prev.names + pageSecurityBreakdown.names,
+      };
+      
+      const currentPageTotal = Object.values(pageSecurityBreakdown).reduce((sum, count) => sum + count, 0);
+      const totalProtected = Object.values(newBreakdown).reduce((sum, count) => sum + count, 0);
+      
+      if (currentPageTotal > 0) {
+        addLog(`🔐 Protected ${currentPageTotal} more items - Total: ${totalProtected} sensitive items masked`);
+      }
+      
+      return newBreakdown;
+    });
+  }, [addLog]);
+
+  const resetSecurityBreakdown = useCallback(() => {
+    setLiveSecurityBreakdown(null);
   }, []);
 
   const updateProgress = useCallback((
@@ -381,6 +421,7 @@ export const useEnhancedAIProcessor = (): UseEnhancedAIProcessorReturn => {
     setIsProcessing(true);
     setError(null);
     clearLogs();
+    resetSecurityBreakdown(); // Reset live security tracking
 
     try {
       console.log('🚀 ENHANCED PROCESSING - Starting for file:', file.name, 'Bank:', bankName, 'Month:', month, 'Year:', year);
@@ -445,6 +486,19 @@ export const useEnhancedAIProcessor = (): UseEnhancedAIProcessorReturn => {
 
         pageResults.push(pageResult);
         setPageResults(prev => [...prev, pageResult]);
+
+        // Debug: Log what we received for security breakdown
+        console.log(`🔍 PAGE ${i + 1} - Security breakdown check:`, {
+          exists: !!pageResult.securityBreakdown,
+          data: pageResult.securityBreakdown,
+          total: pageResult.securityBreakdown ? Object.values(pageResult.securityBreakdown).reduce((sum, count) => sum + count, 0) : 0
+        });
+
+        // Always update live security breakdown (even if empty) 
+        // This will accumulate the real sanitization data from the API
+        if (pageResult.securityBreakdown) {
+          updateLiveSecurityBreakdown(pageResult.securityBreakdown);
+        }
 
         if (pageResult.success) {
           allTransactions.push(...pageResult.transactions);
@@ -576,6 +630,7 @@ export const useEnhancedAIProcessor = (): UseEnhancedAIProcessorReturn => {
     pageResults,
     error,
     processingLogs,
-    clearLogs
+    clearLogs,
+    liveSecurityBreakdown
   };
 };

@@ -41,10 +41,13 @@ ${sanitizedPageContent}
 `;
 
   // Use the enhanced transaction extraction prompt with balance detection
-  return transactionPromptBuilder.buildTransactionExtractionPrompt(
-    contextualizedContent,
-    userCategories || []
-  );
+  return {
+    prompt: transactionPromptBuilder.buildTransactionExtractionPrompt(
+      contextualizedContent,
+      userCategories || []
+    ),
+    sanitizationResult
+  };
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -75,7 +78,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const llmProvider = createLLMProvider(routingResult.provider);
     
     // Create page processing prompt with enhanced balance detection
-    const enhancedPrompt = createPageProcessingPrompt(
+    const promptResult = createPageProcessingPrompt(
       pageContent,
       pageNumber,
       totalPages,
@@ -85,11 +88,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     console.log(`📄 PAGE ${pageNumber} - Complete prompt being sent to LLM:`);
     console.log('=' .repeat(80));
-    console.log(enhancedPrompt);
+    console.log(promptResult.prompt);
     console.log('=' .repeat(80));
     
-    const llmResult = await llmProvider.extractTransactions(enhancedPrompt, userCategories || []);
+    const llmResult = await llmProvider.extractTransactions(promptResult.prompt, userCategories || []);
     console.log(`📄 PAGE ${pageNumber} - LLM response:`, JSON.stringify(llmResult, null, 2));
+    
+    // Debug: Log security breakdown information
+    console.log(`🔒 PAGE ${pageNumber} - Security breakdown from sanitization:`, JSON.stringify(promptResult.sanitizationResult.summary, null, 2));
+    console.log(`🔒 PAGE ${pageNumber} - LLM security breakdown:`, JSON.stringify(llmResult.securityBreakdown, null, 2));
 
     // Create result from LLM extraction - map transactions to expected format
     const result = {
@@ -121,8 +128,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       processingNotes: `Processed ${llmResult.transactions?.length || 0} transactions` + 
                       (llmResult.balance_data ? ` and extracted balance data (confidence: ${llmResult.balance_data.balance_confidence}%)` : ''),
       hasIncompleteTransactions: false,
-      securityBreakdown: llmResult.securityBreakdown
+      securityBreakdown: promptResult.sanitizationResult.summary
     };
+
+    // Debug: Log what we're returning
+    console.log(`🔒 PAGE ${pageNumber} - Final result security breakdown:`, JSON.stringify(result.securityBreakdown, null, 2));
 
     console.log(`Page ${pageNumber} processing result:`, {
       transactionCount: result.transactions.length,

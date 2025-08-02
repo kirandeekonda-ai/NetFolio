@@ -5,7 +5,6 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { SecurityStatus } from './SecurityStatus';
 import { 
   QueueProgress, 
   StatementValidationResult, 
@@ -104,6 +103,16 @@ export const EnhancedProcessingStatus: React.FC<EnhancedProcessingStatusProps> =
                   </h3>
                   <p className="text-lg text-gray-600 font-medium">
                     {progress.currentOperation}
+                    {/* Real-time Security Counter in Header */}
+                    {securityBreakdown && Object.values(securityBreakdown).reduce((sum, count) => sum + count, 0) > 0 && (
+                      <motion.span 
+                        className="ml-3 px-3 py-1 bg-emerald-500 text-white text-sm font-bold rounded-full"
+                        animate={{ scale: [1, 1.1, 1] }}
+                        transition={{ repeat: Infinity, duration: 2 }}
+                      >
+                        🔐 {Object.values(securityBreakdown).reduce((sum, count) => sum + count, 0)} protected
+                      </motion.span>
+                    )}
                   </p>
                 </div>
               </div>
@@ -244,70 +253,194 @@ export const EnhancedProcessingStatus: React.FC<EnhancedProcessingStatusProps> =
           </motion.div>
         )}
 
-        {/* Security Breakdown */}
+        {/* Enhanced Security Breakdown - More Prominent */}
         {securityBreakdown && (
           <motion.div 
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="p-5 rounded-xl border-2 border-emerald-300 bg-emerald-50 shadow-md"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="relative overflow-hidden"
           >
-            <div className="flex items-center space-x-3 mb-4">
-              <motion.span 
-                className="text-2xl"
-                animate={{ rotate: [0, 10, -10, 0] }}
-                transition={{ repeat: Infinity, duration: 2 }}
-              >
-                🛡️
-              </motion.span>
-              <h4 className="font-bold text-lg text-emerald-800">Security Protection Active</h4>
-            </div>
+            {/* Glowing background effect during processing */}
+            {progress?.status === 'processing' && (
+              <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/30 to-green-500/30 rounded-2xl blur-xl animate-pulse"></div>
+            )}
             
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+            <motion.div 
+              className="relative p-6 rounded-2xl border-2 border-emerald-300 bg-emerald-50/95 backdrop-blur-sm shadow-xl"
+              animate={progress?.status === 'processing' ? {
+                borderColor: ['#10b981', '#059669', '#10b981'],
+                boxShadow: [
+                  '0 10px 25px -3px rgba(16, 185, 129, 0.2)',
+                  '0 15px 35px -3px rgba(16, 185, 129, 0.4)',
+                  '0 10px 25px -3px rgba(16, 185, 129, 0.2)'
+                ]
+              } : {}}
+              transition={{ duration: 2, repeat: progress?.status === 'processing' ? Infinity : 0 }}
+            >
+              {/* Header with prominent total counter */}
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center space-x-4">
+                  <motion.div
+                    className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg"
+                    animate={progress?.status === 'processing' ? { 
+                      scale: [1, 1.1, 1],
+                      rotate: [0, 5, -5, 0] 
+                    } : {}}
+                    transition={{ 
+                      repeat: progress?.status === 'processing' ? Infinity : 0,
+                      duration: 2,
+                      ease: "easeInOut"
+                    }}
+                  >
+                    <span className="text-2xl text-white">🛡️</span>
+                  </motion.div>
+                  
+                  <div>
+                    <h4 className="font-bold text-2xl text-emerald-800 mb-1">
+                      Data Protection Active
+                    </h4>
+                    <p className="text-emerald-600">
+                      {progress?.status === 'processing' 
+                        ? '🔄 Masking sensitive information in real-time...' 
+                        : '✅ Sensitive data successfully protected'
+                      }
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Large prominent counter */}
+                <motion.div 
+                  className="text-center bg-white rounded-2xl p-6 shadow-lg border-2 border-emerald-200 min-w-[120px]"
+                  animate={progress?.status === 'processing' ? { 
+                    scale: [1, 1.05, 1],
+                    borderColor: ['#10b981', '#059669', '#10b981']
+                  } : {}}
+                  transition={{ repeat: progress?.status === 'processing' ? Infinity : 0, duration: 1.5 }}
+                >
+                  <div className="text-4xl font-bold text-emerald-800 mb-1">
+                    {Object.values(securityBreakdown).reduce((sum, count) => sum + count, 0)}
+                  </div>
+                  <div className="text-sm text-emerald-600 uppercase tracking-wider font-semibold">
+                    Items Protected
+                  </div>
+                </motion.div>
+              </div>
+
+              {/* Real-time status banner during processing */}
+              {progress?.status === 'processing' && (
+                <motion.div 
+                  className="mb-6 p-4 bg-gradient-to-r from-emerald-100 to-green-100 rounded-xl border-2 border-emerald-200"
+                  animate={{ 
+                    opacity: [0.8, 1, 0.8],
+                    borderColor: ['#10b981', '#059669', '#10b981']
+                  }}
+                  transition={{ repeat: Infinity, duration: 2 }}
+                >
+                  <div className="flex items-center justify-center space-x-3">
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+                      className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full"
+                    />
+                    <span className="text-emerald-700 font-semibold text-lg">
+                      🔍 Actively scanning and masking sensitive data across all pages...
+                    </span>
+                  </div>
+                </motion.div>
+              )}
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {Object.entries(securityBreakdown)
                 .filter(([_, count]) => count > 0)
-                .map(([key, count]) => {
-                  const labels: Record<string, { icon: string; label: string }> = {
-                    accountNumbers: { icon: '🏦', label: 'Account Numbers' },
-                    mobileNumbers: { icon: '📱', label: 'Mobile Numbers' },
-                    emails: { icon: '📧', label: 'Email Addresses' },
-                    panIds: { icon: '🆔', label: 'PAN IDs' },
-                    customerIds: { icon: '👤', label: 'Customer IDs' },
-                    ifscCodes: { icon: '🏛️', label: 'IFSC Codes' },
-                    cardNumbers: { icon: '💳', label: 'Card Numbers' },
-                    addresses: { icon: '🏠', label: 'Addresses' },
-                    names: { icon: '👥', label: 'Names' }
+                .map(([key, count], index) => {
+                  const labels: Record<string, { icon: string; label: string; color: string }> = {
+                    accountNumbers: { icon: '🏦', label: 'Account Numbers', color: 'bg-blue-100 text-blue-800 border-blue-300' },
+                    mobileNumbers: { icon: '📱', label: 'Mobile Numbers', color: 'bg-purple-100 text-purple-800 border-purple-300' },
+                    emails: { icon: '📧', label: 'Email Addresses', color: 'bg-orange-100 text-orange-800 border-orange-300' },
+                    panIds: { icon: '🆔', label: 'PAN IDs', color: 'bg-red-100 text-red-800 border-red-300' },
+                    customerIds: { icon: '👤', label: 'Customer IDs', color: 'bg-indigo-100 text-indigo-800 border-indigo-300' },
+                    ifscCodes: { icon: '🏛️', label: 'IFSC Codes', color: 'bg-teal-100 text-teal-800 border-teal-300' },
+                    cardNumbers: { icon: '💳', label: 'Card Numbers', color: 'bg-pink-100 text-pink-800 border-pink-300' },
+                    addresses: { icon: '🏠', label: 'Addresses', color: 'bg-yellow-100 text-yellow-800 border-yellow-300' },
+                    names: { icon: '👥', label: 'Names', color: 'bg-green-100 text-green-800 border-green-300' }
                   };
                   
-                  const item = labels[key] || { icon: '🔒', label: key };
+                  const item = labels[key] || { icon: '🔒', label: key, color: 'bg-gray-100 text-gray-800 border-gray-300' };
                   
                   return (
                     <motion.div 
                       key={key}
-                      className="flex items-center justify-between bg-emerald-100 rounded-lg px-3 py-2"
-                      whileHover={{ scale: 1.02 }}
-                      initial={{ opacity: 0, y: 10 }}
+                      className={`flex items-center justify-between rounded-xl px-4 py-4 border-2 ${item.color} shadow-md hover:shadow-lg transition-shadow`}
+                      whileHover={{ scale: 1.02, y: -2 }}
+                      initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.1 }}
+                      transition={{ delay: index * 0.1 }}
                     >
-                      <span className="text-emerald-700 text-sm">
-                        {item.icon} {item.label}
-                      </span>
-                      <motion.span 
-                        className="font-bold text-emerald-800 bg-emerald-200 px-2 py-1 rounded-full text-xs"
-                        animate={{ scale: [1, 1.1, 1] }}
-                        transition={{ duration: 0.5 }}
+                      <div className="flex items-center space-x-3">
+                        <span className="text-2xl">{item.icon}</span>
+                        <span className="font-semibold text-sm">
+                          {item.label}
+                        </span>
+                      </div>
+                      <motion.div 
+                        className="font-bold text-2xl px-4 py-2 bg-white rounded-full shadow-md border-2 border-white"
+                        animate={progress?.status === 'processing' && count > 0 ? { 
+                          scale: [1, 1.1, 1],
+                          rotate: [0, 2, -2, 0]
+                        } : {}}
+                        transition={{ 
+                          repeat: progress?.status === 'processing' ? Infinity : 0,
+                          duration: 2,
+                          delay: index * 0.2
+                        }}
                       >
                         {count}
-                      </motion.span>
+                      </motion.div>
                     </motion.div>
                   );
                 })
               }
             </div>
             
-            <p className="text-xs text-emerald-600 mt-3 p-2 bg-emerald-100 rounded-lg">
-              🔐 Your sensitive information is being protected during AI processing
-            </p>
+            {/* Footer message */}
+            <div className="mt-6 pt-4 border-t-2 border-emerald-200 text-center">
+              <div className="flex items-center justify-center space-x-3 text-emerald-700">
+                <motion.span
+                  animate={progress?.status === 'processing' ? { scale: [1, 1.2, 1] } : {}}
+                  transition={{ repeat: progress?.status === 'processing' ? Infinity : 0, duration: 1.5 }}
+                  className="text-2xl"
+                >
+                  🔐
+                </motion.span>
+                <span className="text-lg font-semibold">
+                  All sensitive information is automatically masked before AI processing
+                </span>
+              </div>
+            </div>
+            
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* Fallback Security Message When No Data Detected Yet */}
+        {!securityBreakdown && progress?.status === 'processing' && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-6 rounded-xl border-2 border-emerald-300 bg-emerald-50"
+          >
+            <div className="flex items-center justify-center space-x-4 text-emerald-700">
+              <motion.span 
+                className="text-3xl"
+                animate={{ rotate: [0, 360] }}
+                transition={{ repeat: Infinity, duration: 3, ease: "linear" }}
+              >
+                🔐
+              </motion.span>
+              <span className="font-semibold text-lg">
+                🔍 Security scanning active - Analyzing pages for sensitive data...
+              </span>
+            </div>
           </motion.div>
         )}
 
@@ -377,17 +510,6 @@ export const EnhancedProcessingStatus: React.FC<EnhancedProcessingStatusProps> =
           </motion.div>
         )}
 
-
-
-        {/* Security Protection Status */}
-        {securityBreakdown && (
-          <SecurityStatus
-            breakdown={securityBreakdown}
-            isVisible={true}
-            isProcessing={progress?.status === 'processing' || progress?.status === 'validating'}
-            showCountdown={progress?.status === 'processing'}
-          />
-        )}
       </motion.div>
     </AnimatePresence>
   );

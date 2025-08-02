@@ -57,6 +57,7 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
     error: enhancedError,
     processingLogs,
     clearLogs: clearEnhancedLogs,
+    liveSecurityBreakdown, // Add live security breakdown
   } = useEnhancedAIProcessor();
 
   // Get selected account info
@@ -324,7 +325,7 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
         validationResult={validationResult || undefined}
         pageResults={pageResults}
         logs={processingLogs}
-        securityBreakdown={securityBreakdown}
+        securityBreakdown={liveSecurityBreakdown || securityBreakdown} // Use live breakdown during processing
       />
 
       {/* Processing Logs */}
