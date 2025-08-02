@@ -60,6 +60,8 @@ const StatementsPageContent: React.FC = () => {
     setSelectedYear(year || new Date().getFullYear());
     setReuploadStatementId(''); // Clear any existing reupload ID
     setShowUploadForm(true);
+    // Scroll to top of the page to show the upload form from the beginning
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleReuploadStatement = (accountId: string, month: number, year: number, existingStatementId: string) => {
@@ -68,6 +70,8 @@ const StatementsPageContent: React.FC = () => {
     setSelectedYear(year);
     setReuploadStatementId(existingStatementId);
     setShowUploadForm(true);
+    // Scroll to top of the page to show the upload form from the beginning
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleRemoveStatement = async (statementId: string) => {
@@ -518,7 +522,6 @@ File: ${statement.file_name || 'N/A'}`);
               ref={statementDashboardRef}
               accounts={accounts}
               onUploadStatement={handleUploadStatement}
-              onViewStatement={handleViewStatement}
               onRemoveStatement={handleRemoveStatement}
               onReuploadStatement={handleReuploadStatement}
               isLoading={isLoading}

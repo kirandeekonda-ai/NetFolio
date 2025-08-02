@@ -130,30 +130,10 @@ export const StatementDashboard = forwardRef<StatementDashboardRef, StatementDas
     refreshStatements: fetchStatements
   }));
 
-  // Enhanced remove statement handler with immediate UI updates
+  // Enhanced remove statement handler - delegate to parent for confirmation
   const handleRemoveStatementWithUpdate = async (statementId: string) => {
-    if (!confirm('Are you sure you want to remove this statement? This action cannot be undone.')) {
-      return;
-    }
-
-    try {
-      setIsDeleting(statementId);
-      
-      // Optimistically remove from UI first
-      setStatements(prev => prev.filter(stmt => stmt.id !== statementId));
-      
-      // Call the parent's remove handler
-      await onRemoveStatement(statementId);
-      
-      // Refresh data to ensure consistency
-      await fetchStatements();
-    } catch (error) {
-      console.error('Error removing statement:', error);
-      // Revert the optimistic update on error
-      await fetchStatements();
-    } finally {
-      setIsDeleting(null);
-    }
+    // Call the parent's remove handler which will show the custom confirmation dialog
+    await onRemoveStatement(statementId);
   };
 
   // Handle categorizing transactions for a specific statement
