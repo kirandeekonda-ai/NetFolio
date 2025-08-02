@@ -11,7 +11,7 @@ import { formatAmount } from '@/utils/currency';
 import { useRealtimeIntegration } from '@/hooks/useRealtimeIntegration';
 import { fetchTransactions, refreshTransactions } from '@/store/enhancedTransactionsSlice';
 import { LoggingService } from '@/services/logging/LoggingService';
-import { balanceService } from '@/services/BalanceService';
+import SimplifiedBalanceService from '@/services/SimplifiedBalanceService';
 
 interface LandingDashboardProps {
   user: any;
@@ -166,7 +166,7 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user }) => {
     setBalanceData(prev => ({ ...prev, isLoading: true }));
     
     try {
-      const result = await balanceService.getNetWorth(user.id);
+      const result = await SimplifiedBalanceService.getNetWorth(user.id);
       setBalanceData({
         totalBalance: result.total_balance,
         isLoading: false,

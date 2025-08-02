@@ -144,17 +144,21 @@ File: ${statement.file_name || 'N/A'}`);
       // Use transactions from uploadData directly (from AI processing)
       const transactionsToUse = uploadData.extractedTransactions || extractedTransactions;
       
-      // Extract closing balance from page results for single source of truth
+      // Finalize balance after all pages are processed using new consolidated approach
       let closingBalance = null;
       if (uploadData.pageResults && uploadData.pageResults.length > 0) {
-        console.log('🔍 Extracting closing balance from page results...');
-        // Get closing balance from the last page that has balance data
-        for (let i = uploadData.pageResults.length - 1; i >= 0; i--) {
-          if (uploadData.pageResults[i].balance_data?.closing_balance !== null) {
-            closingBalance = uploadData.pageResults[i].balance_data?.closing_balance || null;
-            console.log(`💰 Found closing balance: ₹${closingBalance} on page ${uploadData.pageResults[i].pageNumber}`);
-            break;
-          }
+        console.log('🔍 Finalizing balance from all processed pages...');
+        
+        // Prepare balance data from all pages for finalization
+        const pageBalanceData = uploadData.pageResults
+          .filter(page => page.balance_data && page.balance_data.balance_confidence > 0)
+          .map(page => ({
+            page_number: page.pageNumber,
+            balance_data: page.balance_data
+          }));
+
+        if (pageBalanceData.length > 0) {
+          console.log(`� Found balance data on ${pageBalanceData.length} pages, determining final balance...`);
         }
       }
 
@@ -170,7 +174,7 @@ File: ${statement.file_name || 'N/A'}`);
         }
       }
 
-      // Create the new statement record with closing balance
+      // Create the new statement record without closing balance initially
       const statementData = {
         bank_account_id: uploadData.bank_account_id,
         statement_month: uploadData.statement_month,
@@ -179,7 +183,7 @@ File: ${statement.file_name || 'N/A'}`);
         statement_end_date: uploadData.statement_end_date,
         file_name: uploadData.file.name,
         file_size_mb: Math.round((uploadData.file.size / (1024 * 1024)) * 100) / 100,
-        closing_balance: closingBalance, // Single source of truth
+        // closing_balance will be set by finalize-balance API
       };
 
       const response = await fetch('/api/bank-statements', {
@@ -223,6 +227,48 @@ File: ${statement.file_name || 'N/A'}`);
           } catch (saveError) {
             console.error('Error saving transactions:', saveError);
             alert('Warning: Error saving transactions to database. You can still categorize them, but changes won\'t persist.');
+          }
+        }
+        
+        // Finalize balance after all transactions are saved
+        if (uploadData.pageResults && uploadData.pageResults.length > 0) {
+          console.log('🎯 Finalizing statement balance...');
+          
+          const pageBalanceData = uploadData.pageResults
+            .filter(page => page.balance_data && page.balance_data.balance_confidence > 0)
+            .map(page => ({
+              page_number: page.pageNumber,
+              balance_data: page.balance_data
+            }));
+
+          if (pageBalanceData.length > 0) {
+            try {
+              const balanceResponse = await fetch('/api/statements/finalize-balance', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  bank_statement_id: data.statement.id,
+                  page_balance_data: pageBalanceData
+                }),
+              });
+
+              if (balanceResponse.ok) {
+                const balanceResult = await balanceResponse.json();
+                console.log(`✅ Balance finalized: ₹${balanceResult.closing_balance} from page ${balanceResult.source_page}`);
+                closingBalance = balanceResult.closing_balance;
+              } else {
+                const balanceError = await balanceResponse.json();
+                console.error('Failed to finalize balance:', balanceError);
+                // Continue processing even if balance finalization fails
+              }
+            } catch (balanceError) {
+              console.error('Error finalizing balance:', balanceError);
+              // Continue processing even if balance finalization fails
+            }
+          } else {
+            console.log('ℹ️ No balance data found in any processed pages');
           }
         }
         
@@ -356,43 +402,44 @@ File: ${statement.file_name || 'N/A'}`);
           }
         }
         
-        // Save balance data if available
+        // Finalize balance after all transactions are saved using new consolidated approach
         if (pageResults && pageResults.length > 0) {
-          console.log(`Saving balance data from ${pageResults.length} pages...`);
+          console.log('🎯 Finalizing statement balance...');
           
-          try {
-            let savedBalanceCount = 0;
-            for (const pageResult of pageResults) {
-              if (pageResult.balance_data && pageResult.success) {
-                const balanceResponse = await fetch('/api/balance-extractions/save', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({
-                    bank_statement_id: data.statement.id,
-                    page_number: pageResult.pageNumber,
-                    balance_data: pageResult.balance_data
-                  }),
-                });
+          const pageBalanceData = pageResults
+            .filter(page => page.balance_data && page.balance_data.balance_confidence > 0)
+            .map(page => ({
+              page_number: page.pageNumber,
+              balance_data: page.balance_data
+            }));
 
-                if (balanceResponse.ok) {
-                  savedBalanceCount++;
-                  console.log(`✅ Saved balance data for page ${pageResult.pageNumber}`);
-                } else {
-                  const balanceError = await balanceResponse.json();
-                  console.error(`❌ Failed to save balance data for page ${pageResult.pageNumber}:`, balanceError);
-                }
+          if (pageBalanceData.length > 0) {
+            try {
+              const balanceResponse = await fetch('/api/statements/finalize-balance', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  bank_statement_id: data.statement.id,
+                  page_balance_data: pageBalanceData
+                }),
+              });
+
+              if (balanceResponse.ok) {
+                const balanceResult = await balanceResponse.json();
+                console.log(`✅ Balance finalized: ₹${balanceResult.closing_balance} from page ${balanceResult.source_page}`);
+              } else {
+                const balanceError = await balanceResponse.json();
+                console.error('Failed to finalize balance:', balanceError);
+                // Continue processing even if balance finalization fails
               }
+            } catch (balanceError) {
+              console.error('Error finalizing balance:', balanceError);
+              // Continue processing even if balance finalization fails
             }
-            
-            if (savedBalanceCount > 0) {
-              console.log(`✅ Successfully saved balance data from ${savedBalanceCount} pages`);
-            } else {
-              console.log('ℹ️ No balance data found in page results');
-            }
-          } catch (balanceError) {
-            console.error('❌ Error saving balance data:', balanceError);
+          } else {
+            console.log('ℹ️ No balance data found in any processed pages');
           }
         }
         

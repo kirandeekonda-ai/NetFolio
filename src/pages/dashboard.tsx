@@ -15,7 +15,6 @@ import { useRealtimeIntegration } from '@/hooks/useRealtimeIntegration';
 import { LoggingService } from '@/services/logging/LoggingService';
 import { EnhancedAnalytics } from '@/components/EnhancedAnalytics';
 import { DateRange } from '@/components/EnhancedAnalytics/types/analytics.types';
-import { balanceService } from '@/services/BalanceService';
 import SimplifiedBalanceService, { NetWorthSummary } from '@/services/SimplifiedBalanceService';
 import {
   ResponsiveContainer,

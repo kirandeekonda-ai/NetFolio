@@ -131,43 +131,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       hasIssues: result.hasIncompleteTransactions
     });
 
-    // Save balance data to database if extracted and we have required info
+    // Balance data is now collected but not immediately saved per page
+    // It will be processed and saved once after all pages are complete
     if (result.balance_data && result.balance_data.balance_confidence > 0) {
-      try {
-        const { user_id, bank_statement_id } = req.body;
-        
-        if (user_id && bank_statement_id) {
-          console.log(`💾 Saving balance data for page ${pageNumber} with confidence ${result.balance_data.balance_confidence}%`);
-          
-          const saveResponse = await fetch(`${req.headers.origin || 'http://localhost:3000'}/api/balance-extractions/save`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              user_id,
-              bank_statement_id,
-              page_number: pageNumber,
-              balance_data: result.balance_data
-            })
-          });
-
-          if (saveResponse.ok) {
-            const saveResult = await saveResponse.json();
-            console.log(`✅ Balance data saved successfully for page ${pageNumber}:`, saveResult.balance_extraction?.id);
-          } else {
-            const errorText = await saveResponse.text();
-            console.error(`❌ Failed to save balance data for page ${pageNumber}:`, errorText);
-          }
-        } else {
-          console.warn(`⚠️ Missing user_id or bank_statement_id for saving balance data on page ${pageNumber}`);
-        }
-      } catch (saveError) {
-        console.error(`❌ Error saving balance data for page ${pageNumber}:`, saveError);
-        // Don't fail the entire page processing if balance save fails
-      }
+      console.log(`💰 Balance data collected for page ${pageNumber}: ₹${result.balance_data.closing_balance} (${result.balance_data.balance_confidence}% confidence)`);
+      console.log(`ℹ️ Balance will be finalized after all pages are processed`);
     } else {
-      console.log(`ℹ️ No balance data to save for page ${pageNumber} (confidence: ${result.balance_data?.balance_confidence || 0}%)`);
+      console.log(`ℹ️ No balance data found on page ${pageNumber} (confidence: ${result.balance_data?.balance_confidence || 0}%)`);
     }
 
     res.status(200).json(result);

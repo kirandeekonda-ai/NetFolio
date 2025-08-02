@@ -1,8 +1,9 @@
-import { FC, useState } from 'react';
+import { FC, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { BankAccount } from '@/types';
 import { Card } from './Card';
 import { Button } from './Button';
+import SimplifiedBalanceService from '@/services/SimplifiedBalanceService';
 
 interface BankAccountListProps {
   accounts: BankAccount[];
@@ -44,6 +45,43 @@ export const BankAccountList: FC<BankAccountListProps> = ({
   isLoading = false,
 }) => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [accountBalances, setAccountBalances] = useState<Record<string, { balance: number; hasBalance: boolean }>>({});
+  const [balancesLoading, setBalancesLoading] = useState(true);
+
+  // Load account balances from SimplifiedBalanceService
+  useEffect(() => {
+    const loadBalances = async () => {
+      try {
+        setBalancesLoading(true);
+        console.log('🔄 Loading account balances...');
+        
+        const balances = await SimplifiedBalanceService.getAccountBalances();
+        console.log('✅ Loaded balances:', balances);
+        
+        // Convert balance array to lookup object
+        const balanceMap: Record<string, { balance: number; hasBalance: boolean }> = {};
+        balances.forEach(balance => {
+          balanceMap[balance.account_id] = {
+            balance: balance.current_balance || 0,
+            hasBalance: balance.current_balance !== null
+          };
+        });
+        
+        setAccountBalances(balanceMap);
+      } catch (error) {
+        console.error('❌ Error loading balances:', error);
+        setAccountBalances({});
+      } finally {
+        setBalancesLoading(false);
+      }
+    };
+
+    if (accounts.length > 0) {
+      loadBalances();
+    } else {
+      setBalancesLoading(false);
+    }
+  }, [accounts]);
 
   const handleDelete = async (accountId: string) => {
     setDeletingId(accountId);
@@ -54,8 +92,42 @@ export const BankAccountList: FC<BankAccountListProps> = ({
     }
   };
 
-  const activeAccounts = accounts.filter(acc => acc.is_active);
-  const inactiveAccounts = accounts.filter(acc => !acc.is_active);
+  // Enhance accounts with balance data
+  const enhanceAccountsWithBalances = (accountList: BankAccount[]) => {
+    return accountList.map(account => ({
+      ...account,
+      current_balance: accountBalances[account.id]?.balance || 0,
+      statement_balance_available: accountBalances[account.id]?.hasBalance || false
+    }));
+  };
+
+  const activeAccounts = enhanceAccountsWithBalances(accounts.filter(acc => acc.is_active));
+  const inactiveAccounts = enhanceAccountsWithBalances(accounts.filter(acc => !acc.is_active));
+
+  // Show loading state while accounts or balances are loading
+  if (isLoading || balancesLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/20 to-indigo-50/30">
+        <div className="max-w-4xl mx-auto px-6 py-20">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center py-20"
+          >
+            <div className="w-24 h-24 mx-auto mb-8 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full flex items-center justify-center">
+              <span className="text-4xl">⏳</span>
+            </div>
+            <h1 className="text-3xl font-light text-gray-900 mb-4">
+              Loading Account Information...
+            </h1>
+            <p className="text-gray-600 max-w-md mx-auto">
+              {balancesLoading ? 'Fetching latest statement balances...' : 'Loading your accounts...'}
+            </p>
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
 
   if (accounts.length === 0) {
     return (

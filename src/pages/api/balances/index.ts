@@ -1,11 +1,11 @@
 /**
- * API endpoint to get account balances using the BalanceService
- * GET /api/balances - Get current account balances and net worth
+ * API endpoint to get account balances using SimplifiedBalanceService
+ * GET /api/balances - Get current account balances and net worth from statements
  */
 
 import { NextApiRequest, NextApiResponse } from 'next';
 import { createServerSupabaseClient } from '@supabase/auth-helpers-nextjs';
-import { balanceService } from '@/services/BalanceService';
+import SimplifiedBalanceService from '@/services/SimplifiedBalanceService';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'GET') {
@@ -18,9 +18,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
-      // Get net worth and account balances
-      const netWorth = await balanceService.getNetWorth(user.id);
-      const accountBalances = await balanceService.getAccountBalances(user.id);
+      // Get net worth and account balances from latest statements
+      const netWorth = await SimplifiedBalanceService.getNetWorth(user.id);
+      const accountBalances = await SimplifiedBalanceService.getAccountBalances(user.id);
 
       res.status(200).json({
         success: true,
