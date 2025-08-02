@@ -222,14 +222,26 @@ export const useEnhancedAIProcessor = (): UseEnhancedAIProcessorReturn => {
 
       if (!response.ok) {
         console.error('📄 PDF EXTRACTION - API failed with status:', response.status);
+        const errorData = await response.json();
+        if (errorData.error === 'PASSWORD_PROTECTED_PDF') {
+          throw new Error('PASSWORD_PROTECTED_PDF');
+        }
         throw new Error('Failed to extract PDF pages');
       }
 
       const result = await response.json();
+      if (result.error === 'PASSWORD_PROTECTED_PDF') {
+        throw new Error('PASSWORD_PROTECTED_PDF');
+      }
       console.log('📄 PDF EXTRACTION - Success! Pages:', result.pages.length);
       addLog(`📄 Successfully extracted ${result.pages.length} pages`);
       return result.pages;
     } catch (error) {
+      // Check if this is a password-protected PDF error
+      if (error instanceof Error && error.message === 'PASSWORD_PROTECTED_PDF') {
+        throw error; // Re-throw password-protected errors for special handling
+      }
+      
       // Fallback to single page processing if pages API fails
       console.error('📄 PDF EXTRACTION - Error:', error);
       addLog('⚠️ Page extraction failed, using fallback method');
@@ -248,10 +260,17 @@ export const useEnhancedAIProcessor = (): UseEnhancedAIProcessorReturn => {
     });
 
     if (!response.ok) {
+      const errorData = await response.json();
+      if (errorData.error === 'PASSWORD_PROTECTED_PDF') {
+        throw new Error('PASSWORD_PROTECTED_PDF');
+      }
       throw new Error('Failed to extract PDF text');
     }
 
     const result = await response.json();
+    if (result.error === 'PASSWORD_PROTECTED_PDF') {
+      throw new Error('PASSWORD_PROTECTED_PDF');
+    }
     return result.text;
   };
 

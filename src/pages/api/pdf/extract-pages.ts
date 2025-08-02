@@ -64,6 +64,34 @@ const extractTextFromPDFByPages = async (filePath: string, fileName: string, fil
     };
   } catch (error) {
     console.error('Error in PDF page extraction:', error);
+    
+    // Check if this is a password-protected PDF
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    const isPasswordProtected = (
+      errorMessage.includes('PasswordException') ||
+      errorMessage.includes('No password given') ||
+      errorMessage.includes('password required') ||
+      errorMessage.includes('Password required') ||
+      errorMessage.includes('encrypted') ||
+      errorMessage.includes('Encrypted') ||
+      (error as any)?.code === 1
+    );
+    
+    if (isPasswordProtected) {
+      console.log('🔐 Password-protected PDF detected');
+      return {
+        pages: [],
+        pageCount: 0,
+        metadata: {
+          fileSize,
+          fileName,
+          processedAt: new Date().toISOString(),
+          avgPageLength: 0
+        },
+        error: 'PASSWORD_PROTECTED_PDF'
+      };
+    }
+    
     return {
       pages: [],
       pageCount: 0,

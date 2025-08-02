@@ -91,6 +91,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   } catch (error) {
     console.error('Error in PDF text extraction endpoint:', error);
+    
+    // Check if this is a password-protected PDF
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    const isPasswordProtected = (
+      errorMessage.includes('PasswordException') ||
+      errorMessage.includes('No password given') ||
+      errorMessage.includes('password required') ||
+      errorMessage.includes('Password required') ||
+      errorMessage.includes('encrypted') ||
+      errorMessage.includes('Encrypted') ||
+      (error as any)?.code === 1
+    );
+    
+    if (isPasswordProtected) {
+      console.log('🔐 Password-protected PDF detected in fallback extraction');
+      return res.status(422).json({
+        error: 'PASSWORD_PROTECTED_PDF',
+        text: '',
+        pageCount: 0,
+        metadata: {
+          fileSize: 0,
+          fileName: 'unknown',
+          processedAt: new Date().toISOString(),
+          textLength: 0
+        }
+      });
+    }
+    
     res.status(500).json({
       error: error instanceof Error ? error.message : 'Failed to extract PDF text',
       text: '',

@@ -5,6 +5,7 @@ import { FileUpload } from '@/components/FileUpload';
 import { SecurityStatus } from '@/components/SecurityStatus';
 import { ProcessingLogs } from '@/components/ProcessingLogs';
 import { EnhancedProcessingStatus } from '@/components/EnhancedProcessingStatus';
+import { PasswordProtectedPDFDialog } from '@/components/PasswordProtectedPDFDialog';
 import { useEnhancedAIProcessor } from '@/hooks/useEnhancedAIProcessor';
 import { Transaction, BankAccount, Category, PageProcessingResult } from '@/types';
 import { useUser, useSupabaseClient } from '@supabase/auth-helpers-react';
@@ -44,6 +45,8 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
   const [userCategories, setUserCategories] = useState<Category[]>([]);
   const [uploadMinimized, setUploadMinimized] = useState(false);
   const [securityBreakdown, setSecurityBreakdown] = useState<any>(null);
+  const [showPasswordProtectedDialog, setShowPasswordProtectedDialog] = useState(false);
+  const [passwordProtectedFileName, setPasswordProtectedFileName] = useState<string>('');
   
   const user = useUser();
   const supabase = useSupabaseClient();
@@ -126,6 +129,15 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
     } catch (error) {
       // Keep upload area expanded on error for retry
       setUploadMinimized(false);
+      
+      // Check if this is a password-protected PDF error
+      if (error instanceof Error && error.message === 'PASSWORD_PROTECTED_PDF') {
+        console.log('🔐 Password-protected PDF detected, showing info dialog');
+        setPasswordProtectedFileName(file.name);
+        setShowPasswordProtectedDialog(true);
+        return;
+      }
+      
       console.error('❌ Failed to process PDF with Enhanced AI:', error);
     }
   };
@@ -393,6 +405,17 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
           </span>
         </Button>
       </div>
+
+      {/* Password Protected PDF Dialog */}
+      <PasswordProtectedPDFDialog
+        isOpen={showPasswordProtectedDialog}
+        onClose={() => {
+          setShowPasswordProtectedDialog(false);
+          setPasswordProtectedFileName('');
+          setSelectedFile(null); // Reset selected file so user can try another
+        }}
+        fileName={passwordProtectedFileName}
+      />
     </div>
   );
 };
