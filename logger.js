@@ -1,64 +1,40 @@
 const fs = require('fs');
 const path = require('path');
 
-class SimpleLogger {
-  constructor() {
-    this.logDir = path.join(process.cwd(), 'logs');
-    this.logFile = path.join(this.logDir, 'dev.log');
-    
-    // Ensure logs directory exists
-    if (!fs.existsSync(this.logDir)) {
-      fs.mkdirSync(this.logDir, { recursive: true });
-    }
-    
-    // Store original console methods
-    this.originalConsole = {
-      log: console.log,
-      error: console.error,
-      warn: console.warn,
-      info: console.info
-    };
-    
-    this.init();
-  }
-  
-  init() {
-    // Override console methods
-    console.log = (...args) => {
-      this.writeToFile('LOG', args);
-      this.originalConsole.log(...args);
-    };
-    
-    console.error = (...args) => {
-      this.writeToFile('ERROR', args);
-      this.originalConsole.error(...args);
-    };
-    
-    console.warn = (...args) => {
-      this.writeToFile('WARN', args);
-      this.originalConsole.warn(...args);
-    };
-    
-    console.info = (...args) => {
-      this.writeToFile('INFO', args);
-      this.originalConsole.info(...args);
-    };
-    
-    console.log('🔍 Logger initialized - Console output will be written to', this.logFile);
-  }
-  
-  writeToFile(level, args) {
-    const timestamp = new Date().toISOString();
-    const message = args.map(arg => 
-      typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
-    ).join(' ');
-    
-    const logEntry = `[${timestamp}] [${level}] ${message}\n`;
-    
-    // Append to log file
-    fs.appendFileSync(this.logFile, logEntry);
-  }
+// Create logs directory if it doesn't exist
+const logsDir = path.join(__dirname, 'logs');
+if (!fs.existsSync(logsDir)) {
+  fs.mkdirSync(logsDir);
 }
 
-// Initialize logger
-new SimpleLogger();
+const logFile = path.join(logsDir, 'dev.log');
+
+// Override console.log to also write to file
+const originalConsoleLog = console.log;
+const originalConsoleError = console.error;
+
+console.log = function(...args) {
+  const timestamp = new Date().toISOString();
+  const message = args.join(' ');
+  const logEntry = `[${timestamp}] LOG: ${message}\n`;
+  
+  // Write to file
+  fs.appendFileSync(logFile, logEntry);
+  
+  // Also write to console
+  originalConsoleLog.apply(console, args);
+};
+
+console.error = function(...args) {
+  const timestamp = new Date().toISOString();
+  const message = args.join(' ');
+  const logEntry = `[${timestamp}] ERROR: ${message}\n`;
+  
+  // Write to file
+  fs.appendFileSync(logFile, logEntry);
+  
+  // Also write to console
+  originalConsoleError.apply(console, args);
+};
+
+console.log('Logger initialized');
