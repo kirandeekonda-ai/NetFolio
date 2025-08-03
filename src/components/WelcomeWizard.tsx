@@ -27,6 +27,7 @@ const steps: WizardStep[] = [
 ];
 
 const currencies = [
+  { code: 'INR', name: 'Indian Rupee', symbol: '₹', flag: '🇮🇳' },
   { code: 'USD', name: 'US Dollar', symbol: '$', flag: '🇺🇸' },
   { code: 'EUR', name: 'Euro', symbol: '€', flag: '🇪🇺' },
   { code: 'GBP', name: 'British Pound', symbol: '£', flag: '🇬🇧' },
@@ -35,7 +36,6 @@ const currencies = [
   { code: 'AUD', name: 'Australian Dollar', symbol: 'A$', flag: '🇦🇺' },
   { code: 'CHF', name: 'Swiss Franc', symbol: 'CHF', flag: '🇨🇭' },
   { code: 'SGD', name: 'Singapore Dollar', symbol: 'S$', flag: '🇸🇬' },
-  { code: 'INR', name: 'Indian Rupee', symbol: '₹', flag: '🇮🇳' },
 ];
 
 const financialGoals = [
@@ -226,20 +226,20 @@ export const WelcomeWizard: FC<WelcomeWizardProps> = ({ user, onComplete }) => {
               <h3 className="text-lg font-semibold text-blue-900 mb-2">What you'll get:</h3>
               <ul className="space-y-2 text-blue-800">
                 <li className="flex items-center space-x-2">
-                  <span>📊</span>
-                  <span>Smart transaction categorization</span>
-                </li>
-                <li className="flex items-center space-x-2">
-                  <span>💰</span>
-                  <span>Real-time balance tracking</span>
-                </li>
-                <li className="flex items-center space-x-2">
-                  <span>🤖</span>
-                  <span>AI-powered insights</span>
+                  <span>📄</span>
+                  <span>Easy PDF statement upload & processing</span>
                 </li>
                 <li className="flex items-center space-x-2">
                   <span>🔒</span>
-                  <span>Bank-level security</span>
+                  <span>Smart data masking & privacy protection</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <span>🤖</span>
+                  <span>AI-powered transaction categorization</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <span>📊</span>
+                  <span>Interactive spending analytics & insights</span>
                 </li>
               </ul>
             </div>
@@ -247,7 +247,7 @@ export const WelcomeWizard: FC<WelcomeWizardProps> = ({ user, onComplete }) => {
             {/* Progress Estimate */}
             <div className="bg-gray-50 p-4 rounded-lg">
               <p className="text-sm text-gray-600">
-                ⏱️ Setup takes about 2-3 minutes
+                ⏱️ Setup takes about 2 minutes
               </p>
             </div>
             
@@ -331,31 +331,70 @@ export const WelcomeWizard: FC<WelcomeWizardProps> = ({ user, onComplete }) => {
               <p className="text-gray-600 mt-2">This will be used for all your financial calculations</p>
               <div className="bg-blue-50 p-3 rounded-lg mt-4">
                 <p className="text-sm text-blue-800">
-                  💡 You can change this later in settings
+                  💡 You can update your currency preference anytime in your profile page
                 </p>
               </div>
             </div>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-96 overflow-y-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {currencies.map((currency) => (
-                <button
+                <motion.button
                   key={currency.code}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={() => setFormData(prev => ({ ...prev, currency: currency.code }))}
-                  className={`p-4 rounded-lg border-2 transition-all duration-200 ${
+                  className={`group relative p-5 rounded-xl border transition-all duration-300 ${
                     formData.currency === currency.code
-                      ? 'border-primary bg-blue-50 shadow-md'
-                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                      ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-lg shadow-blue-200/50 ring-2 ring-blue-500/20'
+                      : 'border-gray-200 bg-white hover:border-blue-300 hover:shadow-md hover:bg-gradient-to-br hover:from-gray-50 hover:to-blue-50/30'
                   }`}
                 >
-                  <div className="flex items-center space-x-3">
-                    <span className="text-2xl">{currency.flag}</span>
-                    <div className="text-left">
-                      <div className="font-semibold text-gray-900">{currency.code}</div>
-                      <div className="text-sm text-gray-600">{currency.name}</div>
-                      <div className="text-xs text-gray-500">{currency.symbol}</div>
+                  {/* Selected indicator */}
+                  {formData.currency === currency.code && (
+                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center shadow-lg">
+                      <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center space-x-4">
+                    <div className={`relative flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center transition-all duration-300 ${
+                      formData.currency === currency.code
+                        ? 'bg-gradient-to-br from-blue-100 to-indigo-100 shadow-inner'
+                        : 'bg-gray-50 group-hover:bg-blue-50'
+                    }`}>
+                      <span className="text-2xl filter drop-shadow-sm">{currency.flag}</span>
+                    </div>
+                    
+                    <div className="flex-1 text-left">
+                      <div className={`font-bold text-lg transition-colors duration-300 ${
+                        formData.currency === currency.code
+                          ? 'text-blue-900'
+                          : 'text-gray-900 group-hover:text-blue-800'
+                      }`}>
+                        {currency.code}
+                      </div>
+                      <div className={`text-sm transition-colors duration-300 ${
+                        formData.currency === currency.code
+                          ? 'text-blue-700'
+                          : 'text-gray-600 group-hover:text-blue-600'
+                      }`}>
+                        {currency.name}
+                      </div>
+                      <div className={`text-xs font-medium mt-1 px-2 py-1 rounded-full inline-block transition-all duration-300 ${
+                        formData.currency === currency.code
+                          ? 'bg-blue-100 text-blue-800'
+                          : 'bg-gray-100 text-gray-600 group-hover:bg-blue-100 group-hover:text-blue-700'
+                      }`}>
+                        {currency.symbol}
+                      </div>
                     </div>
                   </div>
-                </button>
+                  
+                  {/* Subtle gradient overlay on hover */}
+                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/0 to-indigo-500/0 group-hover:from-blue-500/5 group-hover:to-indigo-500/5 transition-all duration-300 pointer-events-none" />
+                </motion.button>
               ))}
             </div>
 
@@ -378,7 +417,7 @@ export const WelcomeWizard: FC<WelcomeWizardProps> = ({ user, onComplete }) => {
             className="space-y-6"
           >
             <div className="text-center">
-              <div className="text-4xl mb-4">�️</div>
+              <div className="text-4xl mb-4">🏷️</div>
               <h2 className="text-2xl font-bold text-gray-900">Choose your expense categories</h2>
               <p className="text-gray-600 mt-2">We've pre-selected common categories. Add or remove as needed.</p>
             </div>
@@ -440,7 +479,7 @@ export const WelcomeWizard: FC<WelcomeWizardProps> = ({ user, onComplete }) => {
             className="space-y-6"
           >
             <div className="text-center">
-              <div className="text-4xl mb-4">�🏦</div>
+              <div className="text-4xl mb-4">🏦</div>
               <h2 className="text-2xl font-bold text-gray-900">Set up your first bank account</h2>
               <p className="text-gray-600 mt-2">This helps us get you started with accurate balance tracking</p>
             </div>
@@ -467,9 +506,8 @@ export const WelcomeWizard: FC<WelcomeWizardProps> = ({ user, onComplete }) => {
                   onChange={(e) => handleBankAccountChange('account_type', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
-                  <option value="checking">Checking Account</option>
                   <option value="savings">Savings Account</option>
-                  <option value="credit">Credit Card</option>
+                  {/* <option value="credit">Credit Card</option> */}
                   <option value="investment">Investment Account</option>
                 </select>
               </div>

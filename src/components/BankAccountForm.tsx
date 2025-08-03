@@ -16,10 +16,9 @@ interface BankAccountFormProps {
 }
 
 const accountTypes = [
-  { value: 'checking', label: 'Checking Account', icon: '💳' },
-  { value: 'savings', label: 'Savings Account', icon: '💰' },
-  { value: 'credit', label: 'Credit Card', icon: '💳' },
-  { value: 'investment', label: 'Investment Account', icon: '📈' },
+  { value: 'savings', label: 'Savings Account', icon: '💰', available: true },
+  { value: 'investment', label: 'Investment Account', icon: '📈', available: true },
+  { value: 'credit', label: 'Credit Card', icon: '💳', available: false },
 ];
 
 const currencies = [
@@ -47,7 +46,7 @@ export const BankAccountForm: FC<BankAccountFormProps> = ({
   
   const [formData, setFormData] = useState<BankAccountCreate>({
     bank_name: initialData?.bank_name || '',
-    account_type: initialData?.account_type || 'checking',
+    account_type: initialData?.account_type || 'savings',
     account_number_last4: initialData?.account_number_last4 || '',
     account_nickname: initialData?.account_nickname || '',
     currency: initialData?.currency || userPreferredCurrency,
@@ -106,10 +105,6 @@ export const BankAccountForm: FC<BankAccountFormProps> = ({
       newErrors.account_type = 'Account type is required';
     }
 
-    if (formData.account_number_last4 && formData.account_number_last4.length !== 4) {
-      newErrors.account_number_last4 = 'Must be exactly 4 digits';
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -125,21 +120,22 @@ export const BankAccountForm: FC<BankAccountFormProps> = ({
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
+      className="max-w-2xl mx-auto"
     >
-      <Card className="max-w-2xl mx-auto">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              {isEdit ? 'Edit Bank Account' : 'Add New Bank Account'}
-            </h2>
-            <p className="text-gray-600">
-              {isEdit ? 'Update your bank account information' : 'Enter your bank account details to get started'}
-            </p>
-          </div>
+      <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-6">
+          <h2 className="text-2xl font-bold text-white mb-2">
+            {isEdit ? 'Edit Bank Account' : 'Add New Bank Account'}
+          </h2>
+          <p className="text-blue-100">
+            {isEdit ? 'Update your bank account information' : 'Enter your bank account details to get started'}
+          </p>
+        </div>
 
+        <form onSubmit={handleSubmit} className="p-8 space-y-8">
           {/* Bank Name */}
-          <div>
-            <label htmlFor="bank_name" className="block text-sm font-medium text-gray-700 mb-2">
+          <div className="space-y-2">
+            <label htmlFor="bank_name" className="block text-sm font-semibold text-gray-800">
               Bank Name *
             </label>
             <Input
@@ -150,118 +146,108 @@ export const BankAccountForm: FC<BankAccountFormProps> = ({
               placeholder="e.g., Chase, Bank of America, Wells Fargo"
               error={errors.bank_name}
               disabled={isLoading}
+              className="text-lg py-3"
             />
           </div>
 
           {/* Account Type */}
-          <div>
-            <label htmlFor="account_type" className="block text-sm font-medium text-gray-700 mb-2">
+          <div className="space-y-4">
+            <label className="block text-sm font-semibold text-gray-800">
               Account Type *
             </label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {accountTypes.map((type) => (
-                <button
+                <motion.button
                   key={type.value}
                   type="button"
-                  onClick={() => handleInputChange('account_type', type.value as any)}
-                  className={`p-4 rounded-lg border-2 transition-all duration-200 ${
+                  whileHover={{ scale: type.available ? 1.02 : 1 }}
+                  whileTap={{ scale: type.available ? 0.98 : 1 }}
+                  onClick={() => type.available && handleInputChange('account_type', type.value as any)}
+                  disabled={!type.available || isLoading}
+                  className={`relative p-6 rounded-xl border-2 transition-all duration-300 ${
                     formData.account_type === type.value
-                      ? 'border-blue-500 bg-blue-50 text-blue-900'
-                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                      ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-lg shadow-blue-200/50'
+                      : type.available
+                      ? 'border-gray-200 hover:border-blue-300 hover:shadow-md bg-white'
+                      : 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-60'
                   }`}
-                  disabled={isLoading}
                 >
-                  <div className="flex items-center space-x-3">
-                    <span className="text-xl">{type.icon}</span>
-                    <span className="font-medium">{type.label}</span>
+                  {!type.available && (
+                    <div className="absolute -top-2 -right-2 bg-gradient-to-r from-purple-500 to-blue-500 text-white text-xs px-2 py-1 rounded-full font-medium">
+                      Coming Soon
+                    </div>
+                  )}
+                  
+                  <div className="flex flex-col items-center space-y-2">
+                    <span className="text-2xl filter drop-shadow-sm">{type.icon}</span>
+                    <span className={`font-semibold text-center ${
+                      formData.account_type === type.value
+                        ? 'text-blue-900'
+                        : type.available
+                        ? 'text-gray-900'
+                        : 'text-gray-500'
+                    }`}>
+                      {type.label}
+                    </span>
                   </div>
-                </button>
+                </motion.button>
               ))}
             </div>
             {errors.account_type && (
-              <p className="mt-1 text-sm text-red-600">{errors.account_type}</p>
+              <p className="text-sm text-red-600 flex items-center space-x-1">
+                <span>⚠️</span>
+                <span>{errors.account_type}</span>
+              </p>
             )}
           </div>
 
           {/* Account Nickname */}
-          <div>
-            <label htmlFor="account_nickname" className="block text-sm font-medium text-gray-700 mb-2">
-              Account Nickname (Optional)
+          <div className="space-y-2">
+            <label htmlFor="account_nickname" className="block text-sm font-semibold text-gray-800">
+              Account Nickname <span className="text-gray-500 font-normal">(Optional)</span>
             </label>
             <Input
               id="account_nickname"
               type="text"
               value={formData.account_nickname}
               onChange={(e) => handleInputChange('account_nickname', e.target.value)}
-              placeholder="e.g., Main Checking, Emergency Savings"
+              placeholder="e.g., Emergency Savings, Portfolio Account"
               disabled={isLoading}
+              className="text-lg py-3"
             />
-          </div>
-
-          {/* Last 4 Digits */}
-          <div>
-            <label htmlFor="account_number_last4" className="block text-sm font-medium text-gray-700 mb-2">
-              Last 4 Digits (Optional)
-            </label>
-            <Input
-              id="account_number_last4"
-              type="text"
-              value={formData.account_number_last4}
-              onChange={(e) => handleInputChange('account_number_last4', e.target.value)}
-              placeholder="1234"
-              maxLength={4}
-              error={errors.account_number_last4}
-              disabled={isLoading}
-            />
-            <p className="mt-1 text-sm text-gray-500">
-              Only the last 4 digits for security and identification
+            <p className="text-sm text-gray-500">
+              💡 Give your account a memorable name for easy identification
             </p>
           </div>
 
-          {/* Currency */}
-          <div>
-            <label htmlFor="currency" className="block text-sm font-medium text-gray-700 mb-2">
-              Currency
-            </label>
-            <select
-              id="currency"
-              value={formData.currency}
-              onChange={(e) => handleInputChange('currency', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              disabled={isLoading}
-            >
-              {currencies.map((currency) => (
-                <option key={currency.code} value={currency.code}>
-                  {currency.symbol} {currency.name} ({currency.code})
-                </option>
-              ))}
-            </select>
-            {!isEdit && (
-              <p className="mt-1 text-sm text-gray-500">
-                💡 Default set from your profile preferences. You can change this in Settings.
-              </p>
-            )}
-          </div>
-
           {/* Form Actions */}
-          <div className="flex justify-end space-x-3 pt-4">
+          <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-4 pt-6 border-t border-gray-100">
             <Button
               type="button"
               variant="secondary"
               onClick={onCancel}
               disabled={isLoading}
+              className="px-8 py-3"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={isLoading}
+              className="px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
             >
-              {isLoading ? 'Saving...' : isEdit ? 'Update Account' : 'Add Account'}
+              {isLoading ? (
+                <div className="flex items-center space-x-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                  <span>Saving...</span>
+                </div>
+              ) : (
+                isEdit ? 'Update Account' : 'Add Account'
+              )}
             </Button>
           </div>
         </form>
-      </Card>
+      </div>
     </motion.div>
   );
 };
