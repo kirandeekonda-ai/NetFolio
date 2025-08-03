@@ -6,9 +6,11 @@ import { Card } from './Card';
 import { Button } from './Button';
 import { ServiceLayerDemo } from './ServiceLayerDemo';
 import { ConnectionStatus } from './ConnectionStatus';
+import { BalanceProtectionDialog } from './BalanceProtectionDialog';
 import { RootState, AppDispatch } from '@/store';
 import { formatAmount } from '@/utils/currency';
 import { useRealtimeIntegration } from '@/hooks/useRealtimeIntegration';
+import { useBalanceProtection } from '@/hooks/useBalanceProtection';
 import { fetchTransactions, refreshTransactions } from '@/store/enhancedTransactionsSlice';
 import { LoggingService } from '@/services/logging/LoggingService';
 import SimplifiedBalanceService from '@/services/SimplifiedBalanceService';
@@ -117,8 +119,19 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user }) => {
   // Initialize real-time integration
   const realtimeIntegration = useRealtimeIntegration();
   
+  // Balance protection hook
+  const {
+    isProtected,
+    isUnlocked,
+    protectionType,
+    isLoading: protectionLoading,
+    unlock: unlockBalance,
+    lock: lockBalance,
+  } = useBalanceProtection();
+  
   // Local state for refresh functionality and balance data
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showProtectionDialog, setShowProtectionDialog] = useState(false);
   const [balanceData, setBalanceData] = useState<{
     totalBalance: number;
     isLoading: boolean;
@@ -383,25 +396,47 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user }) => {
                   <div className="relative z-10">
                     <div className="flex items-center justify-between mb-6">
                       <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
-                        <span className="text-3xl">�</span>
+                        <span className="text-3xl">💰</span>
                       </div>
-                      <button
-                        onClick={handleBalanceRefresh}
-                        disabled={balanceData.isLoading}
-                        className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center hover:bg-white/30 transition-colors backdrop-blur-sm"
-                      >
-                        <span className={`text-lg ${balanceData.isLoading ? 'animate-spin' : ''}`}>↻</span>
-                      </button>
+                      <div className="flex items-center space-x-2">
+                        {isProtected && (
+                          <button
+                            onClick={() => isUnlocked ? lockBalance() : setShowProtectionDialog(true)}
+                            className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center hover:bg-white/30 transition-colors backdrop-blur-sm"
+                            title={isUnlocked ? 'Lock balance' : 'Unlock balance'}
+                          >
+                            <span className="text-lg">{isUnlocked ? '🔓' : '🔒'}</span>
+                          </button>
+                        )}
+                        <button
+                          onClick={handleBalanceRefresh}
+                          disabled={balanceData.isLoading}
+                          className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center hover:bg-white/30 transition-colors backdrop-blur-sm"
+                        >
+                          <span className={`text-lg ${balanceData.isLoading ? 'animate-spin' : ''}`}>↻</span>
+                        </button>
+                      </div>
                     </div>
-                    <p className="text-emerald-100 text-sm font-medium mb-2 uppercase tracking-wider">Total Balance</p>
-                    <p className="text-4xl font-light mb-2">
+                    <p className="text-emerald-100 text-sm font-medium mb-2 uppercase tracking-wider">
+                      Total Balance {isProtected && !isUnlocked && '🔒'}
+                    </p>
+                    <div className="text-4xl font-light mb-2">
                       {balanceData.isLoading ? (
                         <span className="animate-pulse">Updating...</span>
+                      ) : isProtected && !isUnlocked ? (
+                        <button
+                          onClick={() => setShowProtectionDialog(true)}
+                          className="text-emerald-100 hover:text-white transition-colors cursor-pointer border-none bg-transparent p-0"
+                        >
+                          <span className="text-3xl">••••••••</span>
+                        </button>
                       ) : (
                         formatAmount(balanceData.totalBalance)
                       )}
+                    </div>
+                    <p className="text-emerald-200 text-sm opacity-75">
+                      {isProtected && !isUnlocked ? 'Click to unlock balance' : 'Your financial foundation'}
                     </p>
-                    <p className="text-emerald-200 text-sm opacity-75">Your financial foundation</p>
                   </div>
                 </div>
               </motion.div>
@@ -634,6 +669,19 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user }) => {
           )}
         </motion.div>
       </div>
+
+      {/* Balance Protection Dialog */}
+      <BalanceProtectionDialog
+        isOpen={showProtectionDialog}
+        onSuccess={() => {
+          unlockBalance();
+          setShowProtectionDialog(false);
+        }}
+        onCancel={() => setShowProtectionDialog(false)}
+        protectionType={protectionType || 'pin'}
+        title="Unlock Your Balance"
+        description="Enter your security code to view your total balance"
+      />
     </div>
   );
 };

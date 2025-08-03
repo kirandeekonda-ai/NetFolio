@@ -22,8 +22,9 @@ const steps: WizardStep[] = [
   { id: 2, title: 'Goals', description: 'Set your financial goals', icon: '🎯' },
   { id: 3, title: 'Currency', description: 'Choose your base currency', icon: '💰' },
   { id: 4, title: 'Categories', description: 'Setup expense categories', icon: '🏷️' },
-  { id: 5, title: 'Account', description: 'Setup your first bank account', icon: '🏦' },
-  { id: 6, title: 'Getting Started', description: 'Choose how to begin', icon: '🚀' },
+  { id: 5, title: 'Privacy', description: 'Secure your balance display', icon: '🔒' },
+  { id: 6, title: 'Account', description: 'Setup your first bank account', icon: '🏦' },
+  { id: 7, title: 'Getting Started', description: 'Choose how to begin', icon: '🚀' },
 ];
 
 const currencies = [
@@ -93,6 +94,11 @@ export const WelcomeWizard: FC<WelcomeWizardProps> = ({ user, onComplete }) => {
     goals: [] as string[],
     currency: 'USD',
     categories: ['food', 'shopping', 'transportation', 'utilities'] as string[], // Pre-select essential categories
+    balanceProtection: {
+      enabled: false,
+      type: 'pin' as 'pin' | 'password',
+      value: '',
+    },
     startingMethod: '',
     bankAccount: {
       bank_name: '',
@@ -143,6 +149,16 @@ export const WelcomeWizard: FC<WelcomeWizardProps> = ({ user, onComplete }) => {
     }));
   };
 
+  const handleBalanceProtectionChange = (field: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      balanceProtection: {
+        ...prev.balanceProtection,
+        [field]: value,
+      },
+    }));
+  };
+
   const handleComplete = async (method: string) => {
     setIsLoading(true);
     
@@ -169,6 +185,26 @@ export const WelcomeWizard: FC<WelcomeWizardProps> = ({ user, onComplete }) => {
       if (prefsError) {
         console.error('Error saving preferences:', prefsError);
         return;
+      }
+
+      // Setup balance protection if enabled
+      if (formData.balanceProtection.enabled && formData.balanceProtection.value.trim()) {
+        const protectionResponse = await fetch('/api/setup-balance-protection', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            enabled: true,
+            type: formData.balanceProtection.type,
+            value: formData.balanceProtection.value,
+          }),
+        });
+
+        if (!protectionResponse.ok) {
+          console.error('Error setting up balance protection:', await protectionResponse.json());
+          // Don't fail the onboarding process for this
+        }
       }
 
       // Create bank account if user provided info
@@ -479,6 +515,163 @@ export const WelcomeWizard: FC<WelcomeWizardProps> = ({ user, onComplete }) => {
             className="space-y-6"
           >
             <div className="text-center">
+              <div className="text-4xl mb-4">🔒</div>
+              <h2 className="text-2xl font-bold text-gray-900">Secure Your Balance Display</h2>
+              <p className="text-gray-600 mt-2">Add an extra layer of privacy to your financial data</p>
+            </div>
+
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-200/50">
+              <div className="flex items-start space-x-4">
+                <div className="flex-shrink-0">
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center shadow-lg">
+                    <span className="text-xl text-white">🛡️</span>
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-blue-900 mb-2">Why protect your balance?</h3>
+                  <ul className="space-y-2 text-blue-800 text-sm">
+                    <li className="flex items-center space-x-2">
+                      <span className="text-blue-500">•</span>
+                      <span>Hide your total balance when others might see your screen</span>
+                    </li>
+                    <li className="flex items-center space-x-2">
+                      <span className="text-blue-500">•</span>
+                      <span>Protect financial privacy in public spaces</span>
+                    </li>
+                    <li className="flex items-center space-x-2">
+                      <span className="text-blue-500">•</span>
+                      <span>Optional - you can enable or disable anytime</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {/* Enable/Disable Toggle */}
+              <div className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg">
+                <div>
+                  <h3 className="font-medium text-gray-900">Enable Balance Protection</h3>
+                  <p className="text-sm text-gray-600">Require PIN/password to view your total balance</p>
+                </div>
+                <button
+                  onClick={() => handleBalanceProtectionChange('enabled', !formData.balanceProtection.enabled)}
+                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                    formData.balanceProtection.enabled ? 'bg-blue-600' : 'bg-gray-200'
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                      formData.balanceProtection.enabled ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* Protection Type and Value */}
+              {formData.balanceProtection.enabled && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="space-y-4"
+                >
+                  {/* Protection Type */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      Protection Type
+                    </label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleBalanceProtectionChange('type', 'pin');
+                          handleBalanceProtectionChange('value', '');
+                        }}
+                        className={`p-4 border-2 rounded-lg text-left transition-all ${
+                          formData.balanceProtection.type === 'pin'
+                            ? 'border-blue-500 bg-blue-50 text-blue-900'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="text-2xl mb-2">📱</div>
+                        <div className="font-medium">PIN</div>
+                        <div className="text-sm text-gray-600">4-6 digit code</div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleBalanceProtectionChange('type', 'password');
+                          handleBalanceProtectionChange('value', '');
+                        }}
+                        className={`p-4 border-2 rounded-lg text-left transition-all ${
+                          formData.balanceProtection.type === 'password'
+                            ? 'border-blue-500 bg-blue-50 text-blue-900'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="text-2xl mb-2">🔑</div>
+                        <div className="font-medium">Password</div>
+                        <div className="text-sm text-gray-600">Alphanumeric</div>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* PIN/Password Input */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {formData.balanceProtection.type === 'pin' ? 'Enter PIN' : 'Enter Password'}
+                    </label>
+                    <Input
+                      type={formData.balanceProtection.type === 'pin' ? 'tel' : 'password'}
+                      value={formData.balanceProtection.value}
+                      onChange={(e) => handleBalanceProtectionChange('value', e.target.value)}
+                      placeholder={formData.balanceProtection.type === 'pin' ? 'Enter 4-6 digit PIN' : 'Enter a secure password'}
+                      maxLength={formData.balanceProtection.type === 'pin' ? 6 : undefined}
+                      className={formData.balanceProtection.type === 'pin' ? 'text-center tracking-widest' : ''}
+                    />
+                    {formData.balanceProtection.type === 'pin' && formData.balanceProtection.value && !/^\d{4,6}$/.test(formData.balanceProtection.value) && (
+                      <p className="text-red-600 text-sm mt-1">PIN must be 4-6 digits</p>
+                    )}
+                    {formData.balanceProtection.type === 'password' && formData.balanceProtection.value && formData.balanceProtection.value.length < 4 && (
+                      <p className="text-red-600 text-sm mt-1">Password must be at least 4 characters</p>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </div>
+
+            <div className="bg-gray-50 rounded-lg p-4 text-center">
+              <p className="text-sm text-gray-600">
+                💡 <strong>Remember:</strong> You can change these settings anytime in your profile.
+                {!formData.balanceProtection.enabled && " This feature is completely optional."}
+              </p>
+            </div>
+
+            <div className="flex justify-between pt-4">
+              <Button variant="secondary" onClick={handleBack}>
+                Back
+              </Button>
+              <Button 
+                onClick={handleNext}
+                disabled={formData.balanceProtection.enabled && (!formData.balanceProtection.value.trim() || 
+                  (formData.balanceProtection.type === 'pin' && !/^\d{4,6}$/.test(formData.balanceProtection.value)) ||
+                  (formData.balanceProtection.type === 'password' && formData.balanceProtection.value.length < 4))}
+              >
+                Continue
+              </Button>
+            </div>
+          </motion.div>
+        );
+
+      case 6:
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-6"
+          >
+            <div className="text-center">
               <div className="text-4xl mb-4">🏦</div>
               <h2 className="text-2xl font-bold text-gray-900">Set up your first bank account</h2>
               <p className="text-gray-600 mt-2">This helps us get you started with accurate balance tracking</p>
@@ -542,7 +735,7 @@ export const WelcomeWizard: FC<WelcomeWizardProps> = ({ user, onComplete }) => {
           </motion.div>
         );
 
-      case 6:
+      case 7:
         return (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
