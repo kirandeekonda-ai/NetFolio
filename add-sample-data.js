@@ -24,7 +24,7 @@ async function addSampleData() {
     }
     
     if (!users.users.length) {
-      console.log('No users found. Please sign up first at http://localhost:3001/auth');
+      console.log('No users found. Please sign up first at http://localhost:3001/auth/landing');
       return;
     }
     

@@ -56,32 +56,14 @@ const LandingPage: NextPage = () => {
       description: 'Your financial data is protected with enterprise-grade encryption and security measures.'
     },
     {
-      icon: '⚡',
-      title: 'Real-Time Sync',
-      description: 'Stay up-to-date with real-time synchronization across all your devices and accounts.'
+      icon: '🛡️',
+      title: 'Smart Data Masking',
+      description: 'Your sensitive information is automatically masked and anonymized before AI processing, ensuring maximum privacy protection.'
     },
     {
       icon: '📱',
       title: 'Multi-Device Access',
       description: 'Access your financial dashboard from anywhere with our responsive web application.'
-    }
-  ];
-
-  const testimonials = [
-    {
-      quote: "NetFolio transformed how I manage my finances. The AI categorization saves me hours every month!",
-      author: "Sarah Johnson",
-      role: "Small Business Owner"
-    },
-    {
-      quote: "The insights I get from NetFolio help me make better financial decisions. Highly recommended!",
-      author: "Michael Chen",
-      role: "Software Engineer"
-    },
-    {
-      quote: "Finally, a finance app that actually understands my spending patterns. The analytics are amazing!",
-      author: "Emma Rodriguez",
-      role: "Marketing Manager"
     }
   ];
 
@@ -179,7 +161,7 @@ const LandingPage: NextPage = () => {
                 <div className="text-sm text-gray-600">Accuracy</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">5 min</div>
+                <div className="text-2xl font-bold text-blue-600">2 min</div>
                 <div className="text-sm text-gray-600">Setup Time</div>
               </div>
               <div className="text-center">
@@ -222,63 +204,100 @@ const LandingPage: NextPage = () => {
           </div>
         </section>
 
-        {/* Testimonials Section */}
-        <section className="container mx-auto px-6 py-20">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Loved by Thousands of Users
-            </h2>
-            <p className="text-xl text-gray-600">
-              See what our community has to say about NetFolio.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
-              <motion.div
-                key={testimonial.author}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: index * 0.2 }}
-                className="bg-white p-8 rounded-2xl shadow-lg"
-              >
-                <div className="text-2xl text-blue-600 mb-4">"</div>
-                <p className="text-gray-700 mb-6 italic">
-                  {testimonial.quote}
-                </p>
-                <div>
-                  <div className="font-semibold text-gray-900">
-                    {testimonial.author}
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    {testimonial.role}
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </section>
-
         {/* CTA Section */}
         <section className="container mx-auto px-6 py-20">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-3xl p-12 text-center text-white"
+            className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 rounded-3xl"
           >
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Ready to Take Control of Your Finances?
-            </h2>
-            <p className="text-xl mb-8 text-blue-100">
-              Join thousands of users who have transformed their financial lives with NetFolio.
-            </p>
-            <Button
-              onClick={() => setShowAuth(true)}
-              className="bg-white text-blue-600 hover:bg-gray-100 px-8 py-4 text-lg font-semibold"
-            >
-              Get Started Free
-            </Button>
+            {/* Background Pattern */}
+            <div className="absolute inset-0 opacity-10">
+              <div className="absolute top-0 left-0 w-72 h-72 bg-white rounded-full -translate-x-36 -translate-y-36"></div>
+              <div className="absolute bottom-0 right-0 w-96 h-96 bg-white rounded-full translate-x-48 translate-y-48"></div>
+              <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-white rounded-full -translate-x-32 -translate-y-32"></div>
+            </div>
+            
+            {/* Content */}
+            <div className="relative z-10 p-12 text-center">
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.2 }}
+                className="mb-8"
+              >
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl mb-6">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                  </svg>
+                </div>
+                <h2 className="text-4xl md:text-5xl font-bold mb-6 text-white leading-tight">
+                  Transform Your
+                  <span className="block bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent">
+                    Financial Future
+                  </span>
+                </h2>
+                <p className="text-xl md:text-2xl text-blue-100 max-w-2xl mx-auto leading-relaxed">
+                  Join the revolution in personal finance management. 
+                  <span className="font-semibold text-white"> Start building wealth today.</span>
+                </p>
+              </motion.div>
+              
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.6, delay: 0.4 }}
+                className="flex flex-col items-center gap-6"
+              >
+                <Button
+                  onClick={() => setShowAuth(true)}
+                  variant="secondary"
+                  className="group relative !bg-white !text-blue-600 hover:!bg-blue-50 hover:!text-blue-700 !border-white px-8 py-4 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                >
+                  <span className="flex items-center">
+                    Start Free Today
+                    <svg className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                    </svg>
+                  </span>
+                </Button>
+                
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-white/90 text-sm">
+                  <div className="flex items-center justify-center space-x-2">
+                    <svg className="w-4 h-4 text-green-300" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    <span>No credit card</span>
+                  </div>
+                  <div className="flex items-center justify-center space-x-2">
+                    <svg className="w-4 h-4 text-green-300" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    <span>No ads</span>
+                  </div>
+                  <div className="flex items-center justify-center space-x-2">
+                    <svg className="w-4 h-4 text-green-300" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    <span>Privacy first</span>
+                  </div>
+                  <div className="flex items-center justify-center space-x-2">
+                    <svg className="w-4 h-4 text-green-300" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    <span>Self-hosted</span>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-center text-white/70 text-xs">
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                  Your data stays with you • No personal data sharing • Setup in 2 minutes
+                </div>
+              </motion.div>
+            </div>
           </motion.div>
         </section>
 

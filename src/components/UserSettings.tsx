@@ -85,7 +85,7 @@ export const UserSettings: FC = () => {
       setShowDeleteConfirm(false);
       
       // Redirect to auth page after successful deletion
-      router.push('/auth');
+      router.push('/auth/landing');
     } catch (error) {
       console.error('Error deleting profile:', error);
       setDeleteError(error instanceof Error ? error.message : 'Failed to delete profile');

@@ -24,7 +24,7 @@ const QuickStartPage: NextPage = () => {
   // Redirect if not authenticated
   useEffect(() => {
     if (!session?.user) {
-      router.push('/auth');
+      router.push('/auth/landing');
     }
   }, [session, router]);
 

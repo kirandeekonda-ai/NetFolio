@@ -21,8 +21,9 @@ const steps: WizardStep[] = [
   { id: 1, title: 'Welcome', description: 'Get started with NetFolio', icon: '👋' },
   { id: 2, title: 'Goals', description: 'Set your financial goals', icon: '🎯' },
   { id: 3, title: 'Currency', description: 'Choose your base currency', icon: '💰' },
-  { id: 4, title: 'Account', description: 'Setup your first bank account', icon: '🏦' },
-  { id: 5, title: 'Getting Started', description: 'Choose how to begin', icon: '🚀' },
+  { id: 4, title: 'Categories', description: 'Setup expense categories', icon: '🏷️' },
+  { id: 5, title: 'Account', description: 'Setup your first bank account', icon: '🏦' },
+  { id: 6, title: 'Getting Started', description: 'Choose how to begin', icon: '🚀' },
 ];
 
 const currencies = [
@@ -69,6 +70,21 @@ const startingMethods = [
   },
 ];
 
+const suggestedCategories = [
+  { id: 'food', name: 'Food & Dining', color: '#FFC107', icon: '🍽️' },
+  { id: 'shopping', name: 'Shopping', color: '#F44336', icon: '🛍️' },
+  { id: 'entertainment', name: 'Entertainment', color: '#2196F3', icon: '🎬' },
+  { id: 'travel', name: 'Travel', color: '#4CAF50', icon: '✈️' },
+  { id: 'health', name: 'Health & Medical', color: '#9C27B0', icon: '🏥' },
+  { id: 'utilities', name: 'Utilities', color: '#FF9800', icon: '⚡' },
+  { id: 'transportation', name: 'Transportation', color: '#607D8B', icon: '🚗' },
+  { id: 'education', name: 'Education', color: '#795548', icon: '📚' },
+  { id: 'income', name: 'Income', color: '#8BC34A', icon: '💰' },
+  { id: 'investment', name: 'Investment', color: '#00BCD4', icon: '📈' },
+  { id: 'insurance', name: 'Insurance', color: '#9E9E9E', icon: '🛡️' },
+  { id: 'other', name: 'Other', color: '#607D8B', icon: '📁' },
+];
+
 export const WelcomeWizard: FC<WelcomeWizardProps> = ({ user, onComplete }) => {
   const supabase = useSupabaseClient();
   const [currentStep, setCurrentStep] = useState(1);
@@ -76,6 +92,7 @@ export const WelcomeWizard: FC<WelcomeWizardProps> = ({ user, onComplete }) => {
   const [formData, setFormData] = useState({
     goals: [] as string[],
     currency: 'USD',
+    categories: ['food', 'shopping', 'transportation', 'utilities'] as string[], // Pre-select essential categories
     startingMethod: '',
     bankAccount: {
       bank_name: '',
@@ -107,6 +124,15 @@ export const WelcomeWizard: FC<WelcomeWizardProps> = ({ user, onComplete }) => {
     }));
   };
 
+  const handleCategoryToggle = (categoryId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      categories: prev.categories.includes(categoryId)
+        ? prev.categories.filter(c => c !== categoryId)
+        : [...prev.categories, categoryId]
+    }));
+  };
+
   const handleBankAccountChange = (field: string, value: string | number) => {
     setFormData(prev => ({
       ...prev,
@@ -121,14 +147,23 @@ export const WelcomeWizard: FC<WelcomeWizardProps> = ({ user, onComplete }) => {
     setIsLoading(true);
     
     try {
-      // Save user preferences
+      // Convert selected category IDs to full category objects
+      const selectedCategoryObjects = suggestedCategories.filter(cat => 
+        formData.categories.includes(cat.id)
+      ).map(cat => ({
+        name: cat.name,
+        color: cat.color,
+        icon: cat.icon
+      }));
+
+      // Save user preferences with selected categories
       const { error: prefsError } = await supabase
         .from('user_preferences')
         .upsert({
           user_id: user.id,
           currency: formData.currency,
           onboarded: true,
-          categories: [], // Will be populated with defaults
+          categories: selectedCategoryObjects.length > 0 ? selectedCategoryObjects : [],
         });
 
       if (prefsError) {
@@ -343,7 +378,69 @@ export const WelcomeWizard: FC<WelcomeWizardProps> = ({ user, onComplete }) => {
             className="space-y-6"
           >
             <div className="text-center">
-              <div className="text-4xl mb-4">🏦</div>
+              <div className="text-4xl mb-4">�️</div>
+              <h2 className="text-2xl font-bold text-gray-900">Choose your expense categories</h2>
+              <p className="text-gray-600 mt-2">We've pre-selected common categories. Add or remove as needed.</p>
+            </div>
+            
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {suggestedCategories.map((category) => (
+                <button
+                  key={category.id}
+                  onClick={() => handleCategoryToggle(category.id)}
+                  className={`p-3 rounded-lg border-2 transition-all duration-200 text-center ${
+                    formData.categories.includes(category.id)
+                      ? 'border-blue-500 bg-blue-50 shadow-md transform scale-105'
+                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  <div 
+                    className="text-2xl mb-2"
+                    style={{ filter: formData.categories.includes(category.id) ? 'none' : 'grayscale(0.5)' }}
+                  >
+                    {category.icon}
+                  </div>
+                  <div className="text-sm font-medium text-gray-900">
+                    {category.name}
+                  </div>
+                  <div 
+                    className="w-3 h-3 rounded-full mx-auto mt-2 border"
+                    style={{ 
+                      backgroundColor: formData.categories.includes(category.id) ? category.color : 'transparent',
+                      borderColor: category.color 
+                    }}
+                  />
+                </button>
+              ))}
+            </div>
+
+            <div className="bg-blue-50 rounded-lg p-4 text-center">
+              <p className="text-sm text-blue-800">
+                💡 <strong>Tip:</strong> You can add, edit, or remove categories later in your profile settings.
+                {formData.categories.length === 0 && " Select at least a few to get started!"}
+              </p>
+            </div>
+
+            <div className="flex justify-between pt-4">
+              <Button variant="secondary" onClick={handleBack}>
+                Back
+              </Button>
+              <Button onClick={handleNext}>
+                Continue {formData.categories.length > 0 && `(${formData.categories.length} selected)`}
+              </Button>
+            </div>
+          </motion.div>
+        );
+
+      case 5:
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-6"
+          >
+            <div className="text-center">
+              <div className="text-4xl mb-4">�🏦</div>
               <h2 className="text-2xl font-bold text-gray-900">Set up your first bank account</h2>
               <p className="text-gray-600 mt-2">This helps us get you started with accurate balance tracking</p>
             </div>
@@ -407,7 +504,7 @@ export const WelcomeWizard: FC<WelcomeWizardProps> = ({ user, onComplete }) => {
           </motion.div>
         );
 
-      case 5:
+      case 6:
         return (
           <motion.div
             initial={{ opacity: 0, y: 20 }}

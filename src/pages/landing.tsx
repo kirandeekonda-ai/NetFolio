@@ -62,7 +62,7 @@ const LandingPage: NextPage = () => {
   useEffect(() => {
     if (!session && !isRedirecting) {
       setIsRedirecting(true);
-      router.push('/auth');
+      router.push('/auth/landing');
     }
   }, [session, router, isRedirecting]);
 
