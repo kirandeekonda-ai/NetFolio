@@ -4,6 +4,7 @@ import { BankAccountCreate, BankAccountUpdate } from '@/types';
 import { Card } from './Card';
 import { Button } from './Button';
 import { Input } from './Input';
+import { BankSelector } from './BankSelector';
 import { supabase } from '@/utils/supabase';
 import { useUser } from '@supabase/auth-helpers-react';
 
@@ -138,16 +139,18 @@ export const BankAccountForm: FC<BankAccountFormProps> = ({
             <label htmlFor="bank_name" className="block text-sm font-semibold text-gray-800">
               Bank Name *
             </label>
-            <Input
-              id="bank_name"
-              type="text"
+            <BankSelector
               value={formData.bank_name}
-              onChange={(e) => handleInputChange('bank_name', e.target.value)}
-              placeholder="e.g., Chase, Bank of America, Wells Fargo"
+              onChange={(bankName) => handleInputChange('bank_name', bankName)}
+              placeholder="Search for your bank or type bank name..."
               error={errors.bank_name}
               disabled={isLoading}
               className="text-lg py-3"
             />
+            <p className="text-sm text-gray-500 flex items-center space-x-1">
+              <span>💡</span>
+              <span>Search from 30+ Indian banks or type your own</span>
+            </p>
           </div>
 
           {/* Account Type */}

@@ -3,6 +3,8 @@ import { motion } from 'framer-motion';
 import { BankAccount } from '@/types';
 import { Card } from './Card';
 import { Button } from './Button';
+import { BankLogo } from './BankLogo';
+import { BankAccountDeleteDialog } from './BankAccountDeleteDialog';
 import SimplifiedBalanceService from '@/services/SimplifiedBalanceService';
 
 interface BankAccountListProps {
@@ -45,6 +47,8 @@ export const BankAccountList: FC<BankAccountListProps> = ({
   isLoading = false,
 }) => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [accountToDelete, setAccountToDelete] = useState<BankAccount | null>(null);
   const [accountBalances, setAccountBalances] = useState<Record<string, { balance: number; hasBalance: boolean }>>({});
   const [balancesLoading, setBalancesLoading] = useState(true);
 
@@ -84,12 +88,30 @@ export const BankAccountList: FC<BankAccountListProps> = ({
   }, [accounts]);
 
   const handleDelete = async (accountId: string) => {
-    setDeletingId(accountId);
+    const account = accounts.find(acc => acc.id === accountId);
+    if (!account) return;
+    
+    setAccountToDelete(account);
+    setShowDeleteDialog(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!accountToDelete) return;
+    
+    setDeletingId(accountToDelete.id);
+    setShowDeleteDialog(false);
+    
     try {
-      await onDelete(accountId);
+      await onDelete(accountToDelete.id);
     } finally {
       setDeletingId(null);
+      setAccountToDelete(null);
     }
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteDialog(false);
+    setAccountToDelete(null);
   };
 
   // Enhance accounts with balance data
@@ -285,11 +307,14 @@ export const BankAccountList: FC<BankAccountListProps> = ({
                     <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-6">
-                          {/* Premium Account Icon */}
+                          {/* Bank Logo */}
                           <div className="relative">
-                            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
-                              <span className="text-2xl text-white">{getAccountTypeIcon(account.account_type)}</span>
-                            </div>
+                            <BankLogo
+                              bankName={account.bank_name}
+                              accountType={account.account_type}
+                              size="lg"
+                              className="shadow-lg"
+                            />
                             <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-emerald-400 rounded-full flex items-center justify-center">
                               <span className="text-xs text-white">✓</span>
                             </div>
@@ -299,7 +324,7 @@ export const BankAccountList: FC<BankAccountListProps> = ({
                           <div className="flex-1">
                             <div className="flex items-center space-x-3 mb-2">
                               <h3 className="text-xl font-semibold text-gray-900">
-                                {account.account_nickname || `${account.bank_name} ${account.account_type}`}
+                                {account.account_nickname || account.bank_name}
                               </h3>
                               {account.account_number_last4 && (
                                 <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm font-medium">
@@ -399,14 +424,17 @@ export const BankAccountList: FC<BankAccountListProps> = ({
                     <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-200">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-6">
-                          <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center">
-                            <span className="text-2xl opacity-50">{getAccountTypeIcon(account.account_type)}</span>
-                          </div>
+                          <BankLogo
+                            bankName={account.bank_name}
+                            accountType={account.account_type}
+                            size="lg"
+                            className="opacity-50"
+                          />
                           
                           <div className="flex-1">
                             <div className="flex items-center space-x-3 mb-2">
                               <h3 className="text-xl font-semibold text-gray-600">
-                                {account.account_nickname || `${account.bank_name} ${account.account_type}`}
+                                {account.account_nickname || account.bank_name}
                               </h3>
                               {account.account_number_last4 && (
                                 <span className="px-3 py-1 bg-gray-100 text-gray-500 rounded-full text-sm">
@@ -466,6 +494,15 @@ export const BankAccountList: FC<BankAccountListProps> = ({
           )}
         </motion.div>
       </div>
+
+      {/* Enhanced Delete Confirmation Dialog */}
+      <BankAccountDeleteDialog
+        isOpen={showDeleteDialog}
+        onClose={handleCancelDelete}
+        onConfirm={handleConfirmDelete}
+        account={accountToDelete}
+        isLoading={deletingId === accountToDelete?.id}
+      />
     </div>
   );
 };

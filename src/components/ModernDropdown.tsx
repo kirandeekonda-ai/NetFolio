@@ -1,11 +1,11 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export interface DropdownOption {
   value: string | number;
   label: string | number;
   description?: string;
-  icon?: string;
+  icon?: string | ReactNode;
 }
 
 interface ModernDropdownProps {
@@ -13,7 +13,7 @@ interface ModernDropdownProps {
   value: string | number;
   onChange: (value: string | number) => void;
   placeholder?: string;
-  icon?: string;
+  icon?: string | ReactNode;
   label?: string;
   className?: string;
   searchable?: boolean;
@@ -83,7 +83,7 @@ export const ModernDropdown: React.FC<ModernDropdownProps> = ({
   };
 
   return (
-    <div className={`relative dropdown-container ${className}`} ref={dropdownRef} data-dropdown>
+    <div className={`relative dropdown-container ${className}`} ref={dropdownRef} data-dropdown style={{ zIndex: isOpen ? 99999 : 'auto' }}>
       {label && (
         <label className="block text-sm font-semibold text-slate-700 mb-2">
           {icon && <span className="mr-2">{icon}</span>}
@@ -109,7 +109,11 @@ export const ModernDropdown: React.FC<ModernDropdownProps> = ({
           <span className="flex items-center truncate">
             {selectedOption ? (
               <>
-                {selectedOption.icon && <span className="mr-2 opacity-70">{selectedOption.icon}</span>}
+                {selectedOption.icon && (
+                  <span className="mr-2 opacity-70 flex-shrink-0">
+                    {typeof selectedOption.icon === 'string' ? selectedOption.icon : selectedOption.icon}
+                  </span>
+                )}
                 <span className="text-left">
                   <div className="font-medium">{selectedOption.label}</div>
                   {selectedOption.description && (
@@ -160,7 +164,8 @@ export const ModernDropdown: React.FC<ModernDropdownProps> = ({
                 style={{ 
                   zIndex: 99999,
                   position: 'absolute',
-                  pointerEvents: 'auto'
+                  pointerEvents: 'auto',
+                  isolation: 'isolate'
                 }}
                 onClick={(e) => e.stopPropagation()}
               >
@@ -210,7 +215,9 @@ export const ModernDropdown: React.FC<ModernDropdownProps> = ({
                     >
                       <div className="flex items-center flex-1 min-w-0">
                         {option.icon && (
-                          <span className="mr-3 opacity-70 flex-shrink-0">{option.icon}</span>
+                          <span className="mr-3 opacity-70 flex-shrink-0">
+                            {typeof option.icon === 'string' ? option.icon : option.icon}
+                          </span>
                         )}
                         <div className="min-w-0 flex-1">
                           <div className="font-medium truncate">{option.label}</div>

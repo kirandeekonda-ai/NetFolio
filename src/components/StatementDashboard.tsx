@@ -6,6 +6,8 @@ import { BankAccount, BankStatement, StatementCompletion } from '@/types';
 import { setTransactions } from '@/store/transactionsSlice';
 import { Card } from './Card';
 import { Button } from './Button';
+import { BankLogo } from './BankLogo';
+import { getBankEmoji, getBankLogoPath, getBankSpecificEmoji } from '@/utils/bankLogos';
 import ModernDropdown from './ModernDropdown';
 
 interface StatementDashboardProps {
@@ -350,9 +352,9 @@ export const StatementDashboard = forwardRef<StatementDashboardRef, StatementDas
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="relative"
+          className="relative z-20"
         >
-          <Card className="bg-white/70 backdrop-blur-sm border-white/50 shadow-xl shadow-slate-900/5 relative z-10">
+          <Card className="bg-white/70 backdrop-blur-sm border-white/50 shadow-xl shadow-slate-900/5 relative z-20">
             <div className="flex flex-wrap gap-6 items-center">
               {/* Year Selector */}
               <div className="flex-1 min-w-48">
@@ -390,9 +392,9 @@ export const StatementDashboard = forwardRef<StatementDashboardRef, StatementDas
                     },
                     ...activeAccounts.map(account => ({
                       value: account.id,
-                      label: account.account_nickname || `${account.bank_name} ${account.account_type}`,
+                      label: account.account_nickname || account.bank_name,
                       description: `${account.bank_name}${account.account_number_last4 ? ` • ...${account.account_number_last4}` : ''}`,
-                      icon: '🏦'
+                      icon: <BankLogo bankName={account.bank_name} accountType={account.account_type} size="sm" />
                     }))
                   ]}
                   placeholder="Select Account"
@@ -481,27 +483,39 @@ export const StatementDashboard = forwardRef<StatementDashboardRef, StatementDas
                 {/* Account Header */}
                 <div className="bg-gradient-to-r from-slate-50 to-blue-50/50 border-b border-slate-100 p-6 mb-6">
                   <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-xl font-bold text-slate-900 mb-1">
-                        {account.account_nickname || `${account.bank_name} ${account.account_type}`}
-                      </h3>
-                      <div className="flex items-center space-x-3 text-sm text-slate-600">
-                        <span className="flex items-center">
-                          <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4zM18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" />
-                          </svg>
-                          {account.bank_name}
-                        </span>
-                        <span className="text-slate-400">•</span>
-                        <span>{account.account_type}</span>
-                        {account.account_number_last4 && (
-                          <>
-                            <span className="text-slate-400">•</span>
-                            <span className="font-mono">...{account.account_number_last4}</span>
-                          </>
-                        )}
+                    <div className="flex items-center space-x-4">
+                      {/* Bank Logo */}
+                      <BankLogo
+                        bankName={account.bank_name}
+                        accountType={account.account_type}
+                        size="lg"
+                        className="shadow-md"
+                      />
+                      
+                      {/* Account Details */}
+                      <div>
+                        <h3 className="text-xl font-bold text-slate-900 mb-1">
+                          {account.account_nickname || account.bank_name}
+                        </h3>
+                        <div className="flex items-center space-x-3 text-sm text-slate-600">
+                          <span className="flex items-center">
+                            <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4zM18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" />
+                            </svg>
+                            {account.bank_name}
+                          </span>
+                          <span className="text-slate-400">•</span>
+                          <span>{account.account_type}</span>
+                          {account.account_number_last4 && (
+                            <>
+                              <span className="text-slate-400">•</span>
+                              <span className="font-mono">...{account.account_number_last4}</span>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
+                    
                     <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
                       <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4zM18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" />

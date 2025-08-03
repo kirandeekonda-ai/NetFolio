@@ -87,7 +87,7 @@ class SimplifiedBalanceService {
 
         balances.push({
           account_id: account.id,
-          account_name: account.account_nickname || `${account.bank_name} ${account.account_type}`,
+          account_name: account.account_nickname || account.bank_name,
           bank_name: account.bank_name,
           account_type: account.account_type,
           current_balance: latestStatement.closing_balance,

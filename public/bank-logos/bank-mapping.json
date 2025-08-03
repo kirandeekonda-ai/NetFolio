@@ -1,0 +1,177 @@
+[
+  {
+    "code": "hdfc",
+    "name": "HDFC Bank",
+    "logoPath": "/bank-logos/hdfc.png"
+  },
+  {
+    "code": "icic",
+    "name": "ICICI Bank",
+    "logoPath": "/bank-logos/icic.png"
+  },
+  {
+    "code": "utib",
+    "name": "Axis Bank",
+    "logoPath": "/bank-logos/utib.png"
+  },
+  {
+    "code": "kkbk",
+    "name": "Kotak Mahindra Bank",
+    "logoPath": "/bank-logos/kkbk.png"
+  },
+  {
+    "code": "yesb",
+    "name": "Yes Bank",
+    "logoPath": "/bank-logos/yesb.png"
+  },
+  {
+    "code": "indb",
+    "name": "IndusInd Bank",
+    "logoPath": "/bank-logos/indb.png"
+  },
+  {
+    "code": "sbin",
+    "name": "State Bank of India",
+    "logoPath": "/bank-logos/sbin.png"
+  },
+  {
+    "code": "punb",
+    "name": "Punjab National Bank",
+    "logoPath": "/bank-logos/punb.png"
+  },
+  {
+    "code": "barb",
+    "name": "Bank of Baroda",
+    "logoPath": "/bank-logos/barb.png"
+  },
+  {
+    "code": "cnrb",
+    "name": "Canara Bank",
+    "logoPath": "/bank-logos/cnrb.png"
+  },
+  {
+    "code": "ubin",
+    "name": "Union Bank of India",
+    "logoPath": "/bank-logos/ubin.png"
+  },
+  {
+    "code": "bkid",
+    "name": "Bank of India",
+    "logoPath": "/bank-logos/bkid.png"
+  },
+  {
+    "code": "cbin",
+    "name": "Central Bank of India",
+    "logoPath": "/bank-logos/cbin.png"
+  },
+  {
+    "code": "idib",
+    "name": "Indian Bank",
+    "logoPath": "/bank-logos/idib.png"
+  },
+  {
+    "code": "ioba",
+    "name": "Indian Overseas Bank",
+    "logoPath": "/bank-logos/ioba.png"
+  },
+  {
+    "code": "psib",
+    "name": "Punjab & Sind Bank",
+    "logoPath": "/bank-logos/psib.png"
+  },
+  {
+    "code": "ucba",
+    "name": "UCO Bank",
+    "logoPath": "/bank-logos/ucba.png"
+  },
+  {
+    "code": "mahb",
+    "name": "Bank of Maharashtra",
+    "logoPath": "/bank-logos/mahb.png"
+  },
+  {
+    "code": "bdbl",
+    "name": "Bandhan Bank",
+    "logoPath": "/bank-logos/bdbl.png"
+  },
+  {
+    "code": "aubl",
+    "name": "AU Small Finance Bank",
+    "logoPath": "/bank-logos/aubl.png"
+  },
+  {
+    "code": "ratn",
+    "name": "RBL Bank",
+    "logoPath": "/bank-logos/ratn.png"
+  },
+  {
+    "code": "idfb",
+    "name": "IDFC First Bank",
+    "logoPath": "/bank-logos/idfb.png"
+  },
+  {
+    "code": "ibkl",
+    "name": "IDBI Bank",
+    "logoPath": "/bank-logos/ibkl.png"
+  },
+  {
+    "code": "sibl",
+    "name": "South Indian Bank",
+    "logoPath": "/bank-logos/sibl.png"
+  },
+  {
+    "code": "karb",
+    "name": "Karnataka Bank",
+    "logoPath": "/bank-logos/karb.png"
+  },
+  {
+    "code": "fdrl",
+    "name": "Federal Bank",
+    "logoPath": "/bank-logos/fdrl.png"
+  },
+  {
+    "code": "ciub",
+    "name": "City Union Bank",
+    "logoPath": "/bank-logos/ciub.png"
+  },
+  {
+    "code": "jaka",
+    "name": "Jammu & Kashmir Bank",
+    "logoPath": "/bank-logos/jaka.png"
+  },
+  {
+    "code": "kvbl",
+    "name": "Karur Vysya Bank",
+    "logoPath": "/bank-logos/kvbl.png"
+  },
+  {
+    "code": "dlxb",
+    "name": "Dhanalakshmi Bank",
+    "logoPath": "/bank-logos/dlxb.png"
+  },
+  {
+    "code": "tmbl",
+    "name": "Tamilnad Mercantile Bank",
+    "logoPath": "/bank-logos/tmbl.png"
+  },
+  {
+    "code": "ntbl",
+    "name": "The Nainital Bank",
+    "logoPath": "/bank-logos/ntbl.png"
+  },
+  {
+    "code": "csbk",
+    "name": "CSB Bank",
+    "logoPath": "/bank-logos/csbk.png"
+  },
+  {
+    "code": "dcbl",
+    "name": "DCB Bank",
+    "logoPath": "/bank-logos/dcbl.png"
+  },
+  {
+    "code": "dbsi",
+    "name": "DBS Bank India",
+    "logoPath": "/bank-logos/dbsi.png"
+  }
+]

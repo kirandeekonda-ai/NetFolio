@@ -129,14 +129,17 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user }) => {
     lastUpdated: null,
   });
   
-  // Memoized calculations for better performance
+  // Memoized calculations for better performance - showing LAST MONTH data
   const financialMetrics = useMemo(() => {
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
+    // Calculate last month's date
+    const now = new Date();
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMonthNumber = lastMonth.getMonth();
+    const lastMonthYear = lastMonth.getFullYear();
     
     const monthlyTransactions = transactions.filter(t => {
       const transactionDate = new Date(t.date);
-      return transactionDate.getMonth() === currentMonth && transactionDate.getFullYear() === currentYear;
+      return transactionDate.getMonth() === lastMonthNumber && transactionDate.getFullYear() === lastMonthYear;
     });
 
     const monthlyIncome = monthlyTransactions
@@ -427,7 +430,9 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user }) => {
                       <span className="text-3xl">{financialMetrics.netBalance >= 0 ? '📈' : '📉'}</span>
                     </div>
                   </div>
-                  <p className="text-gray-500 text-sm font-medium mb-2 uppercase tracking-wider">This Month</p>
+                  <p className="text-gray-500 text-sm font-medium mb-2 uppercase tracking-wider">
+                    Last Month ({new Date(new Date().getFullYear(), new Date().getMonth() - 1).toLocaleDateString('default', { month: 'short', year: 'numeric' })})
+                  </p>
                   <p className={`text-4xl font-light mb-2 ${
                     financialMetrics.netBalance >= 0 ? 'text-emerald-600' : 'text-red-600'
                   }`}>

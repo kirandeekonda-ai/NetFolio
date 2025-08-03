@@ -6,6 +6,7 @@ import { BankAccount, BankAccountCreate, BankAccountUpdate } from '@/types';
 import { Layout } from '@/components/layout/Layout';
 import { BankAccountList } from '@/components/BankAccountList';
 import { BankAccountForm } from '@/components/BankAccountForm';
+import { BankAccountDeactivateDialog } from '@/components/BankAccountDeactivateDialog';
 import { Auth } from '@/components/Auth';
 import { motion } from 'framer-motion';
 
@@ -16,6 +17,8 @@ const BankAccountsPage: NextPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingAccount, setEditingAccount] = useState<BankAccount | null>(null);
+  const [showDeactivateDialog, setShowDeactivateDialog] = useState(false);
+  const [accountToDeactivate, setAccountToDeactivate] = useState<BankAccount | null>(null);
 
   useEffect(() => {
     if (session?.user) {
@@ -103,10 +106,6 @@ const BankAccountsPage: NextPage = () => {
   };
 
   const handleDeleteAccount = async (accountId: string) => {
-    if (!confirm('Are you sure you want to delete this account? This action cannot be undone.')) {
-      return;
-    }
-
     try {
       setIsLoading(true);
       const response = await fetch(`/api/bank-accounts?id=${accountId}`, {
@@ -132,32 +131,34 @@ const BankAccountsPage: NextPage = () => {
     const account = accounts.find(acc => acc.id === accountId);
     if (!account) return;
 
-    const action = account.is_active ? 'deactivate' : 'reactivate';
-    const confirmMessage = account.is_active 
-      ? 'Are you sure you want to deactivate this account? You can reactivate it later.'
-      : 'Are you sure you want to reactivate this account?';
+    setAccountToDeactivate(account);
+    setShowDeactivateDialog(true);
+  };
 
-    if (!confirm(confirmMessage)) {
-      return;
-    }
+  const handleDeactivateConfirm = async () => {
+    if (!accountToDeactivate) return;
+
+    const action = accountToDeactivate.is_active ? 'deactivate' : 'reactivate';
 
     try {
       setIsLoading(true);
-      const response = await fetch(`/api/bank-accounts?id=${accountId}`, {
+      const response = await fetch(`/api/bank-accounts?id=${accountToDeactivate.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          is_active: !account.is_active,
+          is_active: !accountToDeactivate.is_active,
         }),
       });
 
       if (response.ok) {
         const data = await response.json();
         setAccounts(prev => prev.map(acc => 
-          acc.id === accountId ? data.account : acc
+          acc.id === accountToDeactivate.id ? data.account : acc
         ));
+        setShowDeactivateDialog(false);
+        setAccountToDeactivate(null);
       } else {
         const error = await response.json();
         console.error(`Failed to ${action} account:`, error);
@@ -169,6 +170,11 @@ const BankAccountsPage: NextPage = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleDeactivateCancel = () => {
+    setShowDeactivateDialog(false);
+    setAccountToDeactivate(null);
   };
 
   const handleEdit = (account: BankAccount) => {
@@ -224,6 +230,15 @@ const BankAccountsPage: NextPage = () => {
           )}
         </motion.div>
       </div>
+
+      {/* Deactivate Account Dialog */}
+      <BankAccountDeactivateDialog
+        isOpen={showDeactivateDialog}
+        onClose={handleDeactivateCancel}
+        onConfirm={handleDeactivateConfirm}
+        account={accountToDeactivate}
+        isLoading={isLoading}
+      />
     </Layout>
   );
 };

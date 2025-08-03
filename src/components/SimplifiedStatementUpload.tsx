@@ -6,6 +6,7 @@ import { SecurityStatus } from '@/components/SecurityStatus';
 import { ProcessingLogs } from '@/components/ProcessingLogs';
 import { EnhancedProcessingStatus } from '@/components/EnhancedProcessingStatus';
 import { PasswordProtectedPDFDialog } from '@/components/PasswordProtectedPDFDialog';
+import { BankLogo } from '@/components/BankLogo';
 import { useEnhancedAIProcessor } from '@/hooks/useEnhancedAIProcessor';
 import { Transaction, BankAccount, Category, PageProcessingResult } from '@/types';
 import { useUser, useSupabaseClient } from '@supabase/auth-helpers-react';
@@ -173,9 +174,14 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
         <div className="relative bg-white/80 backdrop-blur-xl rounded-3xl p-8 border border-white/30 shadow-2xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-6">
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
-                <span className="text-white text-2xl">🏦</span>
-              </div>
+              {/* Bank Logo */}
+              <BankLogo
+                bankName={selectedAccount?.bank_name || ''}
+                accountType={selectedAccount?.account_type || ''}
+                size="lg"
+                className="shadow-lg"
+              />
+              
               <div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-1">
                   {selectedAccount?.bank_name}
