@@ -1,5 +1,6 @@
 import { FC, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useRouter } from 'next/router';
 import { BankAccount } from '@/types';
 import { Card } from './Card';
 import { Button } from './Button';
@@ -46,6 +47,7 @@ export const BankAccountList: FC<BankAccountListProps> = ({
   onAdd,
   isLoading = false,
 }) => {
+  const router = useRouter();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [accountToDelete, setAccountToDelete] = useState<BankAccount | null>(null);
@@ -112,6 +114,10 @@ export const BankAccountList: FC<BankAccountListProps> = ({
   const handleCancelDelete = () => {
     setShowDeleteDialog(false);
     setAccountToDelete(null);
+  };
+
+  const handleUploadStatement = () => {
+    router.push('/statements');
   };
 
   // Enhance accounts with balance data
@@ -207,13 +213,27 @@ export const BankAccountList: FC<BankAccountListProps> = ({
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.4 }}
+                  className="flex space-x-3"
                 >
+                  <Button 
+                    onClick={handleUploadStatement} 
+                    disabled={isLoading}
+                    className="bg-white/20 hover:bg-white/30 text-white border-white/20 backdrop-blur-sm px-6 py-3 font-medium flex items-center space-x-2"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                    <span>Upload Statement</span>
+                  </Button>
                   <Button 
                     onClick={onAdd} 
                     disabled={isLoading}
-                    className="bg-white/20 hover:bg-white/30 text-white border-white/20 backdrop-blur-sm px-6 py-3 font-medium"
+                    className="bg-white/20 hover:bg-white/30 text-white border-white/20 backdrop-blur-sm px-6 py-3 font-medium flex items-center space-x-2"
                   >
-                    Add Account
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    <span>Add Account</span>
                   </Button>
                 </motion.div>
               </div>
@@ -352,15 +372,31 @@ export const BankAccountList: FC<BankAccountListProps> = ({
                         <div className="flex items-center space-x-8">
                           {/* Balance Display */}
                           <div className="text-right">
-                            <div className="text-3xl font-light text-gray-900 mb-1">
-                              {account.statement_balance_available 
-                                ? formatCurrency(account.current_balance || 0, account.currency)
-                                : 'Upload Statement'
-                              }
-                            </div>
-                            <div className="text-sm text-gray-500 uppercase tracking-wider">
-                              {account.statement_balance_available ? 'Statement Balance' : 'No Balance Data'}
-                            </div>
+                            {account.statement_balance_available ? (
+                              <>
+                                <div className="text-3xl font-light text-gray-900 mb-1">
+                                  {formatCurrency(account.current_balance || 0, account.currency)}
+                                </div>
+                                <div className="text-sm text-gray-500 uppercase tracking-wider">
+                                  Statement Balance
+                                </div>
+                              </>
+                            ) : (
+                              <button
+                                onClick={handleUploadStatement}
+                                className="group text-right transition-all duration-200 hover:transform hover:scale-105"
+                              >
+                                <div className="text-2xl font-light text-blue-600 mb-1 group-hover:text-blue-700 flex items-center space-x-2">
+                                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                  </svg>
+                                  <span>Upload Statement</span>
+                                </div>
+                                <div className="text-sm text-blue-500 uppercase tracking-wider group-hover:text-blue-600">
+                                  Click to add balance data
+                                </div>
+                              </button>
+                            )}
                           </div>
                           
                           {/* Action Buttons */}

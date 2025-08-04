@@ -44,7 +44,14 @@ export const CategoryManager: FC = () => {
               self.findIndex(
                 (c) => c.name.toLowerCase() === category.name.toLowerCase()
               )
-          );
+          ).map((category: any) => ({
+            // Ensure each category has an ID - use existing ID or generate one based on name
+            id: category.id || category.name.toLowerCase().replace(/\s+/g, '_'),
+            name: category.name,
+            color: category.color,
+            icon: category.icon || '📁'
+          }));
+          
           setUserCategories(uniqueCategories);
           setSuggestedCategories(
             initialSuggestedCategories.filter(
@@ -63,9 +70,17 @@ export const CategoryManager: FC = () => {
 
   const updateCategories = async (categories: any[]) => {
     if (user) {
+      // Ensure categories are saved with consistent structure
+      const normalizedCategories = categories.map(cat => ({
+        id: cat.id || cat.name.toLowerCase().replace(/\s+/g, '_'),
+        name: cat.name,
+        color: cat.color,
+        icon: cat.icon || '📁'
+      }));
+      
       await supabase
         .from('user_preferences')
-        .upsert({ user_id: user.id, categories });
+        .upsert({ user_id: user.id, categories: normalizedCategories });
       
       setSavedMessage('Categories updated successfully!');
       setTimeout(() => setSavedMessage(''), 3000);
@@ -73,7 +88,7 @@ export const CategoryManager: FC = () => {
   };
 
   const handleAddCategory = (category: {
-    id: number;
+    id: number | string;
     name: string;
     color: string;
     icon?: string;
@@ -83,7 +98,14 @@ export const CategoryManager: FC = () => {
         (c) => c.name.toLowerCase() === category.name.toLowerCase()
       )
     ) {
-      const newCategories = [...userCategories, category];
+      const categoryWithId = {
+        id: category.id || category.name.toLowerCase().replace(/\s+/g, '_'),
+        name: category.name,
+        color: category.color,
+        icon: category.icon || '📁'
+      };
+      
+      const newCategories = [...userCategories, categoryWithId];
       setUserCategories(newCategories);
       setSuggestedCategories(
         suggestedCategories.filter((c) => c.id !== category.id)
@@ -109,7 +131,7 @@ export const CategoryManager: FC = () => {
     }
 
     const newCategory = {
-      id: Date.now(),
+      id: newCategoryName.toLowerCase().replace(/\s+/g, '_'),
       name: newCategoryName,
       color: newCategoryColor,
       icon: newCategoryIcon,
@@ -123,12 +145,16 @@ export const CategoryManager: FC = () => {
   };
 
   const handleRemoveCategory = (category: {
-    id: number;
+    id: number | string;
     name: string;
     color: string;
     icon?: string;
   }) => {
-    const newCategories = userCategories.filter((c) => c.id !== category.id);
+    // Filter by both ID and name to ensure we remove the correct category
+    // This handles cases where categories might have inconsistent ID formats
+    const newCategories = userCategories.filter((c) => 
+      c.id !== category.id && c.name !== category.name
+    );
     setUserCategories(newCategories);
     
     // Add back to suggested if it was originally suggested

@@ -62,13 +62,6 @@ const startingMethods = [
     icon: '🏦',
     action: '/bank-accounts'
   },
-  { 
-    id: 'fresh', 
-    title: 'Start Fresh', 
-    description: 'Begin tracking from today',
-    icon: '🌟',
-    action: '/dashboard'
-  },
 ];
 
 const suggestedCategories = [
@@ -163,10 +156,11 @@ export const WelcomeWizard: FC<WelcomeWizardProps> = ({ user, onComplete }) => {
     setIsLoading(true);
     
     try {
-      // Convert selected category IDs to full category objects
+      // Convert selected category IDs to full category objects with proper IDs
       const selectedCategoryObjects = suggestedCategories.filter(cat => 
         formData.categories.includes(cat.id)
       ).map(cat => ({
+        id: cat.id, // Use the category's existing ID
         name: cat.name,
         color: cat.color,
         icon: cat.icon
@@ -554,18 +548,24 @@ export const WelcomeWizard: FC<WelcomeWizardProps> = ({ user, onComplete }) => {
                   <h3 className="font-medium text-gray-900">Enable Balance Protection</h3>
                   <p className="text-sm text-gray-600">Require PIN/password to view your total balance</p>
                 </div>
-                <button
-                  onClick={() => handleBalanceProtectionChange('enabled', !formData.balanceProtection.enabled)}
-                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                    formData.balanceProtection.enabled ? 'bg-blue-600' : 'bg-gray-200'
-                  }`}
-                >
-                  <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                      formData.balanceProtection.enabled ? 'translate-x-5' : 'translate-x-0'
+                <div className="relative">
+                  {/* Blinking ring effect when toggle is off */}
+                  {!formData.balanceProtection.enabled && (
+                    <div className="absolute inset-0 rounded-full animate-ping bg-blue-400 opacity-30"></div>
+                  )}
+                  <button
+                    onClick={() => handleBalanceProtectionChange('enabled', !formData.balanceProtection.enabled)}
+                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                      formData.balanceProtection.enabled ? 'bg-blue-600' : 'bg-gray-200 animate-pulse'
                     }`}
-                  />
-                </button>
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                        formData.balanceProtection.enabled ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
               </div>
 
               {/* Protection Type and Value */}
