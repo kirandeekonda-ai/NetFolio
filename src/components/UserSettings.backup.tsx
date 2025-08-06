@@ -29,8 +29,6 @@ export const UserSettings: FC = () => {
     url: '',
     isLoading: false,
     saveStatus: 'idle' as 'idle' | 'saving' | 'success' | 'error',
-    testStatus: 'idle' as 'idle' | 'testing' | 'success' | 'error',
-    testMessage: '',
   });
   
   // Balance protection state
@@ -351,7 +349,7 @@ export const UserSettings: FC = () => {
     </div>
   );
 
-  const renderKeepAliveSettingsDuplicate = () => (
+  const renderKeepAliveSettings = () => (
     <div className="space-y-6">
       {/* Keep Alive Configuration */}
       <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
@@ -612,63 +610,12 @@ export const UserSettings: FC = () => {
               {keepAlive.enabled && keepAlive.url && (
                 <button
                   onClick={handleTestKeepAlive}
-                  disabled={keepAlive.testStatus === 'testing'}
-                  className={`px-4 py-2 border rounded-lg transition-colors text-sm font-medium ${
-                    keepAlive.testStatus === 'testing' 
-                      ? 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'
-                      : keepAlive.testStatus === 'success'
-                      ? 'bg-green-50 border-green-500 text-green-700 hover:bg-green-100'
-                      : keepAlive.testStatus === 'error'
-                      ? 'bg-red-50 border-red-500 text-red-700 hover:bg-red-100'
-                      : 'bg-blue-50 border-blue-500 text-blue-700 hover:bg-blue-100'
-                  }`}
+                  className="px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors text-sm"
                 >
-                  {keepAlive.testStatus === 'testing' && (
-                    <div className="inline-flex items-center">
-                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-400 border-t-transparent mr-2"></div>
-                      Testing...
-                    </div>
-                  )}
-                  {keepAlive.testStatus === 'success' && '✅ Test Passed'}
-                  {keepAlive.testStatus === 'error' && '❌ Test Failed'}
-                  {keepAlive.testStatus === 'idle' && 'Test Now'}
+                  Test Now
                 </button>
               )}
             </div>
-
-            {/* Test Result Display */}
-            {keepAlive.testMessage && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className={`mt-4 p-4 rounded-lg border ${
-                  keepAlive.testStatus === 'success'
-                    ? 'bg-green-50 border-green-200 text-green-800'
-                    : 'bg-red-50 border-red-200 text-red-800'
-                }`}
-              >
-                <div className="flex items-start space-x-3">
-                  <div className="flex-shrink-0 mt-0.5">
-                    {keepAlive.testStatus === 'success' ? (
-                      <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    ) : (
-                      <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium mb-1">
-                      {keepAlive.testStatus === 'success' ? 'Test Successful' : 'Test Failed'}
-                    </p>
-                    <p className="text-sm">{keepAlive.testMessage}</p>
-                  </div>
-                </div>
-              </motion.div>
-            )}
           </motion.div>
         )}
       </div>
@@ -995,94 +942,25 @@ export const UserSettings: FC = () => {
   };
 
   const handleTestKeepAlive = async () => {
-    if (!keepAlive.url.trim()) {
-      setKeepAlive(prev => ({ 
-        ...prev, 
-        testStatus: 'error', 
-        testMessage: 'Please enter a URL first' 
-      }));
-      setTimeout(() => setKeepAlive(prev => ({ ...prev, testStatus: 'idle' })), 3000);
-      return;
-    }
-
-    // Validate URL format
-    try {
-      new URL(keepAlive.url);
-    } catch {
-      setKeepAlive(prev => ({ 
-        ...prev, 
-        testStatus: 'error', 
-        testMessage: 'Please enter a valid URL (e.g., https://example.com/api/keep-alive)' 
-      }));
-      setTimeout(() => setKeepAlive(prev => ({ ...prev, testStatus: 'idle' })), 5000);
-      return;
-    }
-
-    setKeepAlive(prev => ({ ...prev, testStatus: 'testing', testMessage: '' }));
+    if (!keepAlive.url.trim()) return;
 
     try {
       console.log('Testing keep alive URL:', keepAlive.url);
       const response = await fetch(keepAlive.url, {
         method: 'GET',
         cache: 'no-cache',
-        headers: {
-          'Accept': 'application/json',
-        },
       });
       
       if (response.ok) {
-        const contentType = response.headers.get('content-type');
-        
-        // Check if response is JSON
-        if (contentType && contentType.includes('application/json')) {
-          try {
-            const data = await response.json();
-            setKeepAlive(prev => ({ 
-              ...prev, 
-              testStatus: 'success', 
-              testMessage: `✅ Success! Status: ${data.status || 'OK'} - ${data.message || 'Keep alive endpoint is working properly'}` 
-            }));
-          } catch (jsonError) {
-            setKeepAlive(prev => ({ 
-              ...prev, 
-              testStatus: 'error', 
-              testMessage: '❌ Response received but not valid JSON. Make sure your endpoint returns JSON data.' 
-            }));
-          }
-        } else {
-          // Response is not JSON (probably HTML)
-          setKeepAlive(prev => ({ 
-            ...prev, 
-            testStatus: 'error', 
-            testMessage: '❌ Endpoint returned HTML instead of JSON. Make sure you\'re using the correct API endpoint URL.' 
-          }));
-        }
+        const data = await response.json();
+        alert(`✅ Test successful!\nStatus: ${data.status}\nMessage: ${data.message || 'Keep alive working'}`);
       } else {
-        setKeepAlive(prev => ({ 
-          ...prev, 
-          testStatus: 'error', 
-          testMessage: `❌ HTTP ${response.status}: ${response.statusText}. Please check your URL and try again.` 
-        }));
+        alert(`❌ Test failed!\nStatus: ${response.status}\nPlease check your URL.`);
       }
     } catch (error) {
       console.error('Test failed:', error);
-      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-        setKeepAlive(prev => ({ 
-          ...prev, 
-          testStatus: 'error', 
-          testMessage: '❌ Network error: Unable to reach the URL. Check if the URL is correct and accessible.' 
-        }));
-      } else {
-        setKeepAlive(prev => ({ 
-          ...prev, 
-          testStatus: 'error', 
-          testMessage: `❌ Test failed: ${error instanceof Error ? error.message : 'Unknown error'}` 
-        }));
-      }
+      alert(`❌ Test failed!\nError: ${error instanceof Error ? error.message : 'Network error'}\nPlease check your URL.`);
     }
-
-    // Clear test status after 8 seconds
-    setTimeout(() => setKeepAlive(prev => ({ ...prev, testStatus: 'idle', testMessage: '' })), 8000);
   };
 
   const currencyOptions = [
