@@ -16,6 +16,8 @@ const navItems = [
   { href: '/statements', label: 'Statements', icon: '📄' },
   { href: '/categorize', label: 'Categorize', icon: '🏷️' },
   { href: '/dashboard', label: 'Dashboard', icon: '📊' },
+  { href: '/dashboard-new', label: 'Dashboard New', icon: '🚀' },
+  { href: '/dashboard-v2', label: 'Dashboard V2', icon: '⚡' },
   { href: '/profile', label: 'Profile', icon: '👤' },
 ];
 
