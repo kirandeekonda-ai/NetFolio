@@ -292,8 +292,21 @@ export const IncomeExpenseCharts: React.FC<IncomeExpenseChartsProps> = ({
           const centerY = 250; // Center of 500x500 viewBox
           const lineX1 = centerX + lineStartX;
           const lineY1 = centerY + lineStartY;
-          const lineX2 = centerX + iconX;
-          const lineY2 = centerY + iconY;
+          
+          // Icon position
+          const iconX2 = centerX + iconX;
+          const iconY2 = centerY + iconY;
+          
+          // Calculate line endpoint to connect to the edge of the icon circle (25px radius)
+          const iconCenterDistance = Math.sqrt(iconX * iconX + iconY * iconY);
+          const iconCircleRadius = 25; // Icon circle radius
+          const lineEndDistance = iconCenterDistance - iconCircleRadius;
+          const lineEndX = (iconX / iconCenterDistance) * lineEndDistance;
+          const lineEndY = (iconY / iconCenterDistance) * lineEndDistance;
+          
+          // Line coordinates - connect to icon circle edge
+          const lineX2 = centerX + lineEndX;
+          const lineY2 = centerY + lineEndY;
 
           // Remove individual debug output to clean up console
           // if (chartType === 'expense') {
@@ -302,7 +315,7 @@ export const IncomeExpenseCharts: React.FC<IncomeExpenseChartsProps> = ({
 
           return (
             <g key={`${chartType}-${item.name}-${item.index}`}>
-              {/* Animated dotted line */}
+              {/* Animated dotted line - smooth flowing animation */}
               <motion.line
                 x1={lineX1}
                 y1={lineY1}
@@ -310,24 +323,23 @@ export const IncomeExpenseCharts: React.FC<IncomeExpenseChartsProps> = ({
                 y2={lineY2}
                 stroke={item.color}
                 strokeWidth="2"
-                strokeDasharray="6,4"
+                strokeDasharray="8,4"
                 strokeLinecap="round"
                 fill="none"
-                initial={{ strokeDashoffset: 20, opacity: 0 }}
+                initial={{ strokeDashoffset: 0, opacity: 0 }}
                 animate={{ 
-                  strokeDashoffset: [20, 0, -20],
-                  opacity: [0, 0.8, 0.6, 0.8]
+                  strokeDashoffset: [0, -24], // Smooth flowing animation
+                  opacity: 1
                 }}
                 transition={{ 
                   strokeDashoffset: {
-                    duration: 3,
+                    duration: 2,
                     repeat: Infinity,
                     ease: "linear"
                   },
                   opacity: { 
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: "easeInOut"
+                    duration: 0.5,
+                    delay: 0.2 + index * 0.1
                   }
                 }}
                 style={{ 
@@ -359,8 +371,8 @@ export const IncomeExpenseCharts: React.FC<IncomeExpenseChartsProps> = ({
               
               {/* Icon container as foreignObject for proper HTML rendering */}
               <motion.foreignObject
-                x={lineX2 - 25}
-                y={lineY2 - 25}
+                x={iconX2 - 25}
+                y={iconY2 - 25}
                 width="50"
                 height="50"
                 initial={{ scale: 0, opacity: 0 }}
@@ -400,12 +412,24 @@ export const IncomeExpenseCharts: React.FC<IncomeExpenseChartsProps> = ({
                     />
                   </motion.div>
                   
-                  {/* Enhanced tooltip with percentage and amount */}
-                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-3 opacity-0 group-hover:opacity-100 transition-all duration-300 z-50 pointer-events-none">
+                  {/* Enhanced tooltip with percentage and amount - Smart positioning */}
+                  <div className="absolute opacity-0 group-hover:opacity-100 transition-all duration-300 z-50 pointer-events-none"
+                       style={{
+                         left: '50%',
+                         transform: 'translateX(-50%)',
+                         // Smart positioning: show above icon if it's in bottom half, below if in top half
+                         ...(iconY2 > 250 ? {
+                           bottom: '100%',
+                           marginBottom: '12px'
+                         } : {
+                           top: '100%',
+                           marginTop: '12px'
+                         })
+                       }}>
                     <motion.div 
                       className="bg-white px-4 py-3 rounded-xl shadow-2xl border-2 text-center min-w-max"
                       style={{ borderColor: item.color + '40' }}
-                      initial={{ y: 10, scale: 0.8 }}
+                      initial={{ y: lineY2 > 250 ? 10 : -10, scale: 0.8 }}
                       animate={{ y: 0, scale: 1 }}
                       transition={{ duration: 0.2 }}
                     >
@@ -422,15 +446,45 @@ export const IncomeExpenseCharts: React.FC<IncomeExpenseChartsProps> = ({
                       >
                         {item.percentage.toFixed(1)}%
                       </div>
-                      {/* Tooltip arrow */}
+                      {/* Tooltip arrow - positioned based on tooltip location */}
                       <div 
-                        className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent"
-                        style={{ borderTopColor: 'white' }}
+                        className="absolute left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-transparent"
+                        style={{
+                          ...(lineY2 > 250 ? {
+                            top: '100%',
+                            borderTopColor: 'white',
+                            borderTop: '4px solid white'
+                          } : {
+                            bottom: '100%',
+                            borderBottomColor: 'white',
+                            borderBottom: '4px solid white'
+                          })
+                        }}
                       />
                     </motion.div>
                   </div>
                 </div>
               </motion.foreignObject>
+              
+              {/* Percentage text under the icon */}
+              <motion.text
+                x={iconX2}
+                y={iconY2 + 35}
+                textAnchor="middle"
+                fill={item.color}
+                fontSize="12"
+                fontWeight="bold"
+                className="pointer-events-none"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.4 + index * 0.1, duration: 0.5 }}
+                style={{ 
+                  filter: `drop-shadow(0 1px 2px rgba(0,0,0,0.3))`,
+                  textShadow: '0 1px 2px rgba(255,255,255,0.8)'
+                }}
+              >
+                {item.percentage.toFixed(1)}%
+              </motion.text>
             </g>
           );
         })}
@@ -486,7 +540,7 @@ export const IncomeExpenseCharts: React.FC<IncomeExpenseChartsProps> = ({
                     />
                   ))}
                 </Pie>
-                <Tooltip content={renderTooltip} />
+                {/* Removed Tooltip component */}
               </PieChart>
             </ResponsiveContainer>
             
