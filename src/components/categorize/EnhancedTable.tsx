@@ -34,6 +34,40 @@ const CategoryDropdown = ({
   position: { top: number; left: number; width: number };
 }) => {
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [focusedIndex, setFocusedIndex] = useState(0);
+  const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  useEffect(() => {
+    itemRefs.current = itemRefs.current.slice(0, categories.length);
+  }, [categories]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setFocusedIndex((prevIndex) => (prevIndex + 1) % categories.length);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setFocusedIndex((prevIndex) => (prevIndex - 1 + categories.length) % categories.length);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        onSelect(categories[focusedIndex]);
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [categories, focusedIndex, onSelect, onClose]);
+
+  useEffect(() => {
+    itemRefs.current[focusedIndex]?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'nearest',
+    });
+  }, [focusedIndex]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -60,13 +94,17 @@ const CategoryDropdown = ({
         }}
       >
         <div className="py-2 max-h-60 overflow-y-auto">
-          {categories.map((category) => {
+          {categories.map((category, index) => {
             const categoryStyle = getCategoryColorStyle(category.name, categories);
+            const isFocused = index === focusedIndex;
             return (
               <button
                 key={category.id}
+                ref={(el) => (itemRefs.current[index] = el)}
                 onClick={() => onSelect(category)}
-                className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-all duration-150 group flex items-center space-x-3"
+                className={`w-full px-4 py-3 text-left transition-all duration-150 group flex items-center space-x-3 ${
+                  isFocused ? 'bg-blue-50' : 'hover:bg-gray-50'
+                }`}
               >
                 <div
                   className="w-3 h-3 rounded-full"
@@ -98,7 +136,8 @@ export const EnhancedTable: React.FC<EnhancedTableProps> = ({
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   const buttonRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
-  
+  const rowRefs = useRef<(HTMLTableRowElement | null)[]>([]);
+
   const handleCategoryButtonClick = (transactionId: string) => {
     const button = buttonRefs.current[transactionId];
     if (button) {
@@ -136,7 +175,12 @@ export const EnhancedTable: React.FC<EnhancedTableProps> = ({
     return () => window.removeEventListener('scroll', handleScroll, true);
   }, [activeDropdown]);
 
-
+  // Focus on the row when focusedRowIndex changes
+  useEffect(() => {
+    if (focusedRowIndex !== null) {
+      rowRefs.current[focusedRowIndex]?.focus();
+    }
+  }, [focusedRowIndex]);
 
   // Define keyboard shortcuts
   const shortcuts: KeyboardShortcut[] = [
@@ -154,7 +198,7 @@ export const EnhancedTable: React.FC<EnhancedTableProps> = ({
     { key: 'ArrowDown', description: 'Navigate down', action: () => {
       setFocusedRowIndex(prev => prev === null ? 0 : Math.min(transactions.length - 1, (prev || 0) + 1));
     }},
-    { key: 'Space', description: 'Select/deselect focused row', action: () => {
+    { key: ' ', description: 'Select/deselect focused row', action: () => {
       if (focusedRowIndex !== null && transactions[focusedRowIndex]) {
         const transaction = transactions[focusedRowIndex];
         onTransactionSelect(transaction.id, !selectedTransactions.has(transaction.id));
@@ -183,6 +227,8 @@ export const EnhancedTable: React.FC<EnhancedTableProps> = ({
 
   // Handle keyboard events
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
+    if (activeDropdown) return;
+
     if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
       return;
     }
@@ -294,17 +340,18 @@ export const EnhancedTable: React.FC<EnhancedTableProps> = ({
                 );
 
                 return (
-                  <motion.tr
+                  <tr
                     key={transaction.id}
+                    ref={(el) => { rowRefs.current[index] = el; }}
+                    tabIndex={-1}
                     data-row-index={index}
                     className={`
-                      cursor-pointer transition-all duration-200 hover:bg-blue-50/50
+                      cursor-pointer transition-all duration-200 hover:bg-blue-50/50 
+                      focus:outline-none focus:ring-1 focus:ring-blue-400
                       ${isSelected ? 'bg-blue-50 border-l-4 border-blue-500' : ''}
-                      ${isFocused ? 'ring-2 ring-blue-500/50 bg-blue-25' : ''}
+                      ${isFocused ? 'bg-blue-25' : ''}
                     `}
                     onClick={() => handleRowClick(index, transaction)}
-                    whileHover={{ scale: 1.005 }}
-                    whileTap={{ scale: 0.995 }}
                   >
                     {/* Checkbox */}
                     <td className="px-4 py-3">
@@ -348,7 +395,7 @@ export const EnhancedTable: React.FC<EnhancedTableProps> = ({
                     {/* Category */}
                     <td className="px-4 py-3">
                       <button
-                        ref={(el) => (buttonRefs.current[transaction.id] = el)}
+                        ref={(el) => { buttonRefs.current[transaction.id] = el; }}
                         onClick={(e) => {
                           e.stopPropagation();
                           handleCategoryButtonClick(transaction.id);
@@ -367,7 +414,7 @@ export const EnhancedTable: React.FC<EnhancedTableProps> = ({
                         <span className="ml-2 text-xs">▼</span>
                       </button>
                     </td>
-                  </motion.tr>
+                  </tr>
                 );
               })}
             </tbody>

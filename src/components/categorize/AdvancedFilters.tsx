@@ -27,13 +27,19 @@ interface AdvancedFiltersProps {
   onFiltersChange: (filters: FilterCriteria) => void;
   categories: Category[];
   transactions: Transaction[];
+  activeView: 'table' | 'insights' | 'analytics' | 'tools';
+  setActiveView: (view: 'table' | 'insights' | 'analytics' | 'tools') => void;
+  viewTabs: { id: string; label: string; icon: string }[];
 }
 
 export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
   filters,
   onFiltersChange,
   categories,
-  transactions
+  transactions,
+  activeView,
+  setActiveView,
+  viewTabs,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeFiltersCount, setActiveFiltersCount] = useState(0);
@@ -129,11 +135,11 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
           </Button>
         </div>
       </div>
-
+      
       {/* Quick Filters */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <button
-          onClick={() => updateFilters({ categoryStatus: 'uncategorized' })}
+          onClick={() => updateFilters({ categoryStatus: filters.categoryStatus === 'uncategorized' ? 'all' : 'uncategorized' })}
           className={`p-3 rounded-xl text-sm font-medium transition-all duration-200 ${
             filters.categoryStatus === 'uncategorized'
               ? 'bg-orange-100 text-orange-800 border-2 border-orange-300'
@@ -144,7 +150,7 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
         </button>
         
         <button
-          onClick={() => updateFilters({ transactionType: 'debit' })}
+          onClick={() => updateFilters({ transactionType: filters.transactionType === 'debit' ? 'all' : 'debit' })}
           className={`p-3 rounded-xl text-sm font-medium transition-all duration-200 ${
             filters.transactionType === 'debit'
               ? 'bg-red-100 text-red-800 border-2 border-red-300'
@@ -155,7 +161,7 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
         </button>
         
         <button
-          onClick={() => updateFilters({ transactionType: 'credit' })}
+          onClick={() => updateFilters({ transactionType: filters.transactionType === 'credit' ? 'all' : 'credit' })}
           className={`p-3 rounded-xl text-sm font-medium transition-all duration-200 ${
             filters.transactionType === 'credit'
               ? 'bg-green-100 text-green-800 border-2 border-green-300'

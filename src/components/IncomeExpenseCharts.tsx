@@ -82,6 +82,8 @@ export const IncomeExpenseCharts: React.FC<IncomeExpenseChartsProps> = ({
 }) => {
   const user = useUser();
   const [userCategories, setUserCategories] = useState<UserCategory[]>([]);
+  const [hoveredItem, setHoveredItem] = useState<any>(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
 
   // Fetch user categories from Supabase
   useEffect(() => {
@@ -267,42 +269,167 @@ export const IncomeExpenseCharts: React.FC<IncomeExpenseChartsProps> = ({
     //   });
     // }
 
+    // Enhanced positioning algorithm with systematic layout
+    const calculateOptimalPositions = (segmentData: any[]) => {
+      const iconCircleRadius = 25; // Icon circle radius
+      const minDistance = iconCircleRadius * 2.5; // Minimum distance between icon centers
+      const baseRadius = 200; // Base distance from center
+      const maxRadius = 230; // Maximum distance when avoiding collisions
+      
+      const positions = segmentData.slice(0, 6).map((item, index) => {
+        return {
+          ...item,
+          originalAngle: item.midAngle,
+          x: 0,
+          y: 0,
+          radius: baseRadius,
+          finalAngle: item.midAngle
+        };
+      });
+      
+      // Sort positions by angle to create systematic layout
+      positions.sort((a, b) => a.originalAngle - b.originalAngle);
+      
+      // Create organized zones around the chart
+      const totalPositions = positions.length;
+      const angleStep = (2 * Math.PI) / Math.max(6, totalPositions); // Ensure even distribution
+      
+      // Calculate systematic positions with collision avoidance
+      for (let i = 0; i < positions.length; i++) {
+        const current = positions[i];
+        let bestPosition = null;
+        let hasCollision = false;
+        
+        // Try the original angle first
+        let testAngle = current.originalAngle;
+        let testRadius = baseRadius;
+        
+        // Calculate position
+        let x = Math.cos(testAngle) * testRadius;
+        let y = Math.sin(testAngle) * testRadius;
+        
+        // Check collision with all previously positioned icons
+        for (let j = 0; j < i; j++) {
+          const other = positions[j];
+          const distance = Math.sqrt((x - other.x) ** 2 + (y - other.y) ** 2);
+          
+          if (distance < minDistance) {
+            hasCollision = true;
+            break;
+          }
+        }
+        
+        if (!hasCollision) {
+          bestPosition = { x, y, radius: testRadius, angle: testAngle };
+        } else {
+          // If collision, try increasing radius slightly
+          for (let radius = baseRadius + 20; radius <= maxRadius; radius += 10) {
+            x = Math.cos(testAngle) * radius;
+            y = Math.sin(testAngle) * radius;
+            
+            hasCollision = false;
+            for (let j = 0; j < i; j++) {
+              const other = positions[j];
+              const distance = Math.sqrt((x - other.x) ** 2 + (y - other.y) ** 2);
+              
+              if (distance < minDistance) {
+                hasCollision = true;
+                break;
+              }
+            }
+            
+            if (!hasCollision) {
+              bestPosition = { x, y, radius, angle: testAngle };
+              break;
+            }
+          }
+          
+          // If still colliding, try systematic angle adjustment
+          if (!bestPosition) {
+            const maxAngleAdjustment = Math.PI / 4; // 45 degrees max
+            const angleSteps = 8; // Number of steps to try
+            const stepSize = maxAngleAdjustment / angleSteps;
+            
+            for (let step = 1; step <= angleSteps && !bestPosition; step++) {
+              for (const direction of [1, -1]) {
+                const adjustedAngle = testAngle + (direction * stepSize * step);
+                
+                for (let radius = baseRadius; radius <= maxRadius; radius += 15) {
+                  x = Math.cos(adjustedAngle) * radius;
+                  y = Math.sin(adjustedAngle) * radius;
+                  
+                  hasCollision = false;
+                  for (let j = 0; j < i; j++) {
+                    const other = positions[j];
+                    const distance = Math.sqrt((x - other.x) ** 2 + (y - other.y) ** 2);
+                    
+                    if (distance < minDistance) {
+                      hasCollision = true;
+                      break;
+                    }
+                  }
+                  
+                  if (!hasCollision) {
+                    bestPosition = { x, y, radius, angle: adjustedAngle };
+                    break;
+                  }
+                }
+                
+                if (bestPosition) break;
+              }
+            }
+          }
+        }
+        
+        // Apply the best position found or fallback
+        if (bestPosition) {
+          current.x = bestPosition.x;
+          current.y = bestPosition.y;
+          current.radius = bestPosition.radius;
+          current.finalAngle = bestPosition.angle;
+        } else {
+          // Systematic fallback - use original angle with minimum viable radius
+          current.x = Math.cos(current.originalAngle) * baseRadius;
+          current.y = Math.sin(current.originalAngle) * baseRadius;
+          current.radius = baseRadius;
+          current.finalAngle = current.originalAngle;
+        }
+      }
+      
+      return positions;
+    };
+
+    const optimizedPositions = calculateOptimalPositions(segmentData);
+
     return (
       <svg 
         className="absolute inset-0 w-full h-full pointer-events-none"
         style={{ zIndex: 10 }}
         viewBox="0 0 500 500"
       >
-        {segmentData.slice(0, 6).map((item, index) => {
-          // Use the calculated midAngle for proper alignment
-          const angle = item.midAngle;
-          const iconRadius = 200; // Distance from center for icons (increased for larger viewBox)
+        {optimizedPositions.map((item, index) => {
           const chartRadius = 120; // Actual chart radius (matching outerRadius)
           
-          // Calculate icon position
-          const iconX = Math.cos(angle) * iconRadius;
-          const iconY = Math.sin(angle) * iconRadius;
+          // Calculate line start point (from chart edge) using original angle
+          const lineStartX = Math.cos(item.originalAngle) * chartRadius;
+          const lineStartY = Math.sin(item.originalAngle) * chartRadius;
           
-          // Calculate line start point (from chart edge)
-          const lineStartX = Math.cos(angle) * chartRadius;
-          const lineStartY = Math.sin(angle) * chartRadius;
-          
-          // Convert to SVG coordinates with proper center (increased for larger viewBox)
+          // Convert to SVG coordinates with proper center
           const centerX = 250; // Center of 500x500 viewBox
           const centerY = 250; // Center of 500x500 viewBox
           const lineX1 = centerX + lineStartX;
           const lineY1 = centerY + lineStartY;
           
-          // Icon position
-          const iconX2 = centerX + iconX;
-          const iconY2 = centerY + iconY;
+          // Use optimized icon position
+          const iconX2 = centerX + item.x;
+          const iconY2 = centerY + item.y;
           
-          // Calculate line endpoint to connect to the edge of the icon circle (25px radius)
-          const iconCenterDistance = Math.sqrt(iconX * iconX + iconY * iconY);
+          // Calculate line endpoint to connect to the edge of the icon circle
+          const iconCenterDistance = Math.sqrt(item.x * item.x + item.y * item.y);
           const iconCircleRadius = 25; // Icon circle radius
           const lineEndDistance = iconCenterDistance - iconCircleRadius;
-          const lineEndX = (iconX / iconCenterDistance) * lineEndDistance;
-          const lineEndY = (iconY / iconCenterDistance) * lineEndDistance;
+          const lineEndX = (item.x / iconCenterDistance) * lineEndDistance;
+          const lineEndY = (item.y / iconCenterDistance) * lineEndDistance;
           
           // Line coordinates - connect to icon circle edge
           const lineX2 = centerX + lineEndX;
@@ -392,6 +519,15 @@ export const IncomeExpenseCharts: React.FC<IncomeExpenseChartsProps> = ({
                     }}
                     whileHover={{ scale: 1.15, y: -2 }}
                     whileTap={{ scale: 0.95 }}
+                    onMouseEnter={(e) => {
+                      setHoveredItem(item);
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      setTooltipPosition({
+                        x: rect.left + rect.width / 2,
+                        y: rect.top
+                      });
+                    }}
+                    onMouseLeave={() => setHoveredItem(null)}
                   >
                     <span className="text-xl relative z-10">{item.icon}</span>
                     
@@ -411,58 +547,6 @@ export const IncomeExpenseCharts: React.FC<IncomeExpenseChartsProps> = ({
                       }}
                     />
                   </motion.div>
-                  
-                  {/* Enhanced tooltip with percentage and amount - Smart positioning */}
-                  <div className="absolute opacity-0 group-hover:opacity-100 transition-all duration-300 z-50 pointer-events-none"
-                       style={{
-                         left: '50%',
-                         transform: 'translateX(-50%)',
-                         // Smart positioning: show above icon if it's in bottom half, below if in top half
-                         ...(iconY2 > 250 ? {
-                           bottom: '100%',
-                           marginBottom: '12px'
-                         } : {
-                           top: '100%',
-                           marginTop: '12px'
-                         })
-                       }}>
-                    <motion.div 
-                      className="bg-white px-4 py-3 rounded-xl shadow-2xl border-2 text-center min-w-max"
-                      style={{ borderColor: item.color + '40' }}
-                      initial={{ y: lineY2 > 250 ? 10 : -10, scale: 0.8 }}
-                      animate={{ y: 0, scale: 1 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <div className="flex items-center space-x-2 mb-2">
-                        <span className="text-lg">{item.icon}</span>
-                        <span className="text-sm font-bold text-gray-900">{item.name}</span>
-                      </div>
-                      <div className="text-sm text-gray-700 mb-1">
-                        {formatAmount(item.value)}
-                      </div>
-                      <div 
-                        className="text-sm font-bold"
-                        style={{ color: item.color }}
-                      >
-                        {item.percentage.toFixed(1)}%
-                      </div>
-                      {/* Tooltip arrow - positioned based on tooltip location */}
-                      <div 
-                        className="absolute left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-transparent"
-                        style={{
-                          ...(lineY2 > 250 ? {
-                            top: '100%',
-                            borderTopColor: 'white',
-                            borderTop: '4px solid white'
-                          } : {
-                            bottom: '100%',
-                            borderBottomColor: 'white',
-                            borderBottom: '4px solid white'
-                          })
-                        }}
-                      />
-                    </motion.div>
-                  </div>
                 </div>
               </motion.foreignObject>
               
@@ -526,7 +610,7 @@ export const IncomeExpenseCharts: React.FC<IncomeExpenseChartsProps> = ({
                   cy="50%"
                   innerRadius={60}
                   outerRadius={120}
-                  paddingAngle={2}
+                  paddingAngle={0}
                   dataKey="value"
                   startAngle={90}
                   endAngle={450}
@@ -587,6 +671,45 @@ export const IncomeExpenseCharts: React.FC<IncomeExpenseChartsProps> = ({
           {/* Expenses Chart */}
           {renderChart(expenseData, totalExpenses, 'Expenses', 'text-red-600', 'expense')}
         </div>
+
+        {/* External Tooltip - Renders outside SVG context */}
+        {hoveredItem && (
+          <div 
+            className="fixed pointer-events-none z-[999999]"
+            style={{
+              left: tooltipPosition.x,
+              top: tooltipPosition.y - 120,
+              transform: 'translateX(-50%)'
+            }}
+          >
+            <motion.div 
+              className="bg-white px-4 py-3 rounded-xl shadow-2xl border-2 text-center min-w-max"
+              style={{ borderColor: hoveredItem.color + '40' }}
+              initial={{ y: 10, scale: 0.8, opacity: 0 }}
+              animate={{ y: 0, scale: 1, opacity: 1 }}
+              exit={{ y: 10, scale: 0.8, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="flex items-center space-x-2 mb-2">
+                <span className="text-lg">{hoveredItem.icon}</span>
+                <span className="text-sm font-bold text-gray-900">{hoveredItem.name}</span>
+              </div>
+              <div className="text-sm text-gray-700 mb-1">
+                {formatAmount(hoveredItem.value)}
+              </div>
+              <div 
+                className="text-sm font-bold"
+                style={{ color: hoveredItem.color }}
+              >
+                {hoveredItem.percentage.toFixed(1)}%
+              </div>
+              {/* Arrow pointing down */}
+              <div 
+                className="absolute left-1/2 transform -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-transparent border-t-4 border-t-white"
+              />
+            </motion.div>
+          </div>
+        )}
 
         {/* Summary Bar */}
         <motion.div

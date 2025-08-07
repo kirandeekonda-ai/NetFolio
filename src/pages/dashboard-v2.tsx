@@ -9,6 +9,7 @@ import { Layout } from '@/components/layout/Layout';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { IncomeExpenseCharts } from '@/components/IncomeExpenseCharts';
+import { SpendingAnalytics } from '@/components/SpendingAnalytics';
 import { useRouter } from 'next/router';
 import { useUser } from '@supabase/auth-helpers-react';
 import { useSelector, useDispatch } from 'react-redux';
@@ -22,6 +23,9 @@ const DashboardV2: React.FC = () => {
 
   // Redux state
   const { items: transactions, isLoading } = useSelector((state: RootState) => state.enhancedTransactions);
+
+  // Chart tab state
+  const [activeChartTab, setActiveChartTab] = useState<'overview' | 'analytics'>('overview');
 
   // Date Range State
   const [dateRange, setDateRange] = useState(() => {
@@ -196,17 +200,110 @@ const DashboardV2: React.FC = () => {
             </Card>
           </motion.div>
 
-          {/* Income vs Expense Charts */}
+          {/* Analytics Hub with Tabbed Interface */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.4 }}
+            className="mb-8"
           >
-            <IncomeExpenseCharts 
-              transactions={transactions}
-              dateRange={dateRange}
-              className="mb-8"
-            />
+            <Card className="p-6">
+              {/* Chart Tab Navigation */}
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900 flex items-center">
+                    <span className="mr-2">📈</span>
+                    Financial Analytics Hub
+                  </h3>
+                  <p className="text-sm text-gray-600 mt-1">Interactive charts and insights for your spending patterns</p>
+                </div>
+                
+                <div className="flex items-center bg-gray-100 rounded-lg p-1">
+                  <button
+                    onClick={() => setActiveChartTab('overview')}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                      activeChartTab === 'overview'
+                        ? 'bg-white text-purple-600 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    <span className="flex items-center space-x-2">
+                      <span>🍩</span>
+                      <span>Overview</span>
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => setActiveChartTab('analytics')}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                      activeChartTab === 'analytics'
+                        ? 'bg-white text-purple-600 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    <span className="flex items-center space-x-2">
+                      <span>📊</span>
+                      <span>Analytics</span>
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Chart Content */}
+              <div className="min-h-[400px]">
+                {activeChartTab === 'overview' ? (
+                  <motion.div
+                    key="overview"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <IncomeExpenseCharts 
+                      transactions={transactions}
+                      dateRange={dateRange}
+                    />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="analytics"
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <SpendingAnalytics 
+                      transactions={transactions}
+                      dateRange={dateRange}
+                    />
+                  </motion.div>
+                )}
+              </div>
+
+              {/* Quick Switch Actions */}
+              <div className="mt-6 pt-4 border-t border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-gray-600">
+                    {activeChartTab === 'overview' ? (
+                      <span>Viewing income and expense breakdown • <strong>{transactions.length}</strong> transactions analyzed</span>
+                    ) : (
+                      <span>Analyzing daily spending patterns • <strong>{transactions.filter(t => (t.amount || 0) < 0).length}</strong> expense transactions</span>
+                    )}
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      onClick={() => setActiveChartTab(activeChartTab === 'overview' ? 'analytics' : 'overview')}
+                      variant="secondary"
+                      size="sm"
+                      className="text-xs"
+                    >
+                      <span className="mr-1">🔄</span>
+                      Switch to {activeChartTab === 'overview' ? 'Analytics' : 'Overview'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </Card>
           </motion.div>
 
           {/* Navigation Options */}
@@ -275,7 +372,7 @@ const DashboardV2: React.FC = () => {
                     maintainability, and allows for user feedback at each step.
                   </p>
                   <div className="mt-3 text-xs text-gray-600">
-                    <strong>Next Feature:</strong> Enhanced spending visualization with interactive charts
+                    <strong>Latest Features:</strong> Interactive spending analytics with daily patterns and insights
                   </div>
                 </div>
               </div>
