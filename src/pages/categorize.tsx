@@ -553,6 +553,14 @@ const Categorize: NextPage = () => {
               {/* Navigation Buttons */}
               <div className="flex space-x-3">
                 <button
+                  onClick={() => router.push('/categorize-enhanced')}
+                  className="px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-xl 
+                           hover:from-purple-600 hover:to-indigo-700 font-medium transition-all duration-200 
+                           shadow-sm hover:shadow-md"
+                >
+                  ✨ Enhanced Mode
+                </button>
+                <button
                   onClick={() => router.push('/statements')}
                   className="px-4 py-2 bg-white/60 backdrop-blur-sm border border-white/30 rounded-xl 
                            hover:bg-white/80 text-gray-700 font-medium transition-all duration-200 
