@@ -1,92 +1,52 @@
-import { NextPage } from 'next';
-import { useMemo, useEffect, useState } from 'react';
+/**
+ * Main Financial Dashboard - Enhanced with Modern Charts and Analytics
+ * Primary dashboard with improved styling and comprehensive financial insights
+ */
+
+import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { Layout } from '@/components/layout/Layout';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
-import { ConnectionStatus } from '@/components/ConnectionStatus';
+import { IncomeExpenseCharts } from '@/components/IncomeExpenseCharts';
+import { SpendingAnalytics } from '@/components/SpendingAnalytics';
+import { useRouter } from 'next/router';
+import { useUser } from '@supabase/auth-helpers-react';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '@/store';
 import { fetchTransactions } from '@/store/enhancedTransactionsSlice';
-import { Transaction } from '@/types';
-import { formatAmount } from '@/utils/currency';
-import { useUser } from '@supabase/auth-helpers-react';
-import { useRouter } from 'next/router';
-import { useRealtimeIntegration } from '@/hooks/useRealtimeIntegration';
-import { LoggingService } from '@/services/logging/LoggingService';
-import { EnhancedAnalytics } from '@/components/EnhancedAnalytics';
-import { DateRange } from '@/components/EnhancedAnalytics/types/analytics.types';
-import SimplifiedBalanceService, { NetWorthSummary } from '@/services/SimplifiedBalanceService';
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  PieChart,
-  Pie,
-  Cell
-} from 'recharts';
-import { motion } from 'framer-motion';
-
-const COLORS = [
-  '#8884d8', '#82ca9d', '#ffc658', '#ff7c7c', '#8dd1e1', '#d084d0',
-  '#ffb347', '#87ceeb', '#dda0dd', '#98fb98', '#f0e68c', '#ff6347'
-];
+import { NextPage } from 'next';
 
 const Dashboard: NextPage = () => {
-  const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
   const user = useUser();
+  const dispatch = useDispatch<AppDispatch>();
 
-  const {
-    items: transactions,
-    isLoading: loading,
-    error,
-    lastUpdated: lastFetch
-  } = useSelector((state: RootState) => state.enhancedTransactions);
+  // Redux state
+  const { items: transactions, isLoading: loading, error } = useSelector((state: RootState) => state.enhancedTransactions);
 
-  const [dateRange, setDateRange] = useState({
-    start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
-    end: new Date().toISOString().split('T')[0]
+  // Chart tab state
+  const [activeChartTab, setActiveChartTab] = useState<'overview' | 'analytics'>('overview');
+
+  // Date Range State
+  const [dateRange, setDateRange] = useState(() => {
+    const end = new Date();
+    const start = new Date();
+    start.setMonth(start.getMonth() - 1); // Default to 1 month
+    return {
+      start: start.toISOString().split('T')[0],
+      end: end.toISOString().split('T')[0]
+    };
   });
 
-  // State for bank account balances
-  const [netWorth, setNetWorth] = useState<NetWorthSummary | null>(null);
-  const [balanceLoading, setBalanceLoading] = useState(false);
-  const [balanceError, setBalanceError] = useState<string | null>(null);
-
-  // Setup real-time integration
-  useRealtimeIntegration();
-
+  // Fetch transactions when user is available
   useEffect(() => {
-    if (user) {
+    if (user?.id) {
       dispatch(fetchTransactions({ userId: user.id }));
-      // Fetch actual bank account balances
-      fetchNetWorth();
     }
-  }, [dispatch, user]);
+  }, [user?.id, dispatch]);
 
-  const fetchNetWorth = async () => {
-    if (!user) return;
-    
-    setBalanceLoading(true);
-    setBalanceError(null);
-    
-    try {
-      console.log('🔍 Fetching net worth with Simplified Balance Service...');
-      const netWorthData = await SimplifiedBalanceService.getNetWorth(user.id);
-      setNetWorth(netWorthData);
-      console.log('✅ Net worth updated:', netWorthData);
-    } catch (error) {
-      console.error('❌ Error fetching net worth:', error);
-      setBalanceError('Failed to load account balances');
-    } finally {
-      setBalanceLoading(false);
-    }
-  };
-
+  // Handle date range changes
   const handleDateRangeChange = (type: 'start' | 'end', value: string) => {
     setDateRange(prev => ({
       ...prev,
@@ -94,111 +54,10 @@ const Dashboard: NextPage = () => {
     }));
   };
 
-  const handleRefresh = () => {
-    if (!loading && user) {
-      LoggingService.info('Dashboard: Manual refresh triggered');
-      dispatch(fetchTransactions({ userId: user.id }));
-    }
-  };
-
-  const handleDebugLog = () => {
-    LoggingService.debug('Dashboard State:', {
-      transactionCount: transactions?.length || 0,
-      dateRange,
-      loading,
-      error,
-      lastFetch
-    });
-    if (!user) return;
-  };
-
-  // Early return if user is not authenticated
-  if (!user) return;
-
-  const {
-    totalBalance,
-    monthlyIncome,
-    monthlyExpenses,
-    categoryData,
-    monthlyData,
-    filteredTransactionsCount,
-  } = useMemo(() => {
-    // Add null check for transactions
-    if (!transactions || !Array.isArray(transactions)) {
-      return {
-        totalBalance: 0,
-        monthlyIncome: 0,
-        monthlyExpenses: 0,
-        categoryData: [],
-        monthlyData: [],
-        filteredTransactionsCount: 0,
-      };
-    }
-
-    // Use the selected date range instead of current month
-    const startDate = new Date(dateRange.start);
-    const endDate = new Date(dateRange.end);
-    
-    // Filter transactions for the selected date range
-    const filteredTransactions = transactions.filter((transaction: Transaction) => {
-      const transactionDate = new Date(transaction.transaction_date || transaction.date);
-      return transactionDate >= startDate && transactionDate <= endDate;
-    });
-
-    // Calculate totals for selected date range
-    const income = filteredTransactions
-      .filter((t: Transaction) => (t.transaction_type || t.type) === 'income')
-      .reduce((sum: number, t: Transaction) => sum + t.amount, 0);
-
-    const expenses = filteredTransactions
-      .filter((t: Transaction) => (t.transaction_type || t.type) === 'expense')
-      .reduce((sum: number, t: Transaction) => sum + Math.abs(t.amount), 0);
-
-    // Category breakdown using enhanced transaction data
-    const categoryTotals = filteredTransactions
-      .filter((t: Transaction) => (t.transaction_type || t.type) === 'expense')
-      .reduce((acc: Record<string, number>, t: Transaction) => {
-        const category = t.category_name || t.category || 'Uncategorized';
-        acc[category] = (acc[category] || 0) + Math.abs(t.amount);
-        return acc;
-      }, {} as Record<string, number>);
-
-    const categoryData = Object.entries(categoryTotals)
-      .map(([name, value]) => ({ name, value: value as number }))
-      .sort((a, b) => b.value - a.value);
-
-    // Monthly trend data for the current year (based on end date)
-    const currentYear = endDate.getFullYear();
-    const monthlyData = Array.from({ length: 12 }, (_, i) => {
-      const monthTransactions = transactions.filter((transaction: Transaction) => {
-        const date = new Date(transaction.transaction_date || transaction.date);
-        return date.getMonth() === i && date.getFullYear() === currentYear;
-      });
-
-      const monthIncome = monthTransactions
-        .filter((t: Transaction) => (t.transaction_type || t.type) === 'income')
-        .reduce((sum: number, t: Transaction) => sum + t.amount, 0);
-
-      const monthExpenses = monthTransactions
-        .filter((t: Transaction) => (t.transaction_type || t.type) === 'expense')
-        .reduce((sum: number, t: Transaction) => sum + Math.abs(t.amount), 0);
-
-      return {
-        name: new Date(currentYear, i).toLocaleString('default', { month: 'short' }),
-        income: monthIncome,
-        expenses: monthExpenses,
-      };
-    });
-
-    return {
-      totalBalance: netWorth?.total_balance || 0, // Use actual bank account balances
-      monthlyIncome: income,
-      monthlyExpenses: expenses,
-      categoryData,
-      monthlyData,
-      filteredTransactionsCount: filteredTransactions.length,
-    };
-  }, [transactions, dateRange, netWorth]);
+  const displayName = user?.user_metadata?.full_name || 
+                     user?.user_metadata?.name || 
+                     user?.email?.split('@')[0] || 
+                     'there';
 
   return (
     <Layout>
@@ -216,21 +75,61 @@ const Dashboard: NextPage = () => {
                 </p>
               </div>
               
-              <div className="flex items-center space-x-4">
-                <ConnectionStatus />
-                {lastFetch && (
-                  <div className="text-sm text-gray-500">
-                    Updated {new Date(lastFetch).toLocaleTimeString()}
-                  </div>
-                )}
-                <Button
-                  onClick={handleRefresh}
-                  disabled={loading}
-                  variant="secondary"
-                  className="text-sm"
-                >
-                  {loading ? 'Syncing...' : 'Refresh'}
-                </Button>
+              {/* Quick Period Selector - Header */}
+              <div className="flex items-center space-x-3">
+                <span className="text-sm font-medium text-gray-500">Quick Period:</span>
+                <div className="flex items-center space-x-2 bg-gray-50 rounded-lg p-1">
+                  {[
+                    { label: '1M', icon: '🌱', months: 1, gradient: 'from-green-400 to-green-600', desc: 'Recent' },
+                    { label: '3M', icon: '🌿', months: 3, gradient: 'from-blue-400 to-blue-600', desc: 'Quarter' },
+                    { label: '6M', icon: '🌳', months: 6, gradient: 'from-purple-400 to-purple-600', desc: 'Half Year' },
+                    { label: '1Y', icon: '🌲', months: 12, gradient: 'from-orange-400 to-orange-600', desc: 'Annual' }
+                  ].map((period) => {
+                    const isActive = (() => {
+                      const diffInMs = new Date(dateRange.end).getTime() - new Date(dateRange.start).getTime();
+                      const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
+                      const expectedDays = period.months * 30;
+                      return Math.abs(diffInDays - expectedDays) < 10;
+                    })();
+                    
+                    return (
+                      <motion.button
+                        key={period.label}
+                        onClick={() => {
+                          const end = new Date();
+                          const start = new Date();
+                          start.setMonth(start.getMonth() - period.months);
+                          handleDateRangeChange('start', start.toISOString().split('T')[0]);
+                          handleDateRangeChange('end', end.toISOString().split('T')[0]);
+                        }}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className={`
+                          relative flex items-center justify-center w-14 h-14 rounded-lg transition-all duration-200 group shadow-sm
+                          ${isActive 
+                            ? `bg-gradient-to-r ${period.gradient} text-white shadow-lg border-2 border-transparent` 
+                            : 'bg-white hover:shadow-md text-gray-600 border-2 border-gray-200 hover:border-gray-300'
+                          }
+                        `}
+                        title={`${period.desc} - ${period.label}`}
+                      >
+                        <div className="flex flex-col items-center">
+                          <span className="text-lg mb-0.5">{period.icon}</span>
+                          <span className={`text-xs font-semibold ${isActive ? 'text-white' : 'text-gray-700'}`}>
+                            {period.label}
+                          </span>
+                        </div>
+                        {isActive && (
+                          <motion.div 
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white shadow-sm"
+                          />
+                        )}
+                      </motion.button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
@@ -267,282 +166,118 @@ const Dashboard: NextPage = () => {
                 </div>
               </div>
             </div>
-            
-            {/* Quick Period Selector */}
-            <div className="mt-6 border-t pt-6">
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-sm text-gray-600">Quick Select:</p>
-              </div>
-              
-              <div className="flex items-center gap-3 flex-wrap">
-                {[
-                  { label: '1M', icon: '🌱', months: 1, gradient: 'from-green-400 to-green-600', desc: 'Recent Activity' },
-                  { label: '3M', icon: '🌿', months: 3, gradient: 'from-blue-400 to-blue-600', desc: 'Quarterly Trends' },
-                  { label: '6M', icon: '🌳', months: 6, gradient: 'from-purple-400 to-purple-600', desc: 'Mid-term Patterns' },
-                  { label: '1Y', icon: '🌲', months: 12, gradient: 'from-orange-400 to-orange-600', desc: 'Annual Overview' }
-                ].map((period) => {
-                  const isActive = (() => {
-                    const diffInMs = new Date(dateRange.end).getTime() - new Date(dateRange.start).getTime();
-                    const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
-                    const expectedDays = period.months * 30; // Approximate
-                    return Math.abs(diffInDays - expectedDays) < 10; // Within 10 days tolerance
-                  })();
-                  
-                  return (
-                    <button
-                      key={period.label}
-                      onClick={() => {
-                        const end = new Date();
-                        const start = new Date();
-                        start.setMonth(start.getMonth() - period.months);
-                        handleDateRangeChange('start', start.toISOString().split('T')[0]);
-                        handleDateRangeChange('end', end.toISOString().split('T')[0]);
-                      }}
-                      className={`
-                        relative flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 hover:scale-105 transform
-                        ${isActive 
-                          ? `bg-gradient-to-r ${period.gradient} text-white shadow-lg` 
-                          : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200'
-                        }
-                      `}
-                    >
-                      <span className="text-xl">{period.icon}</span>
-                      <div className="text-left">
-                        <div className={`font-semibold ${isActive ? 'text-white' : 'text-gray-900'}`}>
-                          {period.label}
-                        </div>
-                        <div className={`text-xs ${isActive ? 'text-white/90' : 'text-gray-500'}`}>
-                          {period.desc}
-                        </div>
-                      </div>
-                      {isActive && (
-                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-white rounded-full flex items-center justify-center">
-                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
           </Card>
 
           {/* Error Handling */}
           {error && (
             <Card className="p-6 bg-red-50 border-l-4 border-red-400">
-              <div className="flex items-start space-x-4">
-                <div className="p-2 bg-red-100 rounded-lg">
-                  <span className="text-xl text-red-600">⚠️</span>
+              <div className="flex items-center">
+                <span className="text-red-400 mr-3">⚠️</span>
+                <div>
+                  <h3 className="font-semibold text-red-800">Unable to Load Financial Data</h3>
+                  <p className="text-red-700 text-sm">{error}</p>
                 </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-red-800 mb-1">Unable to Load Financial Data</h3>
-                  <p className="text-red-700 text-sm mb-3">{error}</p>
+              </div>
+            </Card>
+          )}
+
+          {/* Analytics Hub */}
+          <Card className="p-6">
+            {/* Header with Tabs */}
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="font-medium text-gray-900">Financial Analytics</h3>
+              
+              <div className="flex items-center bg-gray-100 rounded-lg p-1">
+                <button
+                  onClick={() => setActiveChartTab('overview')}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                    activeChartTab === 'overview'
+                      ? 'bg-white text-blue-600 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  <span className="flex items-center space-x-2">
+                    <span>🍩</span>
+                    <span>Overview</span>
+                  </span>
+                </button>
+                <button
+                  onClick={() => setActiveChartTab('analytics')}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                    activeChartTab === 'analytics'
+                      ? 'bg-white text-blue-600 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  <span className="flex items-center space-x-2">
+                    <span>📊</span>
+                    <span>Analytics</span>
+                  </span>
+                </button>
+              </div>
+            </div>
+            
+            {/* Chart Content */}
+            <div className="min-h-[400px]">
+              {activeChartTab === 'overview' ? (
+                <IncomeExpenseCharts 
+                  transactions={transactions}
+                  dateRange={dateRange}
+                />
+              ) : (
+                <SpendingAnalytics 
+                  transactions={transactions}
+                  dateRange={dateRange}
+                />
+              )}
+            </div>
+          </Card>
+
+          {transactions.length === 0 && !loading && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-center py-12"
+            >
+              <Card className="p-12 max-w-2xl mx-auto">
+                <div className="text-6xl mb-6">💼</div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                  Welcome to Your Financial Dashboard
+                </h3>
+                <p className="text-gray-600 mb-8 max-w-lg mx-auto">
+                  Get started by uploading your bank statements to unlock powerful insights about your spending patterns, 
+                  AI-driven recommendations, and clear visualizations of your financial health.
+                </p>
+                <div className="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4">
                   <Button
-                    onClick={() => window.location.reload()}
-                    className="bg-red-600 hover:bg-red-700 text-white text-sm px-4 py-2"
+                    onClick={() => router.push('/statements')}
+                    className="bg-blue-600 text-white px-8 py-3 flex items-center justify-center space-x-2"
                   >
-                    Try Again
+                    <span>📄</span>
+                    <span>Upload Your First Statement</span>
+                  </Button>
+                  <Button
+                    onClick={() => router.push('/bank-accounts')}
+                    variant="secondary"
+                    className="px-8 py-3 flex items-center justify-center space-x-2"
+                  >
+                    <span>🏦</span>
+                    <span>Add Bank Account</span>
                   </Button>
                 </div>
-              </div>
-            </Card>
+              </Card>
+            </motion.div>
           )}
 
-          {/* Empty State */}
-          {transactions && transactions.length === 0 && !loading && !error && (
-            <Card className="p-12 text-center">
-              <div className="w-24 h-24 mx-auto mb-6 bg-gray-100 rounded-full flex items-center justify-center">
-                <span className="text-4xl">💼</span>
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                Welcome to Your Financial Journey
-              </h3>
-              <p className="text-gray-600 mb-8 max-w-lg mx-auto">
-                Your dashboard is ready to track your financial health. Start by uploading bank statements 
-                or adding transactions to see personalized insights and analytics.
-              </p>
-              <div className="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4">
-                <Button
-                  onClick={() => router.push('/statements')}
-                  className="bg-blue-600 text-white px-6 py-3"
-                >
-                  Upload Statements
-                </Button>
-                <Button
-                  onClick={() => router.push('/categorize')}
-                  variant="secondary"
-                  className="px-6 py-3"
-                >
-                  Categorize Transactions
-                </Button>
-              </div>
-            </Card>
-          )}
-
-          {/* No Data in Date Range State */}
-          {transactions && transactions.length > 0 && filteredTransactionsCount === 0 && !loading && !error && (
-            <Card className="p-8 text-center">
-              <div className="w-16 h-16 mx-auto mb-4 bg-yellow-100 rounded-full flex items-center justify-center">
-                <span className="text-2xl">📅</span>
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                No Transactions in Selected Date Range
-              </h3>
-              <p className="text-gray-600 mb-6">
-                There are no transactions for the selected date range. Try adjusting your date filter 
-                or selecting a different time period to view your financial data.
-              </p>
-              <Button
-                onClick={() => setDateRange({
-                  start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
-                  end: new Date().toISOString().split('T')[0]
-                })}
-                className="bg-amber-600 text-white px-6 py-3"
-              >
-                Reset to Current Month
-              </Button>
-            </Card>
-          )}
-
-          {/* Loading State */}
-          {loading && (
-            <Card className="p-12 text-center">
-              <div className="w-16 h-16 mx-auto mb-6 bg-blue-100 rounded-full flex items-center justify-center">
-                <span className="text-2xl animate-pulse">⚡</span>
-              </div>
-              <h2 className="text-xl font-bold text-gray-900 mb-2">
-                Analyzing Your Financial Data
-              </h2>
-              <p className="text-gray-600">
-                Processing transactions and calculating insights...
-              </p>
-            </Card>
-          )}
-
-          {/* Show dashboard content when filtered transactions are available */}
-          {transactions && transactions.length > 0 && filteredTransactionsCount > 0 && !loading && !error && (
-            <>
-              {/* Summary Cards - Compact Design */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                {/* Total Balance Card */}
-                <Card className="p-4 border-l-4 border-blue-500">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="p-1.5 bg-blue-100 rounded-lg">
-                      <span className="text-blue-600">💰</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded">
-                        Net Worth
-                      </div>
-                      <button 
-                        onClick={fetchNetWorth}
-                        disabled={balanceLoading}
-                        className="text-xs text-gray-500 hover:text-gray-700 transition-colors"
-                        title="Refresh balances"
-                      >
-                        {balanceLoading ? '🔄' : '↻'}
-                      </button>
-                    </div>
-                  </div>
-                  <h3 className="text-sm font-medium text-gray-600 mb-1">
-                    Total Balance
-                  </h3>
-                  {balanceLoading ? (
-                    <div className="text-2xl font-bold text-gray-400 mb-2">
-                      Loading...
-                    </div>
-                  ) : balanceError ? (
-                    <div className="text-2xl font-bold text-red-500 mb-2">
-                      Error
-                    </div>
-                  ) : (
-                    <p className="text-2xl font-bold text-gray-900 mb-2">
-                      {formatAmount(totalBalance)}
-                    </p>
-                  )}
-                  <div className="flex items-center justify-between">
-                    <span className={`text-xs px-2 py-1 rounded ${totalBalance >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                      {totalBalance >= 0 ? 'Positive' : 'Negative'}
-                    </span>
-                    {netWorth && (
-                      <div className="text-xs text-gray-500">
-                        {netWorth.account_count} account{netWorth.account_count !== 1 ? 's' : ''}
-                      </div>
-                    )}
-                  </div>
-                  {netWorth?.last_updated && (
-                    <div className="text-xs text-gray-400 mt-2">
-                      Updated: {new Date(netWorth.last_updated).toLocaleDateString()}
-                    </div>
-                  )}
-                  {netWorth?.latest_statement_month && netWorth.latest_statement_month !== 'No statements' && (
-                    <div className="text-xs text-blue-600 mt-1 font-medium">
-                      Latest Statement: {netWorth.latest_statement_month}
-                    </div>
-                  )}
-                </Card>
-
-                {/* Income Card */}
-                <Card className="p-4 border-l-4 border-green-500">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="p-1.5 bg-green-100 rounded-lg">
-                      <span className="text-green-600">📈</span>
-                    </div>
-                    <div className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded">
-                      Selected Period
-                    </div>
-                  </div>
-                  <h3 className="text-sm font-medium text-gray-600 mb-1">
-                    Total Income
-                  </h3>
-                  <p className="text-2xl font-bold text-gray-900 mb-2">
-                    {formatAmount(monthlyIncome)}
-                  </p>
-                  <span className="text-xs px-2 py-1 rounded bg-green-100 text-green-700">
-                    Revenue
-                  </span>
-                </Card>
-
-                {/* Expenses Card */}
-                <Card className="p-4 border-l-4 border-red-500">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="p-1.5 bg-red-100 rounded-lg">
-                      <span className="text-red-600">📉</span>
-                    </div>
-                    <div className="text-xs font-medium text-red-600 bg-red-50 px-2 py-1 rounded">
-                      Selected Period
-                    </div>
-                  </div>
-                  <h3 className="text-sm font-medium text-gray-600 mb-1">
-                    Total Expenses
-                  </h3>
-                  <p className="text-2xl font-bold text-gray-900 mb-2">
-                    {formatAmount(monthlyExpenses)}
-                  </p>
-                  <div className="flex flex-wrap gap-1">
-                    <span className="text-xs px-2 py-1 rounded bg-red-100 text-red-700">
-                      Spending
-                    </span>
-                    {monthlyIncome > 0 && (
-                      <span className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700">
-                        {((monthlyExpenses / monthlyIncome) * 100).toFixed(0)}% of income
-                      </span>
-                    )}
-                  </div>
-                </Card>
-              </div>
-
-              {/* Enhanced Charts & Analytics Section */}
-              <div className="mt-6">
-                <EnhancedAnalytics 
-                  transactions={transactions || []}
-                  dateRange={dateRange}
-                  onDateRangeChange={(newDateRange: DateRange) => setDateRange(newDateRange)}
-                />
-              </div>
-            </>
-          )}
-        
+          {/* Footer */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.8 }}
+            className="mt-8 text-center text-gray-500 text-sm"
+          >
+            <p>🔧 Enhanced Dashboard • Built with modern React patterns • Financial insights at your fingertips</p>
+          </motion.div>
         </div>
       </div>
     </Layout>

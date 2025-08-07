@@ -582,18 +582,18 @@ export const IncomeExpenseCharts: React.FC<IncomeExpenseChartsProps> = ({
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.2 }}
-        className="text-center mb-6"
+        className="text-center mb-4"
       >
-        <h3 className="text-2xl font-light text-gray-600 mb-2">{title}</h3>
+        <h3 className="text-lg font-medium text-gray-700 mb-2">{title}</h3>
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.4 }}
-          className={`text-4xl font-bold ${color} mb-1`}
+          className={`text-2xl font-bold ${color} mb-1`}
         >
           {formatAmount(total)}
         </motion.div>
-        <div className="text-sm text-gray-500">
+        <div className="text-xs text-gray-500">
           {data.length} categor{data.length === 1 ? 'y' : 'ies'}
         </div>
       </motion.div>
@@ -653,16 +653,6 @@ export const IncomeExpenseCharts: React.FC<IncomeExpenseChartsProps> = ({
         transition={{ duration: 0.5 }}
         className="space-y-8"
       >
-        {/* Header */}
-        <div className="text-center">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">
-            Financial Overview
-          </h2>
-          <p className="text-gray-600">
-            Visual breakdown of your income and expenses by category
-          </p>
-        </div>
-
         {/* Charts Side by Side */}
         <div className="flex flex-col lg:flex-row gap-12 items-start">
           {/* Income Chart */}
