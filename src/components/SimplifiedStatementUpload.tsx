@@ -114,6 +114,15 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
         userCategories
       );
       
+      // Check if validation failed (now returns result instead of throwing)
+      if (result.validationResult && !result.validationResult.isValid) {
+        // Keep upload area expanded for retry
+        setUploadMinimized(false);
+        console.log('❌ Statement validation failed:', result.validationResult.errorMessage);
+        // The validation error is already displayed in the UI, no need to throw
+        return;
+      }
+      
       console.log(`✅ Successfully extracted ${result.transactions.length} transactions using Enhanced AI`);
       
       // Set real security breakdown from the processing result

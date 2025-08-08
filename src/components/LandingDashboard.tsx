@@ -114,7 +114,7 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user }) => {
   const dispatch = useDispatch<AppDispatch>();
   
   // Use enhanced Redux slice with real-time integration
-  const { items: transactions, isLoading, error, realtimeConnected, lastUpdated } = useSelector((state: RootState) => state.enhancedTransactions);
+  const { items: transactions, isLoading, error } = useSelector((state: RootState) => state.enhancedTransactions);
   
   // Initialize real-time integration
   const realtimeIntegration = useRealtimeIntegration();
@@ -135,11 +135,9 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user }) => {
   const [balanceData, setBalanceData] = useState<{
     totalBalance: number;
     isLoading: boolean;
-    lastUpdated: string | null;
   }>({
     totalBalance: 0,
     isLoading: false,
-    lastUpdated: null,
   });
   
   // Memoized calculations for better performance - showing LAST MONTH data
@@ -186,7 +184,6 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user }) => {
       setBalanceData({
         totalBalance: result.total_balance,
         isLoading: false,
-        lastUpdated: new Date().toISOString(),
       });
     } catch (error) {
       LoggingService.error('LandingDashboard: Failed to fetch balance data', error as Error);
@@ -331,23 +328,7 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user }) => {
               </p>
             </motion.div>
             
-            {/* Status Indicator - Minimal and Elegant */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.8, duration: 0.5 }}
-              className="inline-flex items-center space-x-3 bg-white/10 backdrop-blur-md rounded-full px-6 py-3 border border-white/20"
-            >
-              <div className={`w-2 h-2 rounded-full ${realtimeConnected ? 'bg-emerald-400' : 'bg-amber-400'} animate-pulse`}></div>
-              <span className="text-sm font-medium text-blue-50">
-                {realtimeConnected ? 'Live' : 'Syncing'}
-              </span>
-              {lastUpdated && (
-                <span className="text-xs text-blue-200 opacity-75">
-                  {new Date(lastUpdated).toLocaleTimeString()}
-                </span>
-              )}
-            </motion.div>
+
           </div>
         </div>
       </motion.section>
@@ -653,20 +634,6 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user }) => {
           transition={{ delay: 1.6, duration: 0.6 }}
           className="text-center"
         >
-          <Button
-            variant="secondary"
-            onClick={handleRefresh}
-            disabled={isRefreshing || isLoading}
-            className="flex items-center space-x-3 mx-auto bg-white shadow-lg"
-          >
-            <span className={`${isRefreshing ? 'animate-spin' : ''}`}>🔄</span>
-            <span>{isRefreshing ? 'Refreshing...' : 'Refresh Data'}</span>
-          </Button>
-          {lastUpdated && (
-            <p className="text-sm text-gray-500 mt-3">
-              Last updated: {new Date(lastUpdated).toLocaleString()}
-            </p>
-          )}
         </motion.div>
       </div>
 

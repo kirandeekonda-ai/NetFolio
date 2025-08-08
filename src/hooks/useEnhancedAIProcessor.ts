@@ -474,7 +474,22 @@ export const useEnhancedAIProcessor = (): UseEnhancedAIProcessorReturn => {
       setValidationResult(validation);
 
       if (!validation.isValid) {
-        throw new Error(validation.errorMessage || 'Statement validation failed');
+        // Log validation failure but don't throw - return a proper failed result
+        addLog(`❌ Statement validation failed: ${validation.errorMessage || 'Unknown validation error'}`);
+        
+        return {
+          transactions: [],
+          validationResult: validation,
+          pageResults: [],
+          securityBreakdown: validation.securityBreakdown,
+          analytics: {
+            totalPages: totalPages,
+            successfulPages: 0,
+            failedPages: 0,
+            totalTransactions: 0,
+            processingTimeMs: Date.now() - startTime
+          }
+        };
       }
 
       // Step 3: Process pages sequentially

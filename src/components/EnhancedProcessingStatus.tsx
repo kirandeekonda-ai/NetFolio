@@ -173,273 +173,500 @@ export const EnhancedProcessingStatus: React.FC<EnhancedProcessingStatusProps> =
           </div>
         )}
 
-        {/* Statement Validation Results */}
+        {/* Professional Statement Validation Results */}
         {validationResult && (
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className={`p-5 rounded-xl border-2 shadow-md ${
-              validationResult.isValid 
-                ? 'border-green-300 bg-green-50' 
-                : 'border-red-300 bg-red-50'
-            }`}
+            className="relative"
           >
-            <div className="flex items-center space-x-3 mb-4">
-              <motion.span 
-                className="text-2xl"
-                animate={{ 
-                  scale: validationResult.isValid ? [1, 1.2, 1] : [1, 0.8, 1] 
-                }}
-                transition={{ duration: 0.5 }}
-              >
-                {validationResult.isValid ? '✅' : '❌'}
-              </motion.span>
-              <h4 className="font-bold text-lg">
-                Statement Validation {validationResult.isValid ? 'Passed' : 'Failed'}
-              </h4>
-              <div className="ml-auto">
-                <span className="px-3 py-1 bg-white bg-opacity-50 rounded-full text-sm font-medium">
-                  {validationResult.confidence}% confidence
-                </span>
+            <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-green-500/10 rounded-3xl blur-xl"></div>
+            
+            <div className={`relative bg-white rounded-3xl border border-gray-200/60 shadow-xl backdrop-blur-sm overflow-hidden ${
+              !validationResult.isValid ? 'border-red-200/60' : ''
+            }`}>
+              {/* Modern Header Section */}
+              <div className={`px-8 py-6 border-b border-gray-100 ${
+                validationResult.isValid 
+                  ? 'bg-gradient-to-r from-emerald-50 to-green-50/30' 
+                  : 'bg-gradient-to-r from-red-50 to-rose-50/30'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <motion.div
+                      className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg ${
+                        validationResult.isValid
+                          ? 'bg-gradient-to-br from-emerald-500 to-green-600'
+                          : 'bg-gradient-to-br from-red-500 to-rose-600'
+                      }`}
+                      animate={{ 
+                        scale: validationResult.isValid ? [1, 1.1, 1] : [1, 0.95, 1] 
+                      }}
+                      transition={{ duration: 0.8 }}
+                    >
+                      <span className="text-2xl text-white">
+                        {validationResult.isValid ? '✅' : '❌'}
+                      </span>
+                    </motion.div>
+                    
+                    <div>
+                      <h3 className={`text-2xl font-bold mb-1 ${
+                        validationResult.isValid ? 'text-gray-900' : 'text-red-900'
+                      }`}>
+                        Statement Validation {validationResult.isValid ? 'Passed' : 'Failed'}
+                      </h3>
+                      <p className={`font-medium ${
+                        validationResult.isValid ? 'text-emerald-600' : 'text-red-600'
+                      }`}>
+                        {validationResult.isValid 
+                          ? 'All validation checks completed successfully'
+                          : 'Validation failed - please check the details below'
+                        }
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Confidence Badge */}
+                  <motion.div 
+                    className={`px-4 py-2 rounded-2xl shadow-md border ${
+                      validationResult.isValid
+                        ? 'bg-white border-emerald-200 text-emerald-700'
+                        : 'bg-white border-red-200 text-red-700'
+                    }`}
+                    whileHover={{ scale: 1.05 }}
+                  >
+                    <div className="text-center">
+                      <div className="text-2xl font-bold">
+                        {validationResult.confidence}%
+                      </div>
+                      <div className="text-xs uppercase tracking-wider font-semibold">
+                        Confidence
+                      </div>
+                    </div>
+                  </motion.div>
+                </div>
+              </div>
+
+              <div className="p-8">
+                {validationResult.isValid ? (
+                  <div className="space-y-6">
+                    {/* Validation Checks Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {[
+                        { key: 'bankMatches', label: 'Bank Match', value: validationResult.bankMatches, icon: '🏦' },
+                        { key: 'monthMatches', label: 'Month Match', value: validationResult.monthMatches, icon: '📅' },
+                        { key: 'yearMatches', label: 'Year Match', value: validationResult.yearMatches, icon: '🗓️' }
+                      ].map(({ key, label, value, icon }, index) => (
+                        <motion.div 
+                          key={key}
+                          className={`relative bg-gradient-to-br rounded-2xl p-5 border shadow-sm hover:shadow-md transition-all duration-300 ${
+                            value 
+                              ? 'from-emerald-50 to-green-100 border-emerald-200/50' 
+                              : 'from-red-50 to-rose-100 border-red-200/50'
+                          }`}
+                          whileHover={{ scale: 1.02, y: -2 }}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.1 }}
+                        >
+                          {/* Background decoration */}
+                          <div className="absolute top-0 right-0 w-16 h-16 opacity-5 overflow-hidden rounded-2xl">
+                            <div className={`w-full h-full transform rotate-12 scale-150 ${
+                              value ? 'bg-gradient-to-br from-emerald-500 to-green-600' : 'bg-gradient-to-br from-red-500 to-rose-600'
+                            }`}></div>
+                          </div>
+                          
+                          <div className="relative flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                              <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-md ${
+                                value 
+                                  ? 'bg-gradient-to-br from-emerald-500 to-green-600' 
+                                  : 'bg-gradient-to-br from-red-500 to-rose-600'
+                              }`}>
+                                <span className="text-white text-lg">{icon}</span>
+                              </div>
+                              <div>
+                                <div className="font-semibold text-gray-900 text-sm">
+                                  {label}
+                                </div>
+                                <div className={`text-xs mt-1 font-medium ${
+                                  value ? 'text-emerald-600' : 'text-red-600'
+                                }`}>
+                                  {value ? 'Verified' : 'Failed'}
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                              value ? 'bg-emerald-100' : 'bg-red-100'
+                            }`}>
+                              <span className="text-lg">
+                                {value ? '✅' : '❌'}
+                              </span>
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                    
+                    {/* Detected Bank Information */}
+                    {validationResult.detectedBank && (
+                      <motion.div 
+                        className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-2xl p-6 border border-emerald-200/50"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3 }}
+                      >
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl flex items-center justify-center">
+                            <span className="text-white">🏦</span>
+                          </div>
+                          <div>
+                            <div className="text-sm text-emerald-600 font-medium uppercase tracking-wider">
+                              Detected Bank
+                            </div>
+                            <div className="text-lg font-bold text-gray-900">
+                              {validationResult.detectedBank}
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Error Message */}
+                    <motion.div 
+                      className="bg-gradient-to-r from-red-50 to-rose-50 rounded-2xl p-6 border border-red-200/50"
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                    >
+                      <div className="flex items-start space-x-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-rose-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                          <span className="text-white">⚠️</span>
+                        </div>
+                        <div>
+                          <div className="text-sm text-red-600 font-medium uppercase tracking-wider mb-1">
+                            Validation Error
+                          </div>
+                          <div className="text-red-800 font-medium">
+                            {validationResult.errorMessage}
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                    
+                    {/* Detected Information */}
+                    {(validationResult.detectedBank || validationResult.detectedMonth || validationResult.detectedYear) && (
+                      <motion.div 
+                        className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
+                      >
+                        <div className="text-sm text-gray-600 font-medium uppercase tracking-wider mb-3">
+                          Detected Information
+                        </div>
+                        <div className="space-y-2">
+                          {validationResult.detectedBank && (
+                            <div className="flex items-center space-x-2">
+                              <span className="text-gray-500 font-medium">Bank:</span>
+                              <span className="text-gray-900">{validationResult.detectedBank}</span>
+                            </div>
+                          )}
+                          {validationResult.detectedMonth && (
+                            <div className="flex items-center space-x-2">
+                              <span className="text-gray-500 font-medium">Month:</span>
+                              <span className="text-gray-900">{validationResult.detectedMonth}</span>
+                            </div>
+                          )}
+                          {validationResult.detectedYear && (
+                            <div className="flex items-center space-x-2">
+                              <span className="text-gray-500 font-medium">Year:</span>
+                              <span className="text-gray-900">{validationResult.detectedYear}</span>
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
-
-            {validationResult.isValid ? (
-              <div className="space-y-3">
-                <div className="grid grid-cols-3 gap-3">
-                  {[
-                    { key: 'bankMatches', label: 'Bank Match', value: validationResult.bankMatches },
-                    { key: 'monthMatches', label: 'Month Match', value: validationResult.monthMatches },
-                    { key: 'yearMatches', label: 'Year Match', value: validationResult.yearMatches }
-                  ].map(({ key, label, value }) => (
-                    <motion.div 
-                      key={key}
-                      className="flex items-center justify-center space-x-2 p-2 bg-white bg-opacity-30 rounded-lg"
-                      whileHover={{ scale: 1.05 }}
-                    >
-                      <span className="text-lg">{value ? '✅' : '❌'}</span>
-                      <span className="text-sm font-medium">{label}</span>
-                    </motion.div>
-                  ))}
-                </div>
-                
-                {validationResult.detectedBank && (
-                  <div className="text-sm text-green-700 bg-green-100 p-2 rounded">
-                    🏦 Detected Bank: <strong>{validationResult.detectedBank}</strong>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <div className="text-red-700 font-medium bg-red-100 p-3 rounded-lg">
-                  {validationResult.errorMessage}
-                </div>
-                
-                {(validationResult.detectedBank || validationResult.detectedMonth || validationResult.detectedYear) && (
-                  <div className="bg-red-50 p-3 rounded-lg space-y-1 text-sm">
-                    {validationResult.detectedBank && (
-                      <p><strong>Detected Bank:</strong> {validationResult.detectedBank}</p>
-                    )}
-                    {validationResult.detectedMonth && (
-                      <p><strong>Detected Month:</strong> {validationResult.detectedMonth}</p>
-                    )}
-                    {validationResult.detectedYear && (
-                      <p><strong>Detected Year:</strong> {validationResult.detectedYear}</p>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
           </motion.div>
         )}
 
-        {/* Enhanced Security Breakdown - More Prominent */}
+        {/* Professional Security Dashboard */}
         {securityBreakdown && (
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="relative overflow-hidden"
+            className="relative"
           >
-            {/* Glowing background effect during processing */}
+            {/* Subtle background glow for processing state */}
             {progress?.status === 'processing' && (
-              <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/30 to-green-500/30 rounded-2xl blur-xl animate-pulse"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-3xl blur-xl"></div>
             )}
             
-            <motion.div 
-              className="relative p-6 rounded-2xl border-2 border-emerald-300 bg-emerald-50/95 backdrop-blur-sm shadow-xl"
-              animate={progress?.status === 'processing' ? {
-                borderColor: ['#10b981', '#059669', '#10b981'],
-                boxShadow: [
-                  '0 10px 25px -3px rgba(16, 185, 129, 0.2)',
-                  '0 15px 35px -3px rgba(16, 185, 129, 0.4)',
-                  '0 10px 25px -3px rgba(16, 185, 129, 0.2)'
-                ]
-              } : {}}
-              transition={{ duration: 2, repeat: progress?.status === 'processing' ? Infinity : 0 }}
-            >
-              {/* Header with prominent total counter */}
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center space-x-4">
-                  <motion.div
-                    className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg"
-                    animate={progress?.status === 'processing' ? { 
-                      scale: [1, 1.1, 1],
-                      rotate: [0, 5, -5, 0] 
-                    } : {}}
-                    transition={{ 
-                      repeat: progress?.status === 'processing' ? Infinity : 0,
-                      duration: 2,
-                      ease: "easeInOut"
-                    }}
-                  >
-                    <span className="text-2xl text-white">🛡️</span>
-                  </motion.div>
+            <div className="relative bg-white rounded-3xl border border-gray-200/60 shadow-xl backdrop-blur-sm overflow-hidden">
+              {/* Modern Header Section */}
+              <div className="bg-gradient-to-r from-slate-50 to-blue-50/30 px-8 py-6 border-b border-gray-100">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <motion.div
+                      className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg"
+                      animate={progress?.status === 'processing' ? { 
+                        rotate: [0, 360],
+                        scale: [1, 1.05, 1]
+                      } : {}}
+                      transition={{ 
+                        repeat: progress?.status === 'processing' ? Infinity : 0,
+                        duration: 3,
+                        ease: "easeInOut"
+                      }}
+                    >
+                      <span className="text-2xl text-white">🛡️</span>
+                    </motion.div>
+                    
+                    <div>
+                      <h3 className="text-2xl font-bold text-gray-900 mb-1">
+                        Data Protection Active
+                      </h3>
+                      <div className="flex items-center space-x-3">
+                        <p className="text-gray-600 font-medium">
+                          {progress?.status === 'processing' 
+                            ? 'Masking sensitive information in real-time...' 
+                            : 'Sensitive data successfully protected'
+                          }
+                        </p>
+                        {progress?.status === 'processing' && (
+                          <motion.div 
+                            className="px-3 py-1 bg-blue-100 text-blue-700 text-sm font-semibold rounded-full border border-blue-200"
+                            animate={{ opacity: [0.7, 1, 0.7] }}
+                            transition={{ repeat: Infinity, duration: 2 }}
+                          >
+                            • LIVE
+                          </motion.div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                   
-                  <div>
-                    <h4 className="font-bold text-2xl text-emerald-800 mb-1">
-                      Data Protection Active
-                    </h4>
-                    <p className="text-emerald-600">
-                      {progress?.status === 'processing' 
-                        ? '🔄 Masking sensitive information in real-time...' 
-                        : '✅ Sensitive data successfully protected'
-                      }
-                    </p>
-                  </div>
+                  {/* Elegant counter card */}
+                  <motion.div 
+                    className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 min-w-[140px]"
+                    animate={progress?.status === 'processing' ? { 
+                      scale: [1, 1.02, 1],
+                      boxShadow: [
+                        '0 10px 25px -3px rgba(0, 0, 0, 0.1)',
+                        '0 15px 35px -3px rgba(59, 130, 246, 0.15)',
+                        '0 10px 25px -3px rgba(0, 0, 0, 0.1)'
+                      ]
+                    } : {}}
+                    transition={{ repeat: progress?.status === 'processing' ? Infinity : 0, duration: 2 }}
+                  >
+                    <div className="text-center">
+                      <div className="text-4xl font-bold text-gray-900 mb-1">
+                        {Object.values(securityBreakdown).reduce((sum, count) => sum + count, 0)}
+                      </div>
+                      <div className="text-sm text-gray-500 uppercase tracking-wider font-semibold">
+                        Items Protected
+                      </div>
+                    </div>
+                  </motion.div>
                 </div>
-                
-                {/* Large prominent counter */}
-                <motion.div 
-                  className="text-center bg-white rounded-2xl p-6 shadow-lg border-2 border-emerald-200 min-w-[120px]"
-                  animate={progress?.status === 'processing' ? { 
-                    scale: [1, 1.05, 1],
-                    borderColor: ['#10b981', '#059669', '#10b981']
-                  } : {}}
-                  transition={{ repeat: progress?.status === 'processing' ? Infinity : 0, duration: 1.5 }}
-                >
-                  <div className="text-4xl font-bold text-emerald-800 mb-1">
-                    {Object.values(securityBreakdown).reduce((sum, count) => sum + count, 0)}
-                  </div>
-                  <div className="text-sm text-emerald-600 uppercase tracking-wider font-semibold">
-                    Items Protected
-                  </div>
-                </motion.div>
               </div>
 
-              {/* Real-time status banner during processing */}
+              {/* Processing Status Bar */}
               {progress?.status === 'processing' && (
                 <motion.div 
-                  className="mb-6 p-4 bg-gradient-to-r from-emerald-100 to-green-100 rounded-xl border-2 border-emerald-200"
-                  animate={{ 
-                    opacity: [0.8, 1, 0.8],
-                    borderColor: ['#10b981', '#059669', '#10b981']
-                  }}
-                  transition={{ repeat: Infinity, duration: 2 }}
+                  className="px-8 py-4 bg-gradient-to-r from-blue-50 to-purple-50/50 border-b border-gray-100"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
                 >
-                  <div className="flex items-center justify-center space-x-3">
+                  <div className="flex items-center justify-center space-x-4">
                     <motion.div
                       animate={{ rotate: 360 }}
                       transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
-                      className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full"
+                      className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full"
                     />
-                    <span className="text-emerald-700 font-semibold text-lg">
-                      🔍 Actively scanning and masking sensitive data across all pages...
+                    <span className="text-gray-700 font-medium">
+                      Actively scanning and masking sensitive data across all pages...
                     </span>
                   </div>
                 </motion.div>
               )}
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Object.entries(securityBreakdown)
-                .filter(([_, count]) => count > 0)
-                .map(([key, count], index) => {
-                  const labels: Record<string, { icon: string; label: string; color: string }> = {
-                    accountNumbers: { icon: '🏦', label: 'Account Numbers', color: 'bg-blue-100 text-blue-800 border-blue-300' },
-                    mobileNumbers: { icon: '📱', label: 'Mobile Numbers', color: 'bg-purple-100 text-purple-800 border-purple-300' },
-                    emails: { icon: '📧', label: 'Email Addresses', color: 'bg-orange-100 text-orange-800 border-orange-300' },
-                    panIds: { icon: '🆔', label: 'PAN IDs', color: 'bg-red-100 text-red-800 border-red-300' },
-                    customerIds: { icon: '👤', label: 'Customer IDs', color: 'bg-indigo-100 text-indigo-800 border-indigo-300' },
-                    ifscCodes: { icon: '🏛️', label: 'IFSC Codes', color: 'bg-teal-100 text-teal-800 border-teal-300' },
-                    cardNumbers: { icon: '💳', label: 'Card Numbers', color: 'bg-pink-100 text-pink-800 border-pink-300' },
-                    addresses: { icon: '🏠', label: 'Addresses', color: 'bg-yellow-100 text-yellow-800 border-yellow-300' },
-                    names: { icon: '👥', label: 'Names', color: 'bg-green-100 text-green-800 border-green-300' }
-                  };
-                  
-                  const item = labels[key] || { icon: '🔒', label: key, color: 'bg-gray-100 text-gray-800 border-gray-300' };
-                  
-                  return (
-                    <motion.div 
-                      key={key}
-                      className={`flex items-center justify-between rounded-xl px-4 py-4 border-2 ${item.color} shadow-md hover:shadow-lg transition-shadow`}
-                      whileHover={{ scale: 1.02, y: -2 }}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.1 }}
+              {/* Modern Security Breakdown Grid */}
+              <div className="p-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {Object.entries(securityBreakdown)
+                    .filter(([_, count]) => count > 0)
+                    .map(([key, count], index) => {
+                      const securityItems: Record<string, { icon: string; label: string; gradient: string; iconBg: string }> = {
+                        accountNumbers: { 
+                          icon: '🏦', 
+                          label: 'Account Numbers', 
+                          gradient: 'from-blue-50 to-blue-100',
+                          iconBg: 'from-blue-500 to-blue-600'
+                        },
+                        mobileNumbers: { 
+                          icon: '📱', 
+                          label: 'Mobile Numbers', 
+                          gradient: 'from-purple-50 to-purple-100',
+                          iconBg: 'from-purple-500 to-purple-600'
+                        },
+                        emails: { 
+                          icon: '📧', 
+                          label: 'Email Addresses', 
+                          gradient: 'from-orange-50 to-orange-100',
+                          iconBg: 'from-orange-500 to-orange-600'
+                        },
+                        panIds: { 
+                          icon: '🆔', 
+                          label: 'PAN IDs', 
+                          gradient: 'from-red-50 to-red-100',
+                          iconBg: 'from-red-500 to-red-600'
+                        },
+                        customerIds: { 
+                          icon: '👤', 
+                          label: 'Customer IDs', 
+                          gradient: 'from-indigo-50 to-indigo-100',
+                          iconBg: 'from-indigo-500 to-indigo-600'
+                        },
+                        ifscCodes: { 
+                          icon: '🏛️', 
+                          label: 'IFSC Codes', 
+                          gradient: 'from-teal-50 to-teal-100',
+                          iconBg: 'from-teal-500 to-teal-600'
+                        },
+                        cardNumbers: { 
+                          icon: '💳', 
+                          label: 'Card Numbers', 
+                          gradient: 'from-pink-50 to-pink-100',
+                          iconBg: 'from-pink-500 to-pink-600'
+                        },
+                        addresses: { 
+                          icon: '🏠', 
+                          label: 'Addresses', 
+                          gradient: 'from-yellow-50 to-amber-100',
+                          iconBg: 'from-yellow-500 to-amber-600'
+                        },
+                        names: { 
+                          icon: '👥', 
+                          label: 'Names', 
+                          gradient: 'from-emerald-50 to-emerald-100',
+                          iconBg: 'from-emerald-500 to-emerald-600'
+                        }
+                      };
+                      
+                      const item = securityItems[key] || { 
+                        icon: '🔒', 
+                        label: key, 
+                        gradient: 'from-gray-50 to-gray-100',
+                        iconBg: 'from-gray-500 to-gray-600'
+                      };
+                      
+                      return (
+                        <motion.div 
+                          key={key}
+                          className={`relative bg-gradient-to-br ${item.gradient} rounded-2xl p-5 border border-gray-200/50 shadow-sm hover:shadow-md transition-all duration-300 group`}
+                          whileHover={{ scale: 1.02, y: -2 }}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.1 }}
+                        >
+                          {/* Background decoration */}
+                          <div className="absolute top-0 right-0 w-20 h-20 opacity-5 overflow-hidden rounded-2xl">
+                            <div className={`w-full h-full bg-gradient-to-br ${item.iconBg} transform rotate-12 scale-150`}></div>
+                          </div>
+                          
+                          <div className="relative flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                              <div className={`w-12 h-12 bg-gradient-to-br ${item.iconBg} rounded-xl flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300`}>
+                                <span className="text-white text-lg">{item.icon}</span>
+                              </div>
+                              <div>
+                                <div className="font-semibold text-gray-900 text-sm">
+                                  {item.label}
+                                </div>
+                                <div className="text-xs text-gray-500 mt-1">
+                                  Protected items
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <motion.div 
+                              className="text-center bg-white rounded-xl p-3 shadow-md border border-gray-100 min-w-[60px]"
+                              animate={progress?.status === 'processing' && count > 0 ? { 
+                                scale: [1, 1.05, 1]
+                              } : {}}
+                              transition={{ 
+                                repeat: progress?.status === 'processing' ? Infinity : 0,
+                                duration: 2,
+                                delay: index * 0.2
+                              }}
+                            >
+                              <div className="text-2xl font-bold text-gray-900">
+                                {count}
+                              </div>
+                            </motion.div>
+                          </div>
+                        </motion.div>
+                      );
+                    })
+                  }
+                </div>
+                
+                {/* Professional Footer */}
+                <div className="mt-8 pt-6 border-t border-gray-100">
+                  <div className="flex items-center justify-center space-x-3 text-gray-600">
+                    <motion.div
+                      className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center"
+                      animate={progress?.status === 'processing' ? { scale: [1, 1.1, 1] } : {}}
+                      transition={{ repeat: progress?.status === 'processing' ? Infinity : 0, duration: 2 }}
                     >
-                      <div className="flex items-center space-x-3">
-                        <span className="text-2xl">{item.icon}</span>
-                        <span className="font-semibold text-sm">
-                          {item.label}
-                        </span>
-                      </div>
-                      <motion.div 
-                        className="font-bold text-2xl px-4 py-2 bg-white rounded-full shadow-md border-2 border-white"
-                        animate={progress?.status === 'processing' && count > 0 ? { 
-                          scale: [1, 1.1, 1],
-                          rotate: [0, 2, -2, 0]
-                        } : {}}
-                        transition={{ 
-                          repeat: progress?.status === 'processing' ? Infinity : 0,
-                          duration: 2,
-                          delay: index * 0.2
-                        }}
-                      >
-                        {count}
-                      </motion.div>
+                      <span className="text-white text-sm">🔐</span>
                     </motion.div>
-                  );
-                })
-              }
-            </div>
-            
-            {/* Footer message */}
-            <div className="mt-6 pt-4 border-t-2 border-emerald-200 text-center">
-              <div className="flex items-center justify-center space-x-3 text-emerald-700">
-                <motion.span
-                  animate={progress?.status === 'processing' ? { scale: [1, 1.2, 1] } : {}}
-                  transition={{ repeat: progress?.status === 'processing' ? Infinity : 0, duration: 1.5 }}
-                  className="text-2xl"
-                >
-                  🔐
-                </motion.span>
-                <span className="text-lg font-semibold">
-                  All sensitive information is automatically masked before AI processing
-                </span>
+                    <span className="font-medium">
+                      All sensitive information is automatically masked before AI processing
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
-            
-            </motion.div>
           </motion.div>
         )}
 
-        {/* Fallback Security Message When No Data Detected Yet */}
+        {/* Professional Fallback Security Message */}
         {!securityBreakdown && progress?.status === 'processing' && (
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="p-6 rounded-xl border-2 border-emerald-300 bg-emerald-50"
+            className="relative"
           >
-            <div className="flex items-center justify-center space-x-4 text-emerald-700">
-              <motion.span 
-                className="text-3xl"
-                animate={{ rotate: [0, 360] }}
-                transition={{ repeat: Infinity, duration: 3, ease: "linear" }}
-              >
-                🔐
-              </motion.span>
-              <span className="font-semibold text-lg">
-                🔍 Security scanning active - Analyzing pages for sensitive data...
-              </span>
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-3xl blur-xl"></div>
+            
+            <div className="relative bg-white rounded-3xl border border-gray-200/60 shadow-xl backdrop-blur-sm overflow-hidden">
+              <div className="bg-gradient-to-r from-slate-50 to-blue-50/30 px-8 py-6">
+                <div className="flex items-center justify-center space-x-4">
+                  <motion.div
+                    className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg"
+                    animate={{ rotate: [0, 360] }}
+                    transition={{ repeat: Infinity, duration: 3, ease: "linear" }}
+                  >
+                    <span className="text-2xl text-white">�️</span>
+                  </motion.div>
+                  <div className="text-center">
+                    <h3 className="text-xl font-bold text-gray-900 mb-1">
+                      Security Scanning Active
+                    </h3>
+                    <p className="text-gray-600 font-medium">
+                      Analyzing pages for sensitive data protection...
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           </motion.div>
         )}
