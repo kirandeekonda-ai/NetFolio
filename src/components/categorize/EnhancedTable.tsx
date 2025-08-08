@@ -88,9 +88,10 @@ const CategoryDropdown = ({
         exit={{ opacity: 0, y: -10 }}
         className="fixed z-[100] bg-white rounded-2xl shadow-2xl border border-gray-200/50 overflow-hidden"
         style={{
-          top: position.top,
+          top: Math.min(position.top, window.innerHeight - 260), // Ensure dropdown doesn't go below viewport
           left: position.left,
           width: position.width,
+          maxHeight: '240px', // Consistent with max-h-60
         }}
       >
         <div className="py-2 max-h-60 overflow-y-auto">
@@ -100,7 +101,9 @@ const CategoryDropdown = ({
             return (
               <button
                 key={category.id}
-                ref={(el) => (itemRefs.current[index] = el)}
+                ref={(el) => {
+                  itemRefs.current[index] = el;
+                }}
                 onClick={() => onSelect(category)}
                 className={`w-full px-4 py-3 text-left transition-all duration-150 group flex items-center space-x-3 ${
                   isFocused ? 'bg-blue-50' : 'hover:bg-gray-50'
@@ -142,8 +145,16 @@ export const EnhancedTable: React.FC<EnhancedTableProps> = ({
     const button = buttonRefs.current[transactionId];
     if (button) {
       const rect = button.getBoundingClientRect();
+      const dropdownHeight = 240; // max-h-60 = 240px
+      const viewportHeight = window.innerHeight;
+      const spaceBelow = viewportHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      
+      // Position dropdown above if there's not enough space below
+      const shouldPositionAbove = spaceBelow < dropdownHeight + 16 && spaceAbove > dropdownHeight;
+      
       setDropdownPosition({
-        top: rect.bottom + 8,
+        top: shouldPositionAbove ? rect.top - dropdownHeight - 8 : rect.bottom + 8,
         left: rect.left,
         width: rect.width,
       });
