@@ -23,6 +23,7 @@ import { BulkOperations } from '@/components/categorize/BulkOperations';
 import { EnhancedTable } from '@/components/categorize/EnhancedTable';
 import { ExportImportTools } from '@/components/categorize/ExportImportTools';
 import { CategorizationVisualAnalytics } from '@/components/categorize/CategorizationVisualAnalytics';
+import { TransferDetectionPanel } from '@/components/categorize/TransferDetectionPanel';
 
 const Categorize: NextPage = () => {
   const router = useRouter();
@@ -47,7 +48,7 @@ const Categorize: NextPage = () => {
   });
   
   const [selectedTransactions, setSelectedTransactions] = useState<Set<string>>(new Set());
-  const [activeView, setActiveView] = useState<'table' | 'insights' | 'analytics' | 'tools'>('table');
+  const [activeView, setActiveView] = useState<'table' | 'insights' | 'analytics' | 'tools' | 'transfers'>('table');
   const [undoStack, setUndoStack] = useState<Array<{ action: string; data: any }>>([]);
   const [redoStack, setRedoStack] = useState<Array<{ action: string; data: any }>>([]);
   
@@ -420,6 +421,7 @@ const Categorize: NextPage = () => {
   // View tabs
   const viewTabs = [
     { id: 'table', label: 'Transactions', icon: '📋' },
+    { id: 'transfers', label: 'Transfers', icon: '🔗' },
     { id: 'analytics', label: 'Analytics', icon: '📊' },
     { id: 'tools', label: 'Tools', icon: '🔧' }
   ];
@@ -572,6 +574,33 @@ const Categorize: NextPage = () => {
                 onCategoryChange={handleCategoryChange}
                 onSelectAll={handleSelectAll}
                 onDeselectAll={handleDeselectAll}
+                onTransferLinked={() => {
+                  // Refresh transactions after linking
+                  if (user?.id) {
+                    dispatch(fetchTransactions({ userId: user.id }));
+                  }
+                }}
+              />
+            </motion.div>
+          )}
+
+          {activeView === 'transfers' && (
+            <motion.div
+              key="transfers"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="space-y-6"
+            >
+              <TransferDetectionPanel
+                transactions={filteredAndSortedTransactions}
+                currency={currency}
+                onTransferLinked={() => {
+                  // Refresh transactions after linking
+                  if (user?.id) {
+                    dispatch(fetchTransactions({ userId: user.id }));
+                  }
+                }}
               />
             </motion.div>
           )}

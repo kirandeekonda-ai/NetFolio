@@ -4,6 +4,8 @@ import { Transaction, Category } from '@/types';
 import { formatAmount } from '@/utils/currency';
 import { getCategoryColorStyle } from '@/utils/categoryColors';
 import { Portal } from '../Portal';
+import { TransferLinkingModal } from './TransferLinkingModal';
+import { useTransferLinking } from '@/hooks/useTransferLinking';
 
 interface KeyboardShortcut {
   key: string;
@@ -20,6 +22,7 @@ interface EnhancedTableProps {
   onCategoryChange: (transaction: Transaction, category: Category) => void;
   onSelectAll: () => void;
   onDeselectAll: () => void;
+  onTransferLinked?: () => void;
 }
 
 const CategoryDropdown = ({
@@ -132,12 +135,19 @@ export const EnhancedTable: React.FC<EnhancedTableProps> = ({
   onCategoryChange,
   onSelectAll,
   onDeselectAll,
+  onTransferLinked,
 }) => {
   const [focusedRowIndex, setFocusedRowIndex] = useState<number | null>(null);
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
   const [quickCategoryMode, setQuickCategoryMode] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
+  const [hoveredRow, setHoveredRow] = useState<string | null>(null);
+  const [showTransferModal, setShowTransferModal] = useState(false);
+  const [selectedTransactionForTransfer, setSelectedTransactionForTransfer] = useState<Transaction | null>(null);
+  
+  // Transfer linking functionality
+  const { unlinkTransaction, isLoading: isUnlinking } = useTransferLinking();
   const buttonRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
   const rowRefs = useRef<(HTMLTableRowElement | null)[]>([]);
 
@@ -165,6 +175,44 @@ export const EnhancedTable: React.FC<EnhancedTableProps> = ({
   const handleCategorySelect = (transaction: Transaction, category: Category) => {
     onCategoryChange(transaction, category);
     setActiveDropdown(null);
+  };
+
+  const handleTransferLinkClick = (transaction: Transaction) => {
+    setSelectedTransactionForTransfer(transaction);
+    setShowTransferModal(true);
+  };
+
+  const handleTransferDelinkClick = async (transaction: Transaction) => {
+    if (!transaction.id) return;
+    
+    const success = await unlinkTransaction(transaction.id);
+    if (success && onTransferLinked) {
+      onTransferLinked();
+    }
+  };
+
+  const handleTransferLinked = () => {
+    if (onTransferLinked) {
+      onTransferLinked();
+    }
+    setShowTransferModal(false);
+    setSelectedTransactionForTransfer(null);
+  };
+
+  const isTransferLinked = (transaction: Transaction) => {
+    return transaction.is_internal_transfer || transaction.linked_transaction_id;
+  };
+
+  const getTransferIndicator = (transaction: Transaction) => {
+    if (transaction.is_internal_transfer && transaction.linked_transaction_id) {
+      return (
+        <div className="flex items-center space-x-1 text-xs text-blue-600">
+          <span>🔄</span>
+          <span>Linked Transfer</span>
+        </div>
+      );
+    }
+    return null;
   };
 
   useEffect(() => {
@@ -337,7 +385,8 @@ export const EnhancedTable: React.FC<EnhancedTableProps> = ({
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Transfer</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap min-w-[120px]">Amount</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
               </tr>
             </thead>
@@ -357,15 +406,17 @@ export const EnhancedTable: React.FC<EnhancedTableProps> = ({
                     tabIndex={-1}
                     data-row-index={index}
                     className={`
-                      cursor-pointer transition-all duration-200 hover:bg-blue-50/50 
+                      cursor-pointer transition-all duration-200 hover:bg-blue-50/50 relative group
                       focus:outline-none focus:ring-1 focus:ring-blue-400
                       ${isSelected ? 'bg-blue-50 border-l-4 border-blue-500' : ''}
                       ${isFocused ? 'bg-blue-25' : ''}
                     `}
                     onClick={() => handleRowClick(index, transaction)}
+                    onMouseEnter={() => setHoveredRow(transaction.id)}
+                    onMouseLeave={() => setHoveredRow(null)}
                   >
                     {/* Checkbox */}
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 relative">
                       <input
                         type="checkbox"
                         checked={isSelected}
@@ -387,6 +438,7 @@ export const EnhancedTable: React.FC<EnhancedTableProps> = ({
                       <div className="text-sm font-medium text-gray-900">
                         {transaction.description}
                       </div>
+                      {getTransferIndicator(transaction)}
                       {quickCategoryMode && isFocused && (
                         <div className="mt-1 text-xs text-blue-600">
                           Press 1-{Math.min(9, categories.length)} to categorize
@@ -394,13 +446,64 @@ export const EnhancedTable: React.FC<EnhancedTableProps> = ({
                       )}
                     </td>
 
+                    {/* Transfer Actions - Show before amount */}
+                    <td className="px-2 py-3 text-center relative">
+                      {hoveredRow === transaction.id && (
+                        <AnimatePresence>
+                          {!isTransferLinked(transaction) ? (
+                            <motion.button
+                              initial={{ opacity: 0, scale: 0.8 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={{ opacity: 0, scale: 0.8 }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleTransferLinkClick(transaction);
+                              }}
+                              className="bg-blue-600 text-white px-2 py-1 rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors shadow-lg flex items-center space-x-1"
+                              title="Link Transfer"
+                            >
+                              <span>🔗</span>
+                              <span>Link</span>
+                            </motion.button>
+                          ) : (
+                            <motion.button
+                              initial={{ opacity: 0, scale: 0.8 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={{ opacity: 0, scale: 0.8 }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleTransferDelinkClick(transaction);
+                              }}
+                              disabled={isUnlinking}
+                              className="bg-red-600 text-white px-2 py-1 rounded-lg text-xs font-medium hover:bg-red-700 transition-colors shadow-lg flex items-center space-x-1 disabled:opacity-50"
+                              title="Unlink Transfer"
+                            >
+                              <span>🔗❌</span>
+                              <span>{isUnlinking ? 'Unlinking...' : 'Unlink'}</span>
+                            </motion.button>
+                          )}
+                        </AnimatePresence>
+                      )}
+                      {/* Show transfer status when not hovering */}
+                      {hoveredRow !== transaction.id && isTransferLinked(transaction) && (
+                        <div className="flex items-center justify-center text-xs text-blue-600">
+                          <span>🔄</span>
+                        </div>
+                      )}
+                    </td>
+
                     {/* Amount */}
-                    <td className="px-4 py-3 text-right">
-                      <span className={`text-sm font-medium ${
+                    <td className="px-4 py-3 text-right min-w-[120px]">
+                      <span className={`text-sm font-medium whitespace-nowrap ${
                         (transaction.amount || 0) > 0 ? 'text-green-600' : 'text-red-600'
                       }`}>
                         {formatAmount(transaction.amount || 0, currency)}
                       </span>
+                      {transaction.transfer_detection_confidence && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          AI Confidence: {Math.round(transaction.transfer_detection_confidence * 100)}%
+                        </div>
+                      )}
                     </td>
 
                     {/* Category */}
@@ -411,18 +514,26 @@ export const EnhancedTable: React.FC<EnhancedTableProps> = ({
                           e.stopPropagation();
                           handleCategoryButtonClick(transaction.id);
                         }}
+                        disabled={!!isTransferLinked(transaction)}
                         className={`
                           px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 border shadow-sm w-full text-left
                           flex items-center justify-between
-                          ${(transaction.category_name === 'Uncategorized' || !transaction.category_name)
-                            ? 'bg-white/90 text-gray-600 border-gray-200 hover:bg-white hover:border-gray-300'
-                            : `${categoryStyle.bg} ${categoryStyle.text} border-gray-200`
+                          ${isTransferLinked(transaction)
+                            ? 'bg-gray-100 text-gray-500 border-gray-200 cursor-not-allowed'
+                            : (transaction.category_name === 'Uncategorized' || !transaction.category_name)
+                              ? 'bg-white/90 text-gray-600 border-gray-200 hover:bg-white hover:border-gray-300'
+                              : `${categoryStyle.bg} ${categoryStyle.text} border-gray-200`
                           }
                         `}
-                        style={(transaction.category_name !== 'Uncategorized' && transaction.category_name) ? categoryStyle.style : undefined}
+                        style={(transaction.category_name !== 'Uncategorized' && transaction.category_name && !isTransferLinked(transaction)) ? categoryStyle.style : undefined}
                       >
-                        <span>{transaction.category_name || 'Select Category'}</span>
-                        <span className="ml-2 text-xs">▼</span>
+                        <span>
+                          {isTransferLinked(transaction) 
+                            ? 'Internal Transfer' 
+                            : transaction.category_name || 'Select Category'
+                          }
+                        </span>
+                        {!isTransferLinked(transaction) && <span className="ml-2 text-xs">▼</span>}
                       </button>
                     </td>
                   </tr>
@@ -471,6 +582,20 @@ export const EnhancedTable: React.FC<EnhancedTableProps> = ({
             })}
           </div>
         </motion.div>
+      )}
+
+      {/* Transfer Linking Modal */}
+      {showTransferModal && selectedTransactionForTransfer && (
+        <TransferLinkingModal
+          isOpen={showTransferModal}
+          onClose={() => {
+            setShowTransferModal(false);
+            setSelectedTransactionForTransfer(null);
+          }}
+          sourceTransaction={selectedTransactionForTransfer}
+          currency={currency}
+          onTransferLinked={handleTransferLinked}
+        />
       )}
     </div>
   );

@@ -105,6 +105,12 @@ export interface Transaction {
   category_name?: string;
   is_transfer: boolean;
   transfer_account_id?: string;
+  // New transaction linking fields
+  linked_transaction_id?: string;
+  transfer_pair_id?: string;
+  is_internal_transfer: boolean;
+  transfer_detection_confidence?: number;
+  transfer_notes?: string;
   reference_number?: string;
   balance_after?: number;
   created_at: string;
@@ -113,6 +119,32 @@ export interface Transaction {
   date: string;
   type: 'income' | 'expense';
   category: string;
+}
+
+// Transfer-related interfaces
+export interface TransferSuggestion {
+  transaction1: Transaction;
+  transaction2: Transaction;
+  confidence: number;
+  amountDiff: number;
+  dateDiff: number;
+  reason: string;
+}
+
+export interface TransferPair {
+  transferPairId: string;
+  transaction1: Transaction;
+  transaction2: Transaction;
+  confidence?: number;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface TransferLinkRequest {
+  transaction1Id: string;
+  transaction2Id: string;
+  confidence?: number;
+  notes?: string;
 }
 
 export interface AccountSummary {

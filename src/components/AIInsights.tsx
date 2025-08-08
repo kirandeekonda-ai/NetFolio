@@ -39,20 +39,22 @@ export const AIInsights: React.FC<AIInsightsProps> = ({
   const insights = useMemo(() => {
     const generatedInsights: Insight[] = [];
     
-    // Calculate current month data
+    // Calculate current month data - exclude internal transfers
     const currentMonth = new Date();
     const currentMonthTransactions = transactions.filter(t => {
       const transactionDate = new Date(t.date || t.transaction_date);
       return transactionDate.getMonth() === currentMonth.getMonth() &&
-             transactionDate.getFullYear() === currentMonth.getFullYear();
+             transactionDate.getFullYear() === currentMonth.getFullYear() &&
+             !t.is_internal_transfer;
     });
 
-    // Previous month data for comparison
+    // Previous month data for comparison - exclude internal transfers
     const previousMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
     const previousMonthTransactions = transactions.filter(t => {
       const transactionDate = new Date(t.date || t.transaction_date);
       return transactionDate.getMonth() === previousMonth.getMonth() &&
-             transactionDate.getFullYear() === previousMonth.getFullYear();
+             transactionDate.getFullYear() === previousMonth.getFullYear() &&
+             !t.is_internal_transfer;
     });
 
     const currentExpenses = currentMonthTransactions

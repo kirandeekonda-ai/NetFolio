@@ -27,8 +27,8 @@ interface AdvancedFiltersProps {
   onFiltersChange: (filters: FilterCriteria) => void;
   categories: Category[];
   transactions: Transaction[];
-  activeView: 'table' | 'insights' | 'analytics' | 'tools';
-  setActiveView: (view: 'table' | 'insights' | 'analytics' | 'tools') => void;
+  activeView: 'table' | 'insights' | 'analytics' | 'tools' | 'transfers';
+  setActiveView: (view: 'table' | 'insights' | 'analytics' | 'tools' | 'transfers') => void;
   viewTabs: { id: string; label: string; icon: string }[];
 }
 

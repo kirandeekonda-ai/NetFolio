@@ -143,10 +143,10 @@ export const IncomeExpenseCharts: React.FC<IncomeExpenseChartsProps> = ({
     const startDate = new Date(dateRange.start);
     const endDate = new Date(dateRange.end);
 
-    // Filter transactions by date range
+    // Filter transactions by date range and exclude internal transfers
     const filteredTransactions = transactions.filter(t => {
       const transactionDate = new Date(t.transaction_date || t.date);
-      return transactionDate >= startDate && transactionDate <= endDate;
+      return transactionDate >= startDate && transactionDate <= endDate && !t.is_internal_transfer;
     });
 
     // Process income data

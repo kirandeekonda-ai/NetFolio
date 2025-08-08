@@ -367,7 +367,8 @@ class DatabaseServiceImpl implements DatabaseServiceInterface {
         .from('transactions')
         .select('amount')
         .eq('user_id', userId)
-        .eq('type', 'credit')
+        .in('type', ['credit', 'income'])
+        .eq('is_internal_transfer', false)
         .gte('date', `${currentMonth}-01`)
         .lt('date', `${this.getNextMonth(currentMonth)}-01`);
 
@@ -394,7 +395,8 @@ class DatabaseServiceImpl implements DatabaseServiceInterface {
         .from('transactions')
         .select('amount')
         .eq('user_id', userId)
-        .eq('type', 'debit')
+        .in('type', ['debit', 'expense'])
+        .eq('is_internal_transfer', false)
         .gte('date', `${currentMonth}-01`)
         .lt('date', `${this.getNextMonth(currentMonth)}-01`);
 

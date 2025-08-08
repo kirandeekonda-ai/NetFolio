@@ -49,10 +49,13 @@ export const useAnalyticsData = (
     const startDate = new Date(dateRange.start);
     const endDate = new Date(dateRange.end);
 
-    // Filter transactions for date range
+    // Filter transactions for date range and exclude internal transfers
     const filteredTransactions = transactions.filter(transaction => {
       const transactionDate = new Date(transaction.transaction_date || transaction.date);
-      return transactionDate >= startDate && transactionDate <= endDate;
+      const isInDateRange = transactionDate >= startDate && transactionDate <= endDate;
+      // Exclude internal transfers from analytics calculations
+      const isNotInternalTransfer = !transaction.is_internal_transfer;
+      return isInDateRange && isNotInternalTransfer;
     });
 
     // Calculate spending trends
