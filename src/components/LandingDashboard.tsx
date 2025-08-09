@@ -606,7 +606,7 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user }) => {
                 {financialMetrics.uncategorizedCount > 5 && (
                   <div className="flex items-center p-4 bg-amber-50 border border-amber-200 rounded-xl">
                     <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center mr-4">
-                      <span className="text-amber-600">📝</span>
+                      <span className="text-amber-600">🏷️</span>
                     </div>
                     <div className="flex-1">
                       <p className="text-amber-900 font-medium">Categorization Pending</p>

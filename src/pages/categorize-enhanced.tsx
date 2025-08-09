@@ -511,7 +511,7 @@ const EnhancedCategorize: NextPage = () => {
                 <div className="text-2xl font-bold text-orange-600">
                   {filteredAndSortedTransactions.filter(t => !t.category_name || t.category_name === 'Uncategorized').length}
                 </div>
-                <div className="text-sm text-gray-600">Pending</div>
+                <div className="text-sm text-gray-600">🏷️ Pending</div>
               </div>
               <div className="bg-white/40 backdrop-blur-sm rounded-2xl p-4 text-center">
                 <div className="text-2xl font-bold text-blue-600">{selectedTransactions.size}</div>

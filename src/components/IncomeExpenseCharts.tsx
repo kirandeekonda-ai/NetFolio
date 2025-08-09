@@ -56,7 +56,7 @@ const FALLBACK_CATEGORY_ICONS: Record<string, string> = {
   'Rental': '🏠',
   'Bonus': '🎯',
   'Other Income': '💰',
-  'Uncategorized': '💵',
+  'Uncategorized': '🏷️',
   
   // Expense categories
   'Food & Dining': '🍽️',

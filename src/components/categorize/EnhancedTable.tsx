@@ -535,7 +535,9 @@ export const EnhancedTable: React.FC<EnhancedTableProps> = ({
                         <span className="truncate pr-2 group-hover:text-opacity-90">
                           {isTransferLinked(transaction) 
                             ? 'Internal Transfer' 
-                            : transaction.category_name || 'Select Category'
+                            : transaction.category_name === 'Uncategorized' || !transaction.category_name
+                              ? '🏷️ Uncategorized'
+                              : transaction.category_name
                           }
                         </span>
                         {!isTransferLinked(transaction) && <span className="ml-2 text-xs flex-shrink-0 group-hover:text-opacity-90">▼</span>}

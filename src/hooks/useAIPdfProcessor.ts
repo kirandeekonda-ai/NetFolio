@@ -101,7 +101,7 @@ export const useAIPdfProcessor = (): UseAIPdfProcessorReturn => {
           addLog(`🎯 Mapped AI category "${aiCategory}" to "${finalCategory}"`);
         } else if (userCategories.length > 0) {
           console.log(`⚠️ No category matching for "${description}" - aiCategory: "${aiCategory}", categoryMatcher: ${!!categoryMatcher}`);
-          addLog(`⚠️ No AI category suggestion for "${description.substring(0, 50)}..." - using "Uncategorized"`);
+          addLog(`🏷️ No AI category suggestion for "${description.substring(0, 50)}..." - using "Uncategorized"`);
         }
         const transactionType = amount > 0 ? 'income' as const : 'expense' as const;
         // Always provide required fields for categorize page
