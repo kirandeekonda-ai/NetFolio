@@ -606,7 +606,6 @@ export const StatementDashboard = forwardRef<StatementDashboardRef, StatementDas
                                     setOpenDropdown(openDropdown === statement.id ? null : statement.id);
                                   }}
                                   className="px-3 py-1.5 bg-white/80 text-slate-700 rounded-lg hover:bg-white transition-all duration-200 shadow-sm border border-slate-200 hover:border-slate-300 text-xs font-medium"
-                                  title="Actions"
                                 >
                                   ⋯
                                 </button>
