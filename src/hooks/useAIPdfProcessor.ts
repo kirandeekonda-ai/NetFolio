@@ -115,7 +115,9 @@ export const useAIPdfProcessor = (): UseAIPdfProcessorReturn => {
           transaction_type: transactionType,
           category_name: finalCategory,
           is_transfer: false,
+          is_internal_transfer: false,
           transfer_account_id: undefined,
+          linked_transaction_id: undefined,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           // Legacy fields for backward compatibility

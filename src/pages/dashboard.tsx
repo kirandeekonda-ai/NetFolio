@@ -28,14 +28,33 @@ const Dashboard: NextPage = () => {
   // Chart tab state
   const [activeChartTab, setActiveChartTab] = useState<'overview' | 'analytics'>('overview');
 
-  // Date Range State
+  // Date Range State - Default to last complete month
   const [dateRange, setDateRange] = useState(() => {
-    const end = new Date();
-    const start = new Date();
-    start.setMonth(start.getMonth() - 1); // Default to 1 month
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+    
+    // Get previous complete month
+    const lastCompleteMonth = currentMonth - 1;
+    const lastCompleteYear = lastCompleteMonth < 0 ? currentYear - 1 : currentYear;
+    const adjustedLastMonth = lastCompleteMonth < 0 ? 11 : lastCompleteMonth;
+    
+    // First day of last complete month
+    const start = new Date(lastCompleteYear, adjustedLastMonth, 1);
+    // Last day of last complete month
+    const end = new Date(lastCompleteYear, adjustedLastMonth + 1, 0);
+    
+    // Format dates properly to avoid timezone issues
+    const formatDate = (date: Date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+    
     return {
-      start: start.toISOString().split('T')[0],
-      end: end.toISOString().split('T')[0]
+      start: formatDate(start),
+      end: formatDate(end)
     };
   });
 
@@ -52,6 +71,65 @@ const Dashboard: NextPage = () => {
       ...prev,
       [type]: value
     }));
+  };
+
+  // Enhanced Quick Period Calculator - Uses complete months
+  const calculateCompleteMonthsRange = (monthsBack: number) => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+    
+    // For 1M: Show previous complete month (e.g., if August, show July 1-31)
+    // For 3M: Show 3 previous complete months (e.g., if August, show May 1 - July 31)
+    
+    // Calculate the last complete month (previous month)
+    const lastCompleteMonth = currentMonth - 1;
+    const lastCompleteYear = lastCompleteMonth < 0 ? currentYear - 1 : currentYear;
+    const adjustedLastMonth = lastCompleteMonth < 0 ? 11 : lastCompleteMonth;
+    
+    // Calculate start month (monthsBack months before the last complete month)
+    const startMonthIndex = adjustedLastMonth - monthsBack + 1;
+    let startYear = lastCompleteYear;
+    let startMonth = startMonthIndex;
+    
+    // Handle year boundary crossing
+    if (startMonth < 0) {
+      startYear -= 1;
+      startMonth = 12 + startMonth;
+    }
+    
+    // Start of first month in range (1st day)
+    const start = new Date(startYear, startMonth, 1);
+    
+    // End of last complete month (last day)
+    const end = new Date(lastCompleteYear, adjustedLastMonth + 1, 0);
+    
+    // Format dates properly to avoid timezone issues
+    const formatDate = (date: Date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+    
+    return {
+      start: formatDate(start),
+      end: formatDate(end),
+      monthsIncluded: getMonthsInRange(start, end)
+    };
+  };
+
+  // Helper to get month names in range
+  const getMonthsInRange = (startDate: Date, endDate: Date) => {
+    const months = [];
+    const current = new Date(startDate);
+    
+    while (current <= endDate) {
+      months.push(current.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }));
+      current.setMonth(current.getMonth() + 1);
+    }
+    
+    return months;
   };
 
   const displayName = user?.user_metadata?.full_name || 
@@ -75,58 +153,115 @@ const Dashboard: NextPage = () => {
                 </p>
               </div>
               
-              {/* Quick Period Selector - Header */}
-              <div className="flex items-center space-x-3">
-                <span className="text-sm font-medium text-gray-500">Quick Period:</span>
-                <div className="flex items-center space-x-2 bg-gray-50 rounded-lg p-1">
+              {/* Enhanced Quick Period Selector - Header */}
+              <div className="flex items-center space-x-4">
+                <div className="text-right">
+                  <div className="text-sm font-medium text-gray-700">Quick Periods</div>
+                  <div className="text-xs text-gray-500">Complete month ranges</div>
+                </div>
+                <div className="flex items-center space-x-3 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-2 shadow-sm border">
                   {[
-                    { label: '1M', icon: '🌱', months: 1, gradient: 'from-green-400 to-green-600', desc: 'Recent' },
-                    { label: '3M', icon: '🌿', months: 3, gradient: 'from-blue-400 to-blue-600', desc: 'Quarter' },
-                    { label: '6M', icon: '🌳', months: 6, gradient: 'from-purple-400 to-purple-600', desc: 'Half Year' },
-                    { label: '1Y', icon: '🌲', months: 12, gradient: 'from-orange-400 to-orange-600', desc: 'Annual' }
+                    { 
+                      label: '1M', 
+                      icon: '🌱', 
+                      months: 1, 
+                      gradient: 'from-emerald-400 to-emerald-600', 
+                      desc: 'Last Month',
+                      tooltip: 'Previous complete month'
+                    },
+                    { 
+                      label: '3M', 
+                      icon: '🌿', 
+                      months: 3, 
+                      gradient: 'from-blue-400 to-blue-600', 
+                      desc: 'Quarter',
+                      tooltip: 'Last 3 complete months'
+                    },
+                    { 
+                      label: '6M', 
+                      icon: '🌳', 
+                      months: 6, 
+                      gradient: 'from-purple-400 to-purple-600', 
+                      desc: 'Half Year',
+                      tooltip: 'Last 6 complete months'
+                    },
+                    { 
+                      label: '1Y', 
+                      icon: '🌲', 
+                      months: 12, 
+                      gradient: 'from-amber-400 to-amber-600', 
+                      desc: 'Annual',
+                      tooltip: 'Last 12 complete months'
+                    }
                   ].map((period) => {
+                    // Calculate the range for this period
+                    const periodRange = calculateCompleteMonthsRange(period.months);
+                    
+                    // Check if this period is currently active
                     const isActive = (() => {
-                      const diffInMs = new Date(dateRange.end).getTime() - new Date(dateRange.start).getTime();
-                      const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
-                      const expectedDays = period.months * 30;
-                      return Math.abs(diffInDays - expectedDays) < 10;
+                      return dateRange.start === periodRange.start && dateRange.end === periodRange.end;
                     })();
                     
                     return (
-                      <motion.button
-                        key={period.label}
-                        onClick={() => {
-                          const end = new Date();
-                          const start = new Date();
-                          start.setMonth(start.getMonth() - period.months);
-                          handleDateRangeChange('start', start.toISOString().split('T')[0]);
-                          handleDateRangeChange('end', end.toISOString().split('T')[0]);
-                        }}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        className={`
-                          relative flex items-center justify-center w-14 h-14 rounded-lg transition-all duration-200 group shadow-sm
-                          ${isActive 
-                            ? `bg-gradient-to-r ${period.gradient} text-white shadow-lg border-2 border-transparent` 
-                            : 'bg-white hover:shadow-md text-gray-600 border-2 border-gray-200 hover:border-gray-300'
-                          }
-                        `}
-                        title={`${period.desc} - ${period.label}`}
-                      >
-                        <div className="flex flex-col items-center">
-                          <span className="text-lg mb-0.5">{period.icon}</span>
-                          <span className={`text-xs font-semibold ${isActive ? 'text-white' : 'text-gray-700'}`}>
+                      <div key={period.label} className="relative group">
+                        <motion.button
+                          onClick={() => {
+                            const range = calculateCompleteMonthsRange(period.months);
+                            setDateRange({
+                              start: range.start,
+                              end: range.end
+                            });
+                          }}
+                          whileHover={{ scale: 1.05, y: -2 }}
+                          whileTap={{ scale: 0.95 }}
+                          className={`
+                            relative flex flex-col items-center justify-center w-16 h-16 rounded-xl transition-all duration-300 group shadow-sm border-2
+                            ${isActive 
+                              ? `bg-gradient-to-br ${period.gradient} text-white shadow-lg border-transparent transform scale-105` 
+                              : 'bg-white hover:bg-gray-50 text-gray-700 border-gray-200 hover:border-gray-300 hover:shadow-md'
+                            }
+                          `}
+                          title={period.tooltip}
+                        >
+                          <span className={`text-lg mb-1 transition-transform duration-200 ${isActive ? 'scale-110' : 'group-hover:scale-105'}`}>
+                            {period.icon}
+                          </span>
+                          <span className={`text-xs font-bold ${isActive ? 'text-white' : 'text-gray-700'}`}>
                             {period.label}
                           </span>
-                        </div>
-                        {isActive && (
-                          <motion.div 
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white shadow-sm"
-                          />
-                        )}
-                      </motion.button>
+                          
+                          {/* Active indicator */}
+                          {isActive && (
+                            <motion.div 
+                              initial={{ scale: 0, opacity: 0 }}
+                              animate={{ scale: 1, opacity: 1 }}
+                              className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white shadow-sm flex items-center justify-center"
+                            >
+                              <span className="text-xs text-white">✓</span>
+                            </motion.div>
+                          )}
+                        </motion.button>
+                        
+                        {/* Enhanced Tooltip */}
+                        <motion.div
+                          initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                          whileHover={{ opacity: 1, y: 0, scale: 1 }}
+                          className="absolute top-full mt-2 left-1/2 transform -translate-x-1/2 z-50 pointer-events-none"
+                        >
+                          <div className="bg-gray-900 text-white px-3 py-2 rounded-lg shadow-lg text-xs whitespace-nowrap">
+                            <div className="font-medium">{period.desc}</div>
+                            <div className="text-gray-300">
+                              {(() => {
+                                const range = calculateCompleteMonthsRange(period.months);
+                                return range.monthsIncluded.length > 2 
+                                  ? `${range.monthsIncluded[0]} - ${range.monthsIncluded[range.monthsIncluded.length - 1]}`
+                                  : range.monthsIncluded.join(', ');
+                              })()}
+                            </div>
+                            <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-900 rotate-45"></div>
+                          </div>
+                        </motion.div>
+                      </div>
                     );
                   })}
                 </div>
@@ -137,22 +272,56 @@ const Dashboard: NextPage = () => {
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
 
-          {/* Date Range Filter */}
-          <Card className="p-6">
+          {/* Enhanced Date Range Filter */}
+          <Card className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
-              <div>
-                <h3 className="font-medium text-gray-900">Analysis Period</h3>
-                <p className="text-sm text-gray-600">Select date range for financial data</p>
+              <div className="flex-1">
+                <h3 className="font-semibold text-gray-900 flex items-center space-x-2">
+                  <span>📅</span>
+                  <span>Analysis Period</span>
+                </h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  Viewing complete months for accurate financial insights
+                </p>
+                
+                {/* Period Summary */}
+                <div className="mt-3 flex items-center space-x-4">
+                  <div className="bg-white px-3 py-1 rounded-full border shadow-sm">
+                    <span className="text-xs font-medium text-gray-700">
+                      {(() => {
+                        const start = new Date(dateRange.start);
+                        const end = new Date(dateRange.end);
+                        const startMonth = start.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                        const endMonth = end.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                        
+                        if (startMonth === endMonth) {
+                          return `${startMonth} Only`;
+                        } else {
+                          return `${startMonth} → ${endMonth}`;
+                        }
+                      })()}
+                    </span>
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {(() => {
+                      const start = new Date(dateRange.start);
+                      const end = new Date(dateRange.end);
+                      const diffInMs = end.getTime() - start.getTime();
+                      const diffInDays = Math.ceil(diffInMs / (1000 * 60 * 60 * 24));
+                      return `${diffInDays} days of data`;
+                    })()}
+                  </div>
+                </div>
               </div>
               
-              <div className="flex items-center space-x-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
                 <div className="flex items-center space-x-2">
                   <label className="text-sm font-medium text-gray-700">From:</label>
                   <input
                     type="date"
                     value={dateRange.start}
                     onChange={(e) => handleDateRangeChange('start', e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm"
                   />
                 </div>
                 <div className="flex items-center space-x-2">
@@ -161,7 +330,7 @@ const Dashboard: NextPage = () => {
                     type="date"
                     value={dateRange.end}
                     onChange={(e) => handleDateRangeChange('end', e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm"
                   />
                 </div>
               </div>

@@ -28,8 +28,8 @@ const datePeriods: DatePeriod[] = [
     label: '1M',
     icon: '🌱',
     months: 1,
-    gradient: 'from-green-400 to-green-600',
-    description: 'Recent Activity'
+    gradient: 'from-emerald-400 to-emerald-600',
+    description: 'Last Complete Month'
   },
   {
     id: '3m',
@@ -37,7 +37,7 @@ const datePeriods: DatePeriod[] = [
     icon: '🌿',
     months: 3,
     gradient: 'from-blue-400 to-blue-600',
-    description: 'Quarterly Trends'
+    description: 'Last 3 Complete Months'
   },
   {
     id: '6m',
@@ -45,15 +45,15 @@ const datePeriods: DatePeriod[] = [
     icon: '🌳',
     months: 6,
     gradient: 'from-purple-400 to-purple-600',
-    description: 'Mid-term Patterns'
+    description: 'Last 6 Complete Months'
   },
   {
     id: '1y',
     label: '1Y',
     icon: '🌲',
     months: 12,
-    gradient: 'from-orange-400 to-orange-600',
-    description: 'Annual Overview'
+    gradient: 'from-amber-400 to-amber-600',
+    description: 'Last 12 Complete Months'
   }
 ];
 
@@ -77,13 +77,43 @@ export const InnovativeDateSelector: React.FC<InnovativeDateSelectorProps> = ({
   const [selectedPeriod, setSelectedPeriod] = useState(getCurrentPeriod());
 
   const calculateDateRange = (months: number): DateRange => {
-    const end = new Date();
-    const start = new Date();
-    start.setMonth(start.getMonth() - months);
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+    
+    // Calculate the last complete month (previous month)
+    const lastCompleteMonth = currentMonth - 1;
+    const lastCompleteYear = lastCompleteMonth < 0 ? currentYear - 1 : currentYear;
+    const adjustedLastMonth = lastCompleteMonth < 0 ? 11 : lastCompleteMonth;
+    
+    // Calculate start month (months back from the last complete month)
+    const startMonthIndex = adjustedLastMonth - months + 1;
+    let startYear = lastCompleteYear;
+    let startMonth = startMonthIndex;
+    
+    // Handle year boundary crossing
+    if (startMonth < 0) {
+      startYear -= 1;
+      startMonth = 12 + startMonth;
+    }
+    
+    // Start of first month in range (1st day)
+    const start = new Date(startYear, startMonth, 1);
+    
+    // End of last complete month (last day)
+    const end = new Date(lastCompleteYear, adjustedLastMonth + 1, 0);
+    
+    // Format dates properly to avoid timezone issues
+    const formatDate = (date: Date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
     
     return {
-      start: start.toISOString().split('T')[0],
-      end: end.toISOString().split('T')[0]
+      start: formatDate(start),
+      end: formatDate(end)
     };
   };
 

@@ -46,7 +46,7 @@ const EnhancedCategorize: NextPage = () => {
   });
   
   const [selectedTransactions, setSelectedTransactions] = useState<Set<string>>(new Set());
-  const [activeView, setActiveView] = useState<'table' | 'insights' | 'analytics' | 'tools'>('table');
+  const [activeView, setActiveView] = useState<'table' | 'insights' | 'analytics' | 'tools' | 'transfers'>('table');
   const [undoStack, setUndoStack] = useState<Array<{ action: string; data: any }>>([]);
   const [redoStack, setRedoStack] = useState<Array<{ action: string; data: any }>>([]);
   
@@ -555,6 +555,9 @@ const EnhancedCategorize: NextPage = () => {
             onFiltersChange={setFilters}
             categories={categories}
             transactions={transactions}
+            activeView={activeView}
+            setActiveView={setActiveView}
+            viewTabs={viewTabs}
           />
         </motion.div>
 
