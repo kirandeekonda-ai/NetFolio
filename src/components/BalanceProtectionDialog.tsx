@@ -25,12 +25,14 @@ export const BalanceProtectionDialog: FC<BalanceProtectionDialogProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [attempts, setAttempts] = useState(0);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setValue('');
       setError('');
       setAttempts(0);
+      setShowPassword(false);
     }
   }, [isOpen]);
 
@@ -62,10 +64,22 @@ export const BalanceProtectionDialog: FC<BalanceProtectionDialogProps> = ({
         }),
       });
 
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const textResponse = await response.text();
+        console.error('Non-JSON response received:', textResponse);
+        throw new Error(`Server returned non-JSON response. Please check your network connection and try again.`);
+      }
+
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || 'Verification failed');
+        const errorMessage = result.error || `Server error: ${response.status}`;
+        if (errorMessage.includes('Balance protection not configured')) {
+          throw new Error('Balance protection is not set up. Please go to Settings > Security to configure balance protection first.');
+        }
+        throw new Error(errorMessage);
       }
 
       if (result.valid) {
@@ -143,17 +157,37 @@ export const BalanceProtectionDialog: FC<BalanceProtectionDialogProps> = ({
 
               {/* Form */}
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
+                <div className="relative">
                   <Input
-                    type={protectionType === 'pin' ? 'tel' : 'password'}
+                    type={showPassword ? 'text' : 'password'}
                     value={value}
                     onChange={(e) => setValue(e.target.value)}
                     placeholder={protectionType === 'pin' ? 'Enter 4-6 digit PIN' : 'Enter password'}
-                    className="text-center text-xl tracking-widest"
+                    className="text-center text-xl tracking-widest pr-12"
                     maxLength={protectionType === 'pin' ? 6 : undefined}
                     disabled={isLoading || attempts >= 3}
                     autoFocus
+                    inputMode={protectionType === 'pin' ? 'numeric' : 'text'}
                   />
+                  {/* Eye Icon Toggle */}
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1"
+                    disabled={isLoading || attempts >= 3}
+                    tabIndex={-1}
+                  >
+                    {showPassword ? (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L8.464 8.464M9.878 9.878a3 3 0 00-.007 4.243m4.249-4.25l1.414-1.414M14.121 14.121a3 3 0 01-4.243 0m4.243 0L15.535 15.535m-1.414-1.414L9.878 9.878" />
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    )}
+                  </button>
                 </div>
 
                 {error && (

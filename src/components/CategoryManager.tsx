@@ -529,10 +529,10 @@ export const CategoryManager: FC = () => {
                         <div className="flex items-center space-x-2">
                           <span className="text-lg">{newCategoryIcon}</span>
                           <div
-                            className="w-3 h-3 rounded-full"
+                            className="w-4 h-4 rounded-full flex-shrink-0 border border-white/40 shadow-sm ring-1 ring-black/5"
                             style={{ backgroundColor: newCategoryColor }}
                           />
-                          <span className="text-sm font-medium text-gray-900">
+                          <span className="text-sm font-medium text-gray-800">
                             {newCategoryName || 'Category Name'}
                           </span>
                         </div>
@@ -694,14 +694,15 @@ export const CategoryManager: FC = () => {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 className="flex items-center justify-between bg-gray-50 rounded-lg p-3 hover:bg-gray-100 transition-colors duration-200"
+                title={category.name}
               >
                 <div className="flex items-center space-x-3">
                   <span className="text-lg">{category.icon || '📁'}</span>
                   <div
-                    className="w-3 h-3 rounded-full"
+                    className="w-4 h-4 rounded-full flex-shrink-0 border border-white/40 shadow-sm ring-1 ring-black/5"
                     style={{ backgroundColor: category.color }}
                   ></div>
-                  <span className="font-medium text-gray-900">{category.name}</span>
+                  <span className="font-medium text-gray-800 truncate">{category.name}</span>
                 </div>
                 <button
                   onClick={() => handleRemoveCategory(category)}

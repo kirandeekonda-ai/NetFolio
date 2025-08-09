@@ -10,6 +10,9 @@ const limiter = rateLimit({
 });
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Set JSON content type
+  res.setHeader('Content-Type', 'application/json');
+  
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -17,7 +20,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     // Apply rate limiting - use a combination of IP and user agent for better tracking
     const clientId = req.headers['x-forwarded-for'] || req.connection?.remoteAddress || 'anonymous';
-    await limiter.check(res, 5, clientId.toString());
+    
+    try {
+      await limiter.check(res, 5, clientId.toString());
+    } catch (rateLimitError: any) {
+      console.log('Rate limit error:', rateLimitError);
+      return res.status(429).json({ error: 'Too many attempts. Please try again later.' });
+    }
 
     const { value, type } = req.body;
 
@@ -39,6 +48,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Get current user
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
+      console.error('User authentication error:', userError);
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
@@ -51,6 +61,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (prefsError) {
       console.error('Error fetching user preferences:', prefsError);
+      
+      // If the record doesn't exist, create one with default values
+      if (prefsError.code === 'PGRST116') {
+        console.log('No user preferences found, creating default record');
+        const { data: newPrefs, error: createError } = await supabase
+          .from('user_preferences')
+          .insert({
+            user_id: user.id,
+            balance_protection_enabled: false,
+            balance_protection_type: 'pin',
+            balance_protection_hash: null
+          })
+          .select()
+          .single();
+        
+        if (createError) {
+          console.error('Error creating user preferences:', createError);
+          return res.status(500).json({ error: 'Failed to create user preferences' });
+        }
+        
+        return res.status(400).json({ error: 'Balance protection not configured' });
+      }
+      
       return res.status(500).json({ error: 'Failed to fetch preferences' });
     }
 
@@ -63,18 +96,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Verify the PIN/password
-    const isValid = await bcrypt.compare(value, preferences.balance_protection_hash);
+    let isValid = false;
+    try {
+      isValid = await bcrypt.compare(value, preferences.balance_protection_hash);
+    } catch (bcryptError) {
+      console.error('Bcrypt comparison error:', bcryptError);
+      return res.status(500).json({ error: 'Password verification failed' });
+    }
 
     return res.status(200).json({ valid: isValid });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Balance protection verification error:', error);
     
-    // Check if it's a rate limit error
-    if (error && typeof error === 'object' && 'status' in error && error.status === 429) {
-      return res.status(429).json({ error: 'Too many attempts. Please try again later.' });
-    }
-
-    return res.status(500).json({ error: 'Internal server error' });
+    // Always return valid JSON
+    return res.status(500).json({ 
+      error: 'Internal server error',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 }

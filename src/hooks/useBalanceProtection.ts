@@ -40,6 +40,17 @@ export const useBalanceProtection = (): UseBalanceProtectionReturn => {
 
       if (prefsError) {
         console.error('Error fetching balance protection status:', prefsError);
+        
+        // If no preferences record exists, user doesn't have protection enabled
+        if (prefsError.code === 'PGRST116') {
+          setConfig({
+            enabled: false,
+            type: null,
+          });
+          setIsUnlocked(true); // If no protection, everything is unlocked
+          return;
+        }
+        
         setError('Failed to load protection settings');
         return;
       }

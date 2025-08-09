@@ -200,10 +200,10 @@ export const BulkOperations: React.FC<BulkOperationsProps> = ({
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
                         transition={{ duration: 0.2 }}
-                        className="fixed z-[100] min-w-64 bg-white rounded-2xl shadow-2xl border border-gray-200/50 overflow-hidden"
+                        className="fixed z-[100] min-w-72 bg-white rounded-2xl shadow-2xl border border-gray-200/50 overflow-hidden"
                         style={{
                           left: dropdownPosition.left,
-                          width: dropdownPosition.width,
+                          width: Math.max(dropdownPosition.width, 288), // Ensure minimum 288px (18rem)
                           bottom: `calc(100vh - ${dropdownPosition.top}px)`,
                           marginBottom: '12px',
                         }}
@@ -213,7 +213,7 @@ export const BulkOperations: React.FC<BulkOperationsProps> = ({
                             Choose Category ({selectedCount} selected)
                           </h4>
                         </div>
-                        <div className="py-2 max-h-72 overflow-y-auto">
+                        <div className="py-1 max-h-72 overflow-y-auto">
                           {categories.map((category, index) => {
                             const categoryStyle = getCategoryColorStyle(category.name, categories);
                             return (
@@ -223,19 +223,20 @@ export const BulkOperations: React.FC<BulkOperationsProps> = ({
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: index * 0.03 }}
                                 onClick={() => handleBulkCategorize(category)}
+                                title={category.name}
                                 className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-all duration-150 
-                                         group flex items-center justify-between"
+                                         group flex items-center justify-between hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-25"
                               >
-                                <div className="flex items-center space-x-3">
+                                <div className="flex items-center space-x-3 flex-1 min-w-0">
                                   <div 
-                                    className="w-3 h-3 rounded-full"
+                                    className="w-4 h-4 rounded-full flex-shrink-0 border border-white/40 shadow-sm ring-1 ring-black/5"
                                     style={{ backgroundColor: categoryStyle.style?.backgroundColor || '#6B7280' }}
                                   />
-                                  <span className="text-sm font-medium text-gray-900">
+                                  <span className="text-sm font-medium text-gray-800 truncate group-hover:text-gray-900">
                                     {category.name}
                                   </span>
                                 </div>
-                                <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                                   <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                   </svg>

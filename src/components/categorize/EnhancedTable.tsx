@@ -97,7 +97,7 @@ const CategoryDropdown = ({
           maxHeight: '240px', // Consistent with max-h-60
         }}
       >
-        <div className="py-2 max-h-60 overflow-y-auto">
+        <div className="py-1 max-h-60 overflow-y-auto">
           {categories.map((category, index) => {
             const categoryStyle = getCategoryColorStyle(category.name, categories);
             const isFocused = index === focusedIndex;
@@ -108,15 +108,16 @@ const CategoryDropdown = ({
                   itemRefs.current[index] = el;
                 }}
                 onClick={() => onSelect(category)}
-                className={`w-full px-4 py-3 text-left transition-all duration-150 group flex items-center space-x-3 ${
-                  isFocused ? 'bg-blue-50' : 'hover:bg-gray-50'
+                title={category.name}
+                className={`w-full px-4 py-3 text-left transition-all duration-150 group flex items-center space-x-3 hover:bg-gray-50 ${
+                  isFocused ? 'bg-blue-50 border-r-2 border-blue-500' : ''
                 }`}
               >
                 <div
-                  className="w-3 h-3 rounded-full"
+                  className="w-4 h-4 rounded-full flex-shrink-0 border border-white/40 shadow-sm ring-1 ring-black/5"
                   style={{ backgroundColor: categoryStyle.style?.backgroundColor || '#6B7280' }}
                 />
-                <span className="text-sm font-medium text-gray-900">{category.name}</span>
+                <span className="text-sm font-medium text-gray-800 flex-1 min-w-0 truncate group-hover:text-gray-900">{category.name}</span>
               </button>
             );
           })}
@@ -387,7 +388,7 @@ export const EnhancedTable: React.FC<EnhancedTableProps> = ({
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
                 <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Transfer</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap min-w-[120px]">Amount</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[180px]">Category</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -507,7 +508,7 @@ export const EnhancedTable: React.FC<EnhancedTableProps> = ({
                     </td>
 
                     {/* Category */}
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 min-w-[180px]">
                       <button
                         ref={(el) => { buttonRefs.current[transaction.id] = el; }}
                         onClick={(e) => {
@@ -515,9 +516,13 @@ export const EnhancedTable: React.FC<EnhancedTableProps> = ({
                           handleCategoryButtonClick(transaction.id);
                         }}
                         disabled={!!isTransferLinked(transaction)}
+                        title={isTransferLinked(transaction) 
+                          ? 'Internal Transfer' 
+                          : transaction.category_name || 'Select Category'
+                        }
                         className={`
-                          px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 border shadow-sm w-full text-left
-                          flex items-center justify-between
+                          px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 border shadow-sm w-full text-left min-w-[160px]
+                          flex items-center justify-between group
                           ${isTransferLinked(transaction)
                             ? 'bg-gray-100 text-gray-500 border-gray-200 cursor-not-allowed'
                             : (transaction.category_name === 'Uncategorized' || !transaction.category_name)
@@ -527,13 +532,13 @@ export const EnhancedTable: React.FC<EnhancedTableProps> = ({
                         `}
                         style={(transaction.category_name !== 'Uncategorized' && transaction.category_name && !isTransferLinked(transaction)) ? categoryStyle.style : undefined}
                       >
-                        <span>
+                        <span className="truncate pr-2 group-hover:text-opacity-90">
                           {isTransferLinked(transaction) 
                             ? 'Internal Transfer' 
                             : transaction.category_name || 'Select Category'
                           }
                         </span>
-                        {!isTransferLinked(transaction) && <span className="ml-2 text-xs">▼</span>}
+                        {!isTransferLinked(transaction) && <span className="ml-2 text-xs flex-shrink-0 group-hover:text-opacity-90">▼</span>}
                       </button>
                     </td>
                   </tr>

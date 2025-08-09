@@ -176,10 +176,10 @@ export const CategorizationVisualAnalytics: React.FC<VisualizationProps> = ({
                 <div className="flex justify-between items-center mb-1">
                   <div className="flex items-center space-x-2">
                     <div 
-                      className="w-3 h-3 rounded-full"
+                      className="w-4 h-4 rounded-full flex-shrink-0 border border-white/40 shadow-sm ring-1 ring-black/5"
                       style={{ backgroundColor: category.color }}
                     />
-                    <span className="text-sm font-medium text-gray-900">{category.name}</span>
+                    <span className="text-sm font-medium text-gray-800">{category.name}</span>
                   </div>
                   <div className="text-right">
                     <div className="text-sm font-bold text-gray-900">{category.count}</div>

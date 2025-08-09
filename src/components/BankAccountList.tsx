@@ -6,6 +6,8 @@ import { Card } from './Card';
 import { Button } from './Button';
 import { BankLogo } from './BankLogo';
 import { BankAccountDeleteDialog } from './BankAccountDeleteDialog';
+import { BalanceProtectionDialog } from './BalanceProtectionDialog';
+import { useBalanceProtection } from '@/hooks/useBalanceProtection';
 import SimplifiedBalanceService from '@/services/SimplifiedBalanceService';
 
 interface BankAccountListProps {
@@ -53,6 +55,78 @@ export const BankAccountList: FC<BankAccountListProps> = ({
   const [accountToDelete, setAccountToDelete] = useState<BankAccount | null>(null);
   const [accountBalances, setAccountBalances] = useState<Record<string, { balance: number; hasBalance: boolean }>>({});
   const [balancesLoading, setBalancesLoading] = useState(true);
+  const [showProtectionDialog, setShowProtectionDialog] = useState(false);
+  const [unlockTarget, setUnlockTarget] = useState<'total' | string>('total'); // 'total' or account ID
+  const [individuallyUnlockedAccounts, setIndividuallyUnlockedAccounts] = useState<Set<string>>(new Set());
+
+  // Balance protection hook
+  const {
+    isProtected,
+    isUnlocked,
+    protectionType,
+    unlock: unlockBalance,
+    lock: lockBalance,
+  } = useBalanceProtection();
+
+  // Reset individual unlocks when global protection state changes
+  useEffect(() => {
+    if (isUnlocked) {
+      // When globally unlocked, clear all individual unlocks
+      setIndividuallyUnlockedAccounts(new Set());
+    }
+  }, [isUnlocked]);
+
+  // Helper functions for balance visibility
+  const isTotalBalanceVisible = () => {
+    return !isProtected || isUnlocked;
+  };
+
+  const isAccountBalanceVisible = (accountId: string) => {
+    return !isProtected || isUnlocked || individuallyUnlockedAccounts.has(accountId);
+  };
+
+  const handleTotalBalanceUnlock = () => {
+    if (isUnlocked) {
+      // Lock everything
+      lockBalance();
+      setIndividuallyUnlockedAccounts(new Set()); // Clear all individual unlocks
+    } else {
+      // Unlock everything
+      setUnlockTarget('total');
+      setShowProtectionDialog(true);
+    }
+  };
+
+  const handleAccountBalanceUnlock = (accountId: string) => {
+    if (isUnlocked) {
+      // If globally unlocked, can't lock individual accounts
+      return;
+    }
+    
+    if (individuallyUnlockedAccounts.has(accountId)) {
+      // Lock this individual account
+      setIndividuallyUnlockedAccounts(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(accountId);
+        return newSet;
+      });
+    } else {
+      // Unlock this individual account
+      setUnlockTarget(accountId);
+      setShowProtectionDialog(true);
+    }
+  };
+
+  const handleUnlockSuccess = () => {
+    if (unlockTarget === 'total') {
+      unlockBalance(); // Unlock all balances globally
+      setIndividuallyUnlockedAccounts(new Set()); // Clear individual unlocks since everything is now unlocked globally
+    } else {
+      // Unlock individual account
+      setIndividuallyUnlockedAccounts(prev => new Set([...prev, unlockTarget]));
+    }
+    setShowProtectionDialog(false);
+  };
 
   // Load account balances from SimplifiedBalanceService
   useEffect(() => {
@@ -264,16 +338,36 @@ export const BankAccountList: FC<BankAccountListProps> = ({
                 <div className="w-12 h-12 bg-gradient-to-br from-emerald-100 to-teal-100 rounded-xl flex items-center justify-center">
                   <span className="text-2xl">💰</span>
                 </div>
-              </div>
-              <div className="text-3xl font-light text-emerald-600 mb-1">
-                {formatCurrency(
-                  activeAccounts
-                    .filter(acc => acc.statement_balance_available)
-                    .reduce((sum, acc) => sum + (acc.current_balance || 0), 0),
-                  activeAccounts[0]?.currency || 'USD'
+                {isProtected && (
+                  <button
+                    onClick={handleTotalBalanceUnlock}
+                    className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-gray-200 transition-colors"
+                    title={isUnlocked ? 'Lock all balances' : 'Unlock all balances'}
+                  >
+                    <span className="text-sm">{isUnlocked ? '🔓' : '🔒'}</span>
+                  </button>
                 )}
               </div>
-              <div className="text-sm text-gray-600 uppercase tracking-wider">Total Statement Balance</div>
+              <div className="text-3xl font-light text-emerald-600 mb-1">
+                {isTotalBalanceVisible() ? (
+                  formatCurrency(
+                    activeAccounts
+                      .filter(acc => acc.statement_balance_available)
+                      .reduce((sum, acc) => sum + (acc.current_balance || 0), 0),
+                    activeAccounts[0]?.currency || 'USD'
+                  )
+                ) : (
+                  <button
+                    onClick={handleTotalBalanceUnlock}
+                    className="text-emerald-600 hover:text-emerald-700 transition-colors cursor-pointer border-none bg-transparent p-0"
+                  >
+                    <span className="text-2xl">••••••••</span>
+                  </button>
+                )}
+              </div>
+              <div className="text-sm text-gray-600 uppercase tracking-wider flex items-center justify-center space-x-1">
+                <span>Total Statement Balance</span>
+              </div>
             </div>
 
             <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
@@ -375,10 +469,20 @@ export const BankAccountList: FC<BankAccountListProps> = ({
                             {account.statement_balance_available ? (
                               <>
                                 <div className="text-3xl font-light text-gray-900 mb-1">
-                                  {formatCurrency(account.current_balance || 0, account.currency)}
+                                  {isAccountBalanceVisible(account.id) ? (
+                                    formatCurrency(account.current_balance || 0, account.currency)
+                                  ) : (
+                                    <button
+                                      onClick={() => handleAccountBalanceUnlock(account.id)}
+                                      className="text-gray-900 hover:text-gray-700 transition-colors cursor-pointer border-none bg-transparent p-0"
+                                    >
+                                      <span className="text-2xl">••••••••</span>
+                                    </button>
+                                  )}
                                 </div>
-                                <div className="text-sm text-gray-500 uppercase tracking-wider">
-                                  Statement Balance
+                                <div className="text-sm text-gray-500 uppercase tracking-wider flex items-center justify-end space-x-1">
+                                  <span>Statement Balance</span>
+                                  {!isAccountBalanceVisible(account.id) && <span>🔒</span>}
                                 </div>
                               </>
                             ) : (
@@ -492,13 +596,30 @@ export const BankAccountList: FC<BankAccountListProps> = ({
                         <div className="flex items-center space-x-8">
                           <div className="text-right">
                             <div className="text-3xl font-light text-gray-600 mb-1">
-                              {account.statement_balance_available 
-                                ? formatCurrency(account.current_balance || 0, account.currency)
-                                : 'Upload Statement'
-                              }
+                              {account.statement_balance_available ? (
+                                isAccountBalanceVisible(account.id) ? (
+                                  formatCurrency(account.current_balance || 0, account.currency)
+                                ) : (
+                                  <button
+                                    onClick={() => handleAccountBalanceUnlock(account.id)}
+                                    className="text-gray-600 hover:text-gray-500 transition-colors cursor-pointer border-none bg-transparent p-0"
+                                  >
+                                    <span className="text-2xl">••••••••</span>
+                                  </button>
+                                )
+                              ) : (
+                                'Upload Statement'
+                              )}
                             </div>
-                            <div className="text-sm text-gray-400 uppercase tracking-wider">
-                              {account.statement_balance_available ? 'Last Statement' : 'No Balance Data'}
+                            <div className="text-sm text-gray-400 uppercase tracking-wider flex items-center justify-end space-x-1">
+                              {account.statement_balance_available ? (
+                                <>
+                                  <span>Last Statement</span>
+                                  {!isAccountBalanceVisible(account.id) && <span>🔒</span>}
+                                </>
+                              ) : (
+                                <span>No Balance Data</span>
+                              )}
                             </div>
                           </div>
                           
@@ -539,6 +660,21 @@ export const BankAccountList: FC<BankAccountListProps> = ({
         account={accountToDelete}
         isLoading={deletingId === accountToDelete?.id}
       />
+
+      {/* Balance Protection Dialog */}
+      {isProtected && (
+        <BalanceProtectionDialog
+          isOpen={showProtectionDialog}
+          onSuccess={handleUnlockSuccess}
+          onCancel={() => setShowProtectionDialog(false)}
+          protectionType={protectionType || 'pin'}
+          title={unlockTarget === 'total' ? "Unlock All Account Balances" : "Unlock Individual Account Balance"}
+          description={unlockTarget === 'total' 
+            ? "Enter your PIN or password to unlock all account balances. This will override any individual account locks."
+            : "Enter your PIN or password to unlock this specific account balance only."
+          }
+        />
+      )}
     </div>
   );
 };
