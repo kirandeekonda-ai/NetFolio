@@ -71,7 +71,7 @@ export const Table = <T extends object>({
                   key={String(column.key)}
                   className={`px-6 py-4 text-sm text-gray-800 align-top transition-colors duration-200 ${column.className}`}
                 >
-                  <div className="break-word">
+                  <div className="break-word truncate" title={String(item?.[column.key] || '')}>
                     {column.render
                       ? column.render(item?.[column.key], item)
                       : String(item?.[column.key] || '')}

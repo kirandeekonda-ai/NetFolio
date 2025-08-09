@@ -61,8 +61,18 @@ const CategoryDropdown = ({
       }
     };
 
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        onClose();
+      }
+    };
+
     document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, [categories, focusedIndex, onSelect, onClose]);
 
   useEffect(() => {
@@ -72,16 +82,6 @@ const CategoryDropdown = ({
     });
   }, [focusedIndex]);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        onClose();
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [onClose]);
-
   return (
     <Portal>
       <motion.div
@@ -89,13 +89,14 @@ const CategoryDropdown = ({
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -10 }}
-        className="fixed z-[100] bg-white rounded-2xl shadow-2xl border border-gray-200/50 overflow-hidden"
+        className="fixed z-[200] bg-white rounded-2xl shadow-2xl border border-gray-200/50 overflow-hidden"
         style={{
           top: Math.min(position.top, window.innerHeight - 260), // Ensure dropdown doesn't go below viewport
           left: position.left,
           width: position.width,
           maxHeight: '240px', // Consistent with max-h-60
         }}
+        onMouseDown={(e) => e.stopPropagation()} // Prevent event bubbling
       >
         <div className="py-1 max-h-60 overflow-y-auto">
           {categories.map((category, index) => {
@@ -108,7 +109,6 @@ const CategoryDropdown = ({
                   itemRefs.current[index] = el;
                 }}
                 onClick={() => onSelect(category)}
-                title={category.name}
                 className={`w-full px-4 py-3 text-left transition-all duration-150 group flex items-center space-x-3 hover:bg-gray-50 ${
                   isFocused ? 'bg-blue-50 border-r-2 border-blue-500' : ''
                 }`}
@@ -153,6 +153,12 @@ export const EnhancedTable: React.FC<EnhancedTableProps> = ({
   const rowRefs = useRef<(HTMLTableRowElement | null)[]>([]);
 
   const handleCategoryButtonClick = (transactionId: string) => {
+    // Close any existing dropdown first
+    if (activeDropdown) {
+      setActiveDropdown(null);
+      return;
+    }
+
     const button = buttonRefs.current[transactionId];
     if (button) {
       const rect = button.getBoundingClientRect();
@@ -372,11 +378,11 @@ export const EnhancedTable: React.FC<EnhancedTableProps> = ({
 
       {/* Enhanced Table */}
       <div className="overflow-hidden rounded-2xl bg-white/90 shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full">
+        <div className="w-full">
+          <table className="w-full table-fixed">
             <thead className="bg-gray-50/80">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="w-12 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   <input
                     type="checkbox"
                     checked={selectedTransactions.size === transactions.length && transactions.length > 0}
@@ -384,11 +390,11 @@ export const EnhancedTable: React.FC<EnhancedTableProps> = ({
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                <th className="w-24 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Transfer</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap min-w-[120px]">Amount</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[180px]">Category</th>
+                <th className="w-20 px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Transfer</th>
+                <th className="w-32 px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Amount</th>
+                <th className="w-56 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -436,7 +442,7 @@ export const EnhancedTable: React.FC<EnhancedTableProps> = ({
 
                     {/* Description */}
                     <td className="px-4 py-3">
-                      <div className="text-sm font-medium text-gray-900">
+                      <div className="text-sm font-medium text-gray-900 truncate" title={transaction.description}>
                         {transaction.description}
                       </div>
                       {getTransferIndicator(transaction)}
@@ -494,7 +500,7 @@ export const EnhancedTable: React.FC<EnhancedTableProps> = ({
                     </td>
 
                     {/* Amount */}
-                    <td className="px-4 py-3 text-right min-w-[120px]">
+                    <td className="px-4 py-3 text-right">
                       <span className={`text-sm font-medium whitespace-nowrap ${
                         (transaction.amount || 0) > 0 ? 'text-green-600' : 'text-red-600'
                       }`}>
@@ -508,7 +514,7 @@ export const EnhancedTable: React.FC<EnhancedTableProps> = ({
                     </td>
 
                     {/* Category */}
-                    <td className="px-4 py-3 min-w-[180px]">
+                    <td className="px-4 py-3">
                       <button
                         ref={(el) => { buttonRefs.current[transaction.id] = el; }}
                         onClick={(e) => {
@@ -516,13 +522,9 @@ export const EnhancedTable: React.FC<EnhancedTableProps> = ({
                           handleCategoryButtonClick(transaction.id);
                         }}
                         disabled={!!isTransferLinked(transaction)}
-                        title={isTransferLinked(transaction) 
-                          ? 'Internal Transfer' 
-                          : transaction.category_name || 'Select Category'
-                        }
                         className={`
-                          px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 border shadow-sm w-full text-left min-w-[160px]
-                          flex items-center justify-between group
+                          px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 border shadow-sm w-full text-left
+                          flex items-center justify-between group truncate
                           ${isTransferLinked(transaction)
                             ? 'bg-gray-100 text-gray-500 border-gray-200 cursor-not-allowed'
                             : (transaction.category_name === 'Uncategorized' || !transaction.category_name)
