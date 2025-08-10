@@ -85,7 +85,7 @@ export const FileUpload: FC<FileUploadProps> = ({
                 isDragActive && !disabled ? 'bg-emerald-100' : 'bg-gray-100'
               }`}>
                 <span className="text-4xl">
-                  {isDragActive && !disabled ? '🎯' : disabled ? '🔒' : '�'}
+                  {isDragActive && !disabled ? '🎯' : disabled ? '🔒' : '📁'}
                 </span>
               </div>
             </motion.div>
