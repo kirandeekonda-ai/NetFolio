@@ -10,6 +10,7 @@ import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { IncomeExpenseCharts } from '@/components/IncomeExpenseCharts';
 import { SpendingAnalytics } from '@/components/SpendingAnalytics';
+import { IncomeExpenseCategories } from '@/components/IncomeExpenseCategories';
 import { useRouter } from 'next/router';
 import { useUser } from '@supabase/auth-helpers-react';
 import { useSelector, useDispatch } from 'react-redux';
@@ -26,7 +27,7 @@ const Dashboard: NextPage = () => {
   const { items: transactions, isLoading: loading, error } = useSelector((state: RootState) => state.enhancedTransactions);
 
   // Chart tab state
-  const [activeChartTab, setActiveChartTab] = useState<'overview' | 'analytics'>('overview');
+  const [activeChartTab, setActiveChartTab] = useState<'overview' | 'insights' | 'analytics'>('overview');
 
   // Date Range State - Default to last complete month
   const [dateRange, setDateRange] = useState(() => {
@@ -366,8 +367,21 @@ const Dashboard: NextPage = () => {
                   }`}
                 >
                   <span className="flex items-center space-x-2">
-                    <span>🍩</span>
+                    <span>📂</span>
                     <span>Overview</span>
+                  </span>
+                </button>
+                <button
+                  onClick={() => setActiveChartTab('insights')}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                    activeChartTab === 'insights'
+                      ? 'bg-white text-blue-600 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  <span className="flex items-center space-x-2">
+                    <span>🎯</span>
+                    <span>Insights</span>
                   </span>
                 </button>
                 <button
@@ -389,6 +403,11 @@ const Dashboard: NextPage = () => {
             {/* Chart Content */}
             <div className="min-h-[400px]">
               {activeChartTab === 'overview' ? (
+                <IncomeExpenseCategories 
+                  transactions={transactions}
+                  dateRange={dateRange}
+                />
+              ) : activeChartTab === 'insights' ? (
                 <IncomeExpenseCharts 
                   transactions={transactions}
                   dateRange={dateRange}
