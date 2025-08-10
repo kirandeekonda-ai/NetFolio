@@ -50,68 +50,56 @@ export class PromptTemplateService {
       name: 'Transaction Extraction',
       description: 'Extracts transaction data from bank statements with balance detection',
       template: `
-    Analyze the bank statement or transaction data provided below and extract individual transactions AND balance information. Your goal is to create a structured list of financial transactions with accurate categorization AND detect account balance data.
+You are a financial statement parser. Analyze the provided bank statement data and extract individual transactions and balance information. Focus on accurately identifying transaction amounts with correct sign (positive for credits, negative for debits) using all available clues, while preserving details. Return ONLY valid JSON in the following format (and nothing else):
 
-    Return ONLY valid JSON with the following structure:
-
+{
+  "transactions": [
     {
-      "transactions": [
-        {
-          "date": "YYYY-MM-DD",
-          "description": "exact original transaction description as it appears in the statement",
-          "amount": number (positive for money IN/credits, negative for money OUT/debits),
-          "suggested_category": "{{categoriesDescription}}"
-        }
-      ],
-      "balance_data": {
-        "opening_balance": number or null,
-        "closing_balance": number or null,
-        "available_balance": number or null,
-        "current_balance": number or null,
-        "balance_confidence": number (0-100),
-        "balance_extraction_notes": "description of balance data found or issues"
-      }
+      "date": "YYYY-MM-DD",
+      "description": "Exact original transaction description as it appears in the statement",
+      "amount": number (positive for money IN/credits, negative for money OUT/debits),
+      "suggested_category": "{{categoriesDescription}}"
     }
+    // ...additional transactions...
+  ],
+  "balance_data": {
+    "opening_balance": number or null,
+    "closing_balance": number or null,
+    "available_balance": number or null,
+    "current_balance": number or null,
+    "balance_confidence": number (0-100),
+    "balance_extraction_notes": "notes on how balance data was identified or any issues"
+  }
+}
 
-    Critical Guidelines:
-    1. **Amount Signs (VERY IMPORTANT)**: 
-       - Money COMING IN (deposits, salary, refunds, interest earned) = POSITIVE amount (+7000)
-       - Money GOING OUT (expenses, withdrawals, payments, fees) = NEGATIVE amount (-7000)
-       - Look at the transaction type indicators: "Dr" or "Debit" = negative, "Cr" or "Credit" = positive
-       - If balance increases after transaction = positive amount
-       - If balance decreases after transaction = negative amount
-       - Most regular expenses should be negative amounts
-    
-    2. **Description Preservation**: Keep the original transaction description EXACTLY as it appears in the statement. Do NOT modify, clean, or shorten the description. Users need to see the complete original text to make proper categorization decisions.
-    
-    {{categorizationGuidelines}}
-    
-    4. **Balance Detection (NEW FEATURE)**: 
-       - Look for balance information in headers, footers, or balance columns
-       - Common balance labels: "Opening Balance", "Closing Balance", "Available Balance", "Current Balance", "Outstanding Balance"
-       - Balance amounts are typically larger numbers that appear at statement start/end
-       - Assign confidence score based on how clear the balance information is:
-         * 90-100: Clearly labeled balance with obvious amount
-         * 70-89: Balance amount found but label is unclear
-         * 40-69: Probable balance based on context clues
-         * 20-39: Possible balance but uncertain
-         * 0-19: No clear balance information found
-       - If no balance found, set all balance fields to null and confidence to 0
-       - Include notes about what balance information was found or why none was detected
-    
-    5. **Data Filtering**: 
-       - Ignore opening/closing balance entries IN THE TRANSACTIONS LIST (but DO extract them for balance_data)
-       - Skip summary rows and totals in transactions
-       - Focus only on individual transaction line items for transactions array
-    
-    6. **Multi-line Handling**: If transaction data spans multiple lines (common in Indian bank statements), merge them into a single coherent entry while preserving the complete description.
-    
-    7. **Date Formatting**: Convert all dates to YYYY-MM-DD format regardless of the source format.
+Critical Guidelines:
 
-    Text to analyze:
-    {{sanitizedPageText}}
+1. **Amount Signs & Balance Validation (VERY IMPORTANT)**:
+   - **Use Balance Changes as Source of Truth**: Determine each transaction's sign by comparing the balance before and after the transaction. If the balance increases after a transaction, that amount is positive (money came in); if the balance decreases, the amount is negative (money went out). Always apply this validation step to confirm the correctness of the sign.
+   - **Leverage Columns & Indicators**: Pay attention to column headers and notations in the statement. For example, if the statement has separate columns for Withdrawal and Deposits, an amount listed under "Withdrawal" is a debit (negative), and under "Deposits" is a credit (positive). Also use textual cues: "Dr" or "Debit" imply a negative amount, while "Cr" or "Credit" imply a positive amount. Only one of the debit/credit columns will have a value on a given transaction line – use this to identify the money flow direction.
+   - **Do Not Rely Solely on Description**: Never assume a transaction is income or expense just from keywords or the fact that previous transactions were of a certain type. Evaluate each transaction independently. For instance, even if one entry is a deposit, the next entry could be a withdrawal – always use the balance movement or column position to discern the sign. If a description suggests a deposit but the balance drops, treat it as a debit (money out) despite the wording. Conversely, if something looks like a payment but the balance rises, it's actually a credit (money in).
+   - **Example – Ambiguous Case Resolution**: If a transaction line shows an amount of "510.00" but the description contains a long number like "9000000000" as part of a reference, and the balance goes from ₹136,982.64 to ₹136,472.64, the transaction amount is -510.00 (a debit). The large number is part of the reference ID, not the amount. Do NOT concatenate or sum such reference numbers with the actual amount. Always isolate the actual transaction amount and confirm by checking that the previous balance minus the amount equals the new balance.
 
-    Return ONLY the JSON object, no additional text or formatting.
+2. **Description Preservation**: Keep the transaction description exactly as it appears in the statement, without modifications or abbreviations. Include all parts of the description (even if they span multiple lines in the statement) so that users have the full details. Do not infer or append any information that isn't in the original text.
+
+{{categorizationGuidelines}}
+
+4. **Balance Detection (for balance_data)**: Identify key balance figures such as Opening Balance and Closing Balance from the statement (often explicitly labeled, or infer from the first and last balance in the transactions list). Also look for Available Balance or Current Balance if provided. Determine a confidence (0-100) for the extracted balances based on clarity: e.g., clearly labeled values = high confidence (90+), inferred or partially unclear values = lower confidence. If the statement explicitly lists opening/closing balances, include them in balance_data. If no clear balance info is found, use null for those fields and set confidence to 0. Provide a brief note in balance_extraction_notes explaining how balances were identified or any uncertainty.
+
+5. **Data Filtering**: When building the transactions list, ignore non-transaction lines in the statement's body. Do not include the opening balance or closing balance as transactions (they should go into balance_data instead). Similarly, skip any summary rows, totals, or carry-forward balances in the transactions list. Only actual transaction entries (with a date and description) should be in the "transactions" array.
+
+6. **Multi-line & OCR Quirk Handling**: Many Indian bank statements format transactions in tables that can break onto multiple lines or have OCR recognition issues. If a single transaction's details span multiple lines, merge them into one entry. For example, if a description or reference number continues on the next line without a new date, it's part of the previous transaction – combine them so the description is complete. Likewise, if an amount appears on a new line or is split (e.g., "9," on one line and "300.00" on the next), join them to reconstruct the correct amount 9,300.00.
+
+7. **Avoid Incorrect Merging of Numbers**: Be very careful not to merge unrelated numbers. Do NOT sum or append separate figures that belong to different fields. For instance, if an OCR error or spacing issue causes a large number to appear adjacent to the actual amount, handle them separately. E.g., a transaction reference "5000" appearing next to an amount "510.00" should not become "5510.00". The amount is 510.00 and the 5000 is part of the reference or account number. Use punctuation cues (commas, periods) and alignment to distinguish the actual amount from any nearby identifiers. When in doubt, refer back to the balance difference to validate the correct amount. Remove any stray line breaks or OCR artefacts like extraneous characters (e.g., O vs 0, misread commas) within a transaction entry. The final output should treat each transaction as one continuous line of text in the description and a correct isolated amount.
+
+8. **Date Formatting**: Normalize all dates to the format YYYY-MM-DD. Bank statements may use DD-MM-YYYY, DD/MM/YYYY or other formats – convert each transaction date consistently to the ISO format. If the statement uses non-standard or textual date formats, interpret them correctly (e.g., "01-Jan-2025" → 2025-01-01).
+
+Remember: Your output should be JSON only, with no explanatory text. Each transaction entry must have the correct sign on the amount (use the balance changes and statement layout rules above to get this right). Aim for accuracy over guesswork – if you're unsure about a category or a balance, use the guidelines (like confidence score or "others" category) to handle it. The goal is a structured JSON that faithfully represents the statement data with correct debit/credit signs and complete descriptions.
+
+Text to analyze:
+{{sanitizedPageText}}
+
+Return ONLY the JSON object, no additional text or formatting.
     `,
       requiredVariables: ['categoriesDescription', 'categorizationGuidelines', 'sanitizedPageText']
     });
@@ -311,24 +299,24 @@ export class TransactionExtractionPromptBuilder {
    */
   private buildCategorizationGuidelines(userCategories: Category[]): string {
     if (userCategories.length > 0) {
-      return `3. **Smart Categorization - Think Like a Human Bank Statement Expert**: You are an experienced financial analyst who has read thousands of bank statements. Use your human expertise to understand transaction patterns and context. ONLY use the user's preferred categories listed above. Analyze the transaction description like a human expert would - look for subtle clues, abbreviations, and patterns that indicate the true nature of each transaction. Match to the most appropriate category from the user's list based on your expert understanding. If the description doesn't clearly match any of the user's categories, use "Uncategorized" instead of guessing.`;
+      return `3. **Smart Categorization – Think Like a Human Expert**: Infer a plausible category for each transaction based on its description, drawing on domain knowledge of common transaction patterns. ONLY use the user's preferred categories listed above. Analyze the transaction description like a human expert would - look for subtle clues, abbreviations, and patterns that indicate the true nature of each transaction. Match to the most appropriate category from the user's list based on your expert understanding. If the description doesn't clearly match any of the user's categories, use "Uncategorized" instead of guessing.`;
     } else {
-      return `3. **Smart Categorization - Think Like a Human Bank Statement Expert**: You are an experienced financial analyst who has read thousands of bank statements. Use your human expertise to understand transaction patterns, decode abbreviations, and infer the true purpose behind each transaction. Think like a human expert when analyzing descriptions:
-       - Fuel stations, petrol pumps, gas stations → "transport" (e.g., "Fuel S/", "Petrol Pump", "HP Petrol")
-       - Restaurants, food delivery, groceries → "food" (e.g., "Zomato", "Swiggy", "Restaurant", "Cafe")
-       - Shopping malls, retail stores, e-commerce → "shopping" (e.g., "Amazon", "Flipkart", "Mall", "Store")
-       - Utility bills, electricity, water, phone → "utilities" (e.g., "BSES", "Airtel", "Jio", "Water Bill")
-       - ATM withdrawals, cash transactions → "cash_withdrawal" (e.g., "ATM WDL", "CASH")
-       - Salary, wages, employment income → "salary" (e.g., "SALARY", "PAY", "WAGES")
-       - Investments, mutual funds, stocks → "investment" (e.g., "SIP", "MF", "INVESTMENT")
-       - Insurance premiums → "insurance" (e.g., "LIC", "INSURANCE", "PREMIUM")
-       - Bank transfers, NEFT, RTGS → "transfer" (e.g., "NEFT", "RTGS", "TRANSFER")
-       - Interest earned from banks → "interest" (e.g., "INT PAID", "INTEREST")
-       - Bank charges, fees → "fees" (e.g., "CHARGES", "FEE", "PENALTY")
-       - Medical expenses, hospitals, pharmacy → "healthcare" (e.g., "HOSPITAL", "MEDICAL", "PHARMACY")
-       - Transportation, taxi, bus, metro → "transport" (e.g., "UBER", "OLA", "METRO", "BUS")
+      return `3. **Smart Categorization – Think Like a Human Expert**: Infer a plausible category for each transaction based on its description, drawing on domain knowledge of common transaction patterns. Consider typical keywords and contexts:
+       - Fuel purchases (petrol pumps, gas stations) → "transport" (e.g., descriptions containing "Fuel" or "Petrol").
+       - Restaurants, food delivery, groceries → "food" (e.g., "Zomato", "Swiggy", "Restaurant").
+       - Shopping and e-commerce → "shopping" (e.g., "Amazon", "Flipkart", "Mall").
+       - Utility bills (electricity, water, phone) → "utilities" (e.g., "Airtel", "Electricity Bill").
+       - ATM withdrawals or cash transactions → "cash_withdrawal" (e.g., descriptions with "ATM WDL", "Cash").
+       - Salary credits or pension → "salary" (e.g., "SALARY", "PAY").
+       - Investment-related (mutual funds, stock buys/sells) → "investment" (e.g., "SIP", "MF").
+       - Insurance payments (premiums, policy payments) → "insurance" (e.g., "LIC", "INSURANCE PREMIUM").
+       - Bank transfers (NEFT, RTGS, IMPS) → "transfer" (e.g., "NEFT", "IMPS", "TRANSFER").
+       - Interest credits from bank → "interest" (e.g., "INT. PAID", "INTEREST earned").
+       - Bank fees or charges → "fees" (e.g., "CHARGES", "FEE", "PENALTY").
+       - Medical or pharmacy expenses → "healthcare" (e.g., "Hospital", "Pharmacy").
+       - If none of the above apply, use a general category like "others".
        
-       **Think Like a Human Expert**: Use your expertise to recognize patterns, decode banking abbreviations, understand merchant codes, and infer transaction purpose from contextual clues. If the description doesn't clearly indicate a specific category even with your expert analysis, use "Uncategorized" rather than making an incorrect guess. It's better to be accurate than to mislead the user.`;
+       **Use your judgment as a human expert would**, based on the full description context. Recognize patterns, decode banking abbreviations, understand merchant codes, and infer transaction purpose from contextual clues. If the description doesn't clearly indicate a specific category even with your expert analysis, use "others" rather than making an incorrect guess. It's better to be accurate than to mislead the user.`;
     }
   }
 
