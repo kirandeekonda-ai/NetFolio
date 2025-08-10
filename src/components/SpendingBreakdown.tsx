@@ -32,7 +32,9 @@ interface CategoryWithPercentage {
 
 const COLORS = [
   '#8B5CF6', '#06B6D4', '#10B981', '#F59E0B', '#EF4444', '#8B5A2B',
-  '#6366F1', '#EC4899', '#84CC16', '#F97316', '#3B82F6', '#78716C'
+  '#6366F1', '#EC4899', '#84CC16', '#F97316', '#3B82F6', '#78716C',
+  '#F472B6', '#A78BFA', '#34D399', '#FBBF24', '#FB7185', '#60A5FA',
+  '#FACC15', '#A3A3A3'
 ];
 
 export const SpendingBreakdown: React.FC<SpendingBreakdownProps> = ({

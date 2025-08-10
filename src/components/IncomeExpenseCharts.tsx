@@ -276,7 +276,7 @@ export const IncomeExpenseCharts: React.FC<IncomeExpenseChartsProps> = ({
       const baseRadius = 200; // Base distance from center
       const maxRadius = 230; // Maximum distance when avoiding collisions
       
-      const positions = segmentData.slice(0, 6).map((item, index) => {
+      const positions = segmentData.slice(0, 10).map((item, index) => {
         return {
           ...item,
           originalAngle: item.midAngle,
