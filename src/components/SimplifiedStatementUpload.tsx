@@ -2,9 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { FileUpload } from '@/components/FileUpload';
-import { SecurityStatus } from '@/components/SecurityStatus';
-import { ProcessingLogs } from '@/components/ProcessingLogs';
-import { EnhancedProcessingStatus } from '@/components/EnhancedProcessingStatus';
+import { UnifiedProcessingDashboard } from '@/components/UnifiedProcessingDashboard';
 import { PasswordProtectedPDFDialog } from '@/components/PasswordProtectedPDFDialog';
 import { BankLogo } from '@/components/BankLogo';
 import { useEnhancedAIProcessor } from '@/hooks/useEnhancedAIProcessor';
@@ -97,7 +95,8 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
   const handleFileSelect = async (file: File) => {
     setSelectedFile(file);
     clearEnhancedLogs();
-    setUploadMinimized(false); // Show upload area during processing
+    // Hide upload area immediately when processing starts
+    setUploadMinimized(true);
     setSecurityBreakdown(null);
 
     try {
@@ -225,44 +224,8 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
       {/* Premium File Upload Section */}
       <div className="relative">
         <div className={`transition-all duration-500 ease-out ${uploadMinimized ? 'transform scale-98 opacity-90' : ''}`}>
-          {uploadMinimized && !enhancedError ? (
-            /* Success State - Minimized */
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/20 to-teal-500/20 rounded-3xl blur-lg"></div>
-              <div className="relative bg-gradient-to-r from-emerald-50 to-teal-50 backdrop-blur-xl rounded-3xl p-6 border border-emerald-200/50 shadow-xl">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg">
-                      <span className="text-white text-xl">✓</span>
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-emerald-900 mb-1">File Successfully Uploaded</h3>
-                      <div className="flex items-center space-x-4 text-sm text-emerald-700">
-                        <span className="flex items-center space-x-1">
-                          <span>📄</span>
-                          <span className="font-medium">{selectedFile?.name}</span>
-                        </span>
-                        <span className="flex items-center space-x-1">
-                          <span>📊</span>
-                          <span>{((selectedFile?.size || 0) / 1024 / 1024).toFixed(2)} MB</span>
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <Button
-                    onClick={handleRetry}
-                    variant="secondary"
-                    className="bg-white/70 hover:bg-white text-emerald-700 border-emerald-200 shadow-sm"
-                  >
-                    <span className="flex items-center space-x-2">
-                      <span>🔄</span>
-                      <span>Change File</span>
-                    </span>
-                  </Button>
-                </div>
-              </div>
-            </div>
-          ) : (
+          {/* Show upload area only when: no file selected, processing failed, validation failed, or user wants to change file */}
+          {!selectedFile || (!uploadMinimized && (enhancedError || (validationResult && !validationResult.isValid))) ? (
             /* Upload Area - Full State */
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-r from-blue-400/10 to-indigo-500/10 rounded-3xl blur-2xl"></div>
@@ -288,7 +251,44 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
                 )}
               </div>
             </div>
-          )}
+          ) : uploadMinimized && selectedFile && !enhancedError ? (
+            /* Success State - Minimized - Only show when processing is complete/successful */
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/20 to-teal-500/20 rounded-3xl blur-lg"></div>
+              <div className="relative bg-gradient-to-r from-emerald-50 to-teal-50 backdrop-blur-xl rounded-3xl p-6 border border-emerald-200/50 shadow-xl">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg">
+                      <span className="text-white text-xl">✓</span>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-emerald-900 mb-1">File Successfully Uploaded</h3>
+                      <div className="flex items-center space-x-4 text-sm text-emerald-700">
+                        <span className="flex items-center space-x-1">
+                          <span>📄</span>
+                          <span className="font-medium">{selectedFile.name}</span>
+                        </span>
+                        <span className="flex items-center space-x-1">
+                          <span>📊</span>
+                          <span>{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={handleRetry}
+                    variant="secondary"
+                    className="bg-white/70 hover:bg-white text-emerald-700 border-emerald-200 shadow-sm"
+                  >
+                    <span className="flex items-center space-x-2">
+                      <span>🔄</span>
+                      <span>Change File</span>
+                    </span>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -345,30 +345,19 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
         </div>
       )}
 
-      {/* Enhanced Processing Status */}
-      <EnhancedProcessingStatus
+      {/* World-Class Unified Processing Dashboard */}
+      <UnifiedProcessingDashboard
         isVisible={enhancedProcessing || progress !== null || processingLogs.length > 0}
         progress={progress || undefined}
         validationResult={validationResult || undefined}
         pageResults={pageResults}
         logs={processingLogs}
-        securityBreakdown={liveSecurityBreakdown || securityBreakdown} // Use live breakdown during processing
+        securityBreakdown={liveSecurityBreakdown || securityBreakdown}
+        isProcessing={enhancedProcessing}
+        onClearLogs={clearEnhancedLogs}
+        fileInfo={selectedFile ? { name: selectedFile.name, size: selectedFile.size } : undefined}
+        onChangeFile={handleRetry}
       />
-
-      {/* Processing Logs */}
-      {processingLogs.length > 0 && (
-        <div className="relative">
-          <div className="absolute inset-0 bg-gradient-to-r from-gray-400/10 to-slate-500/10 rounded-3xl blur-xl"></div>
-          <div className="relative bg-white/90 backdrop-blur-xl rounded-3xl border border-white/50 shadow-xl overflow-hidden">
-            <ProcessingLogs 
-              logs={processingLogs}
-              isVisible={true}
-              isProcessing={enhancedProcessing}
-              onClear={clearEnhancedLogs}
-            />
-          </div>
-        </div>
-      )}
 
       {/* Premium Features Showcase */}
       {!enhancedProcessing && !progress && (
