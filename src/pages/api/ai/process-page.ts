@@ -22,7 +22,7 @@ const createPageProcessingPrompt = (
   const sanitizationResult = sanitizeTextForLLM(pageContent);
   const sanitizedPageContent = sanitizationResult.sanitizedText;
   
-  // Add page context to the content
+  // Create the contextualized content with page information
   const contextualizedContent = `
 **PAGE CONTEXT:**
 - This is page ${pageNumber} of ${totalPages} total pages
@@ -37,15 +37,16 @@ ${sanitizedPageContent}
 - Maintain balance continuity from previous page if provided
 - Skip page headers and footers
 - Skip summary rows and totals for transactions (but extract balance information)
-- Focus only on individual transaction line items for the transactions array
-`;
+- Focus only on individual transaction line items for the transactions array`;
 
-  // Use the enhanced transaction extraction prompt with balance detection
+  // Build the final prompt using the template service with contextualized content
+  const finalPrompt = transactionPromptBuilder.buildTransactionExtractionPrompt(
+    contextualizedContent,
+    userCategories || []
+  );
+
   return {
-    prompt: transactionPromptBuilder.buildTransactionExtractionPrompt(
-      contextualizedContent,
-      userCategories || []
-    ),
+    prompt: finalPrompt,
     sanitizationResult
   };
 };
