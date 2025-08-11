@@ -65,17 +65,81 @@ const startingMethods = [
 ];
 
 const suggestedCategories = [
-  { id: 'food', name: 'Food & Dining', color: '#FFC107', icon: '🍽️' },
-  { id: 'shopping', name: 'Shopping', color: '#F44336', icon: '🛍️' },
-  { id: 'entertainment', name: 'Entertainment', color: '#2196F3', icon: '🎬' },
-  { id: 'travel', name: 'Travel', color: '#4CAF50', icon: '✈️' },
-  { id: 'health', name: 'Health & Medical', color: '#9C27B0', icon: '🏥' },
-  { id: 'utilities', name: 'Utilities', color: '#FF9800', icon: '⚡' },
-  { id: 'transportation', name: 'Transportation', color: '#607D8B', icon: '🚗' },
-  { id: 'education', name: 'Education', color: '#795548', icon: '📚' },
-  { id: 'income', name: 'Income', color: '#8BC34A', icon: '💰' },
-  { id: 'investment', name: 'Investment', color: '#00BCD4', icon: '📈' },
-  { id: 'insurance', name: 'Insurance', color: '#9E9E9E', icon: '🛡️' },
+  // Essential Daily Categories
+  { id: 'food', name: 'Food & Dining', color: '#FFC107', icon: '🍽️', essential: true },
+  { id: 'groceries', name: 'Groceries', color: '#8BC34A', icon: '🛒', essential: true },
+  { id: 'transportation', name: 'Transportation', color: '#607D8B', icon: '🚗', essential: true },
+  { id: 'utilities', name: 'Utilities', color: '#FF9800', icon: '⚡', essential: true },
+  
+  // Housing & Living
+  { id: 'rent', name: 'Rent/Mortgage', color: '#795548', icon: '🏠' },
+  { id: 'household', name: 'Household Items', color: '#9E9E9E', icon: '🏡' },
+  { id: 'maintenance', name: 'Home Maintenance', color: '#607D8B', icon: '🔧' },
+  
+  // Shopping & Personal
+  { id: 'shopping', name: 'Shopping', color: '#F44336', icon: '🛍️', essential: true },
+  { id: 'clothing', name: 'Clothing', color: '#E91E63', icon: '👕' },
+  { id: 'personal_care', name: 'Personal Care', color: '#9C27B0', icon: '💄' },
+  { id: 'gifts', name: 'Gifts', color: '#FF5722', icon: '🎁' },
+  
+  // Health & Wellness
+  { id: 'health', name: 'Health & Medical', color: '#9C27B0', icon: '🏥', essential: true },
+  { id: 'pharmacy', name: 'Pharmacy', color: '#FF5722', icon: '💊' },
+  { id: 'fitness', name: 'Fitness & Gym', color: '#FF9800', icon: '💪' },
+  { id: 'wellness', name: 'Wellness & Beauty', color: '#E91E63', icon: '🧘' },
+  
+  // Entertainment & Lifestyle
+  { id: 'entertainment', name: 'Entertainment', color: '#2196F3', icon: '🎬', essential: true },
+  { id: 'dining_out', name: 'Dining Out', color: '#FF6F00', icon: '🍕' },
+  { id: 'coffee_tea', name: 'Coffee & Tea', color: '#8D6E63', icon: '☕' },
+  { id: 'alcohol', name: 'Alcohol', color: '#8E24AA', icon: '🍷' },
+  { id: 'movies', name: 'Movies & Shows', color: '#1976D2', icon: '🎭' },
+  { id: 'books', name: 'Books & Media', color: '#388E3C', icon: '📚' },
+  { id: 'hobbies', name: 'Hobbies', color: '#7B1FA2', icon: '🎨' },
+  
+  // Travel & Transport
+  { id: 'travel', name: 'Travel', color: '#4CAF50', icon: '✈️', essential: true },
+  { id: 'fuel', name: 'Fuel', color: '#FF9800', icon: '⛽' },
+  { id: 'parking', name: 'Parking', color: '#607D8B', icon: '🅿️' },
+  { id: 'public_transport', name: 'Public Transport', color: '#00796B', icon: '🚇' },
+  { id: 'rideshare', name: 'Taxi/Rideshare', color: '#FFC107', icon: '🚕' },
+  
+  // Bills & Services
+  { id: 'phone', name: 'Phone/Mobile', color: '#009688', icon: '📱' },
+  { id: 'internet', name: 'Internet', color: '#00BCD4', icon: '�' },
+  { id: 'streaming', name: 'Streaming Services', color: '#E91E63', icon: '📺' },
+  { id: 'subscriptions', name: 'Subscriptions', color: '#673AB7', icon: '📋' },
+  
+  // Financial & Professional
+  { id: 'income', name: 'Income', color: '#4CAF50', icon: '💰', essential: true },
+  { id: 'salary', name: 'Salary', color: '#2E7D32', icon: '💵' },
+  { id: 'business', name: 'Business', color: '#1565C0', icon: '💼' },
+  { id: 'freelance', name: 'Freelance', color: '#0277BD', icon: '💻' },
+  { id: 'investment', name: 'Investment', color: '#00BCD4', icon: '📈', essential: true },
+  { id: 'savings', name: 'Savings', color: '#388E3C', icon: '🏦' },
+  { id: 'insurance', name: 'Insurance', color: '#9E9E9E', icon: '🛡️', essential: true },
+  { id: 'taxes', name: 'Taxes', color: '#5D4037', icon: '📊' },
+  { id: 'fees', name: 'Bank Fees', color: '#795548', icon: '🏛️' },
+  
+  // Education & Development
+  { id: 'education', name: 'Education', color: '#795548', icon: '📚', essential: true },
+  { id: 'courses', name: 'Online Courses', color: '#FF7043', icon: '🎓' },
+  { id: 'books_learning', name: 'Books & Learning', color: '#8BC34A', icon: '📖' },
+  
+  // Family & Kids
+  { id: 'kids', name: 'Kids & Family', color: '#FFEB3B', icon: '👨‍👩‍👧‍👦' },
+  { id: 'childcare', name: 'Childcare', color: '#FFA726', icon: '�' },
+  { id: 'school', name: 'School Fees', color: '#AB47BC', icon: '🏫' },
+  
+  // Pets & Animals
+  { id: 'pets', name: 'Pets', color: '#8D6E63', icon: '🐕' },
+  { id: 'vet', name: 'Veterinary', color: '#A1887F', icon: '🏥' },
+  
+  // Miscellaneous
+  { id: 'charity', name: 'Charity & Donations', color: '#F48FB1', icon: '❤️' },
+  { id: 'cash', name: 'Cash Withdrawal', color: '#90A4AE', icon: '�' },
+  { id: 'transfer', name: 'Transfers', color: '#78909C', icon: '🔄' },
+  { id: 'uncategorized', name: 'Uncategorized', color: '#9E9E9E', icon: '❓' },
   { id: 'other', name: 'Other', color: '#607D8B', icon: '📁' },
 ];
 
@@ -86,7 +150,7 @@ export const WelcomeWizard: FC<WelcomeWizardProps> = ({ user, onComplete }) => {
   const [formData, setFormData] = useState({
     goals: [] as string[],
     currency: 'USD',
-    categories: ['food', 'shopping', 'transportation', 'utilities'] as string[], // Pre-select essential categories
+    categories: ['food', 'groceries', 'shopping', 'transportation', 'utilities', 'health'] as string[], // Pre-select essential categories
     balanceProtection: {
       enabled: false,
       type: 'pin' as 'pin' | 'password',
@@ -449,44 +513,145 @@ export const WelcomeWizard: FC<WelcomeWizardProps> = ({ user, onComplete }) => {
             <div className="text-center">
               <div className="text-4xl mb-4">🏷️</div>
               <h2 className="text-2xl font-bold text-gray-900">Choose your expense categories</h2>
-              <p className="text-gray-600 mt-2">We've pre-selected common categories. Add or remove as needed.</p>
+              <p className="text-gray-600 mt-2">We've pre-selected essential categories. Add or remove as needed.</p>
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg mt-4">
+                <p className="text-sm text-blue-800">
+                  ✨ <strong>Pro Tip:</strong> Start with essential categories and add more later as needed. You can always customize these in your profile settings.
+                </p>
+              </div>
             </div>
             
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {suggestedCategories.map((category) => (
-                <button
-                  key={category.id}
-                  onClick={() => handleCategoryToggle(category.id)}
-                  className={`p-3 rounded-lg border-2 transition-all duration-200 text-center ${
-                    formData.categories.includes(category.id)
-                      ? 'border-blue-500 bg-blue-50 shadow-md transform scale-105'
-                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                  }`}
-                >
-                  <div 
-                    className="text-2xl mb-2"
-                    style={{ filter: formData.categories.includes(category.id) ? 'none' : 'grayscale(0.5)' }}
+            {/* Essential Categories Section */}
+            <div className="space-y-4">
+              <div className="text-center">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">⭐ Essential Categories</h3>
+                <p className="text-sm text-gray-600 mb-4">These are commonly used by most users</p>
+              </div>
+              
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {suggestedCategories.filter(cat => cat.essential).map((category) => (
+                  <motion.button
+                    key={category.id}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => handleCategoryToggle(category.id)}
+                    className={`group relative p-4 rounded-xl border-2 transition-all duration-200 text-center ${
+                      formData.categories.includes(category.id)
+                        ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-lg shadow-blue-200/50 transform scale-105'
+                        : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50 hover:shadow-md'
+                    }`}
                   >
-                    {category.icon}
+                    {/* Selected indicator */}
+                    {formData.categories.includes(category.id) && (
+                      <motion.div 
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center shadow-lg"
+                      >
+                        <span className="text-xs text-white">✓</span>
+                      </motion.div>
+                    )}
+                    
+                    <div 
+                      className="text-3xl mb-2 transition-all duration-200"
+                      style={{ 
+                        filter: formData.categories.includes(category.id) ? 'none' : 'grayscale(0.3)',
+                        transform: formData.categories.includes(category.id) ? 'scale(1.1)' : 'scale(1)'
+                      }}
+                    >
+                      {category.icon}
+                    </div>
+                    <div className={`text-sm font-medium transition-colors duration-200 ${
+                      formData.categories.includes(category.id) ? 'text-blue-900' : 'text-gray-900 group-hover:text-blue-800'
+                    }`}>
+                      {category.name}
+                    </div>
+                    <div 
+                      className="w-4 h-4 rounded-full mx-auto mt-2 border-2 transition-all duration-200"
+                      style={{ 
+                        backgroundColor: formData.categories.includes(category.id) ? category.color : 'transparent',
+                        borderColor: formData.categories.includes(category.id) ? category.color : '#D1D5DB',
+                        boxShadow: formData.categories.includes(category.id) ? `0 0 0 2px ${category.color}20` : 'none'
+                      }}
+                    />
+                  </motion.button>
+                ))}
+              </div>
+            </div>
+
+            {/* All Categories Section - Expandable */}
+            <div className="space-y-4">
+              <details className="group">
+                <summary className="flex items-center justify-center space-x-2 cursor-pointer text-blue-600 hover:text-blue-800 transition-colors duration-200 p-4 bg-gradient-to-r from-gray-50 to-blue-50 rounded-lg border border-gray-200 hover:border-blue-300">
+                  <span className="text-sm font-medium">🔍 Browse All Categories</span>
+                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                    {suggestedCategories.length - suggestedCategories.filter(cat => cat.essential).length} more
+                  </span>
+                  <svg className="w-4 h-4 transition-transform duration-200 group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </summary>
+                
+                <motion.div 
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  className="mt-4 p-4 bg-gray-50 rounded-lg border"
+                >
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                    {suggestedCategories.filter(cat => !cat.essential).map((category) => (
+                      <motion.button
+                        key={category.id}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => handleCategoryToggle(category.id)}
+                        className={`group relative p-3 rounded-lg border-2 transition-all duration-200 text-center ${
+                          formData.categories.includes(category.id)
+                            ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-md transform scale-105'
+                            : 'border-gray-200 hover:border-blue-300 hover:bg-white hover:shadow-sm'
+                        }`}
+                      >
+                        {/* Selected indicator */}
+                        {formData.categories.includes(category.id) && (
+                          <motion.div 
+                            initial={{ scale: 0, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center shadow-md"
+                          >
+                            <span className="text-xs text-white">✓</span>
+                          </motion.div>
+                        )}
+                        
+                        <div 
+                          className="text-2xl mb-1 transition-all duration-200"
+                          style={{ 
+                            filter: formData.categories.includes(category.id) ? 'none' : 'grayscale(0.5)',
+                          }}
+                        >
+                          {category.icon}
+                        </div>
+                        <div className={`text-xs font-medium transition-colors duration-200 ${
+                          formData.categories.includes(category.id) ? 'text-blue-900' : 'text-gray-800 group-hover:text-blue-800'
+                        }`}>
+                          {category.name}
+                        </div>
+                        <div 
+                          className="w-3 h-3 rounded-full mx-auto mt-1 border transition-all duration-200"
+                          style={{ 
+                            backgroundColor: formData.categories.includes(category.id) ? category.color : 'transparent',
+                            borderColor: formData.categories.includes(category.id) ? category.color : '#D1D5DB'
+                          }}
+                        />
+                      </motion.button>
+                    ))}
                   </div>
-                  <div className="text-sm font-medium text-gray-900">
-                    {category.name}
-                  </div>
-                  <div 
-                    className="w-3 h-3 rounded-full mx-auto mt-2 border"
-                    style={{ 
-                      backgroundColor: formData.categories.includes(category.id) ? category.color : 'transparent',
-                      borderColor: category.color 
-                    }}
-                  />
-                </button>
-              ))}
+                </motion.div>
+              </details>
             </div>
 
             <div className="bg-blue-50 rounded-lg p-4 text-center">
               <p className="text-sm text-blue-800">
-                💡 <strong>Tip:</strong> You can add, edit, or remove categories later in your profile settings.
-                {formData.categories.length === 0 && " Select at least a few to get started!"}
+                💡 <strong>Selected: {formData.categories.length} categories</strong> • You can add, edit, or remove categories later in your profile settings.
+                {formData.categories.length === 0 && " Select at least a few essential categories to get started!"}
               </p>
             </div>
 
