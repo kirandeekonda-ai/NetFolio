@@ -73,10 +73,10 @@ export const useAIPdfProcessor = (): UseAIPdfProcessorReturn => {
         addLog(`💰 Raw transactions extracted from AI: ${result.transactions.length}`);
       }
 
-      // Create category matcher if user categories are provided
+      // Create enhanced category matcher if user categories are provided
       const categoryMatcher = userCategories.length > 0 ? createCategoryMatcher(userCategories) : null;
 
-      // Convert to our internal Transaction format and apply category matching
+      // Convert to our internal Transaction format and apply enhanced category matching
       const transactions: Transaction[] = result.transactions.map((txn: any, index: number) => {
         // Validate and normalize fields from AI
         const description = typeof txn.description === 'string' ? txn.description : '';
@@ -87,7 +87,7 @@ export const useAIPdfProcessor = (): UseAIPdfProcessorReturn => {
         let finalCategory = 'Uncategorized';
         const aiCategory = txn.suggested_category || txn.category;
         
-        console.log(`🔍 CATEGORY MATCHING DEBUG for "${description}":`, {
+        console.log(`🔍 ENHANCED CATEGORY MATCHING DEBUG for "${description}":`, {
           aiCategory,
           suggested_category: txn.suggested_category,
           category: txn.category,
@@ -96,11 +96,30 @@ export const useAIPdfProcessor = (): UseAIPdfProcessorReturn => {
         });
         
         if (categoryMatcher && aiCategory && aiCategory.trim() && aiCategory !== 'N/A') {
-          finalCategory = categoryMatcher.matchCategory(aiCategory.trim());
-          console.log(`🎯 Mapped AI category "${aiCategory}" to "${finalCategory}"`);
-          addLog(`🎯 Mapped AI category "${aiCategory}" to "${finalCategory}"`);
+          // Use enhanced category matching with confidence scoring
+          const matchResult = categoryMatcher.matchCategoryWithConfidence(aiCategory.trim());
+          finalCategory = matchResult.category;
+          
+          console.log(`🎯 Enhanced AI category matching for "${aiCategory}":`, {
+            originalCategory: aiCategory,
+            matchedCategory: matchResult.category,
+            confidence: Math.round(matchResult.confidence * 100) + '%',
+            matchType: matchResult.matchType,
+            reason: matchResult.reason
+          });
+          
+          // Log based on confidence level
+          if (matchResult.confidence >= 0.9) {
+            addLog(`🎯 High confidence match: "${aiCategory}" → "${finalCategory}" (${Math.round(matchResult.confidence * 100)}%)`);
+          } else if (matchResult.confidence >= 0.7) {
+            addLog(`⚡ Good match: "${aiCategory}" → "${finalCategory}" (${Math.round(matchResult.confidence * 100)}%)`);
+          } else if (matchResult.matchType !== 'none') {
+            addLog(`⚠️ Low confidence match: "${aiCategory}" → "${finalCategory}" (${Math.round(matchResult.confidence * 100)}%)`);
+          } else {
+            addLog(`❌ No suitable match found for "${aiCategory}" - using Uncategorized`);
+          }
         } else if (userCategories.length > 0) {
-          console.log(`⚠️ No category matching for "${description}" - aiCategory: "${aiCategory}", categoryMatcher: ${!!categoryMatcher}`);
+          console.log(`⚠️ No category matching possible for "${description}" - aiCategory: "${aiCategory}", categoryMatcher: ${!!categoryMatcher}`);
           addLog(`🏷️ No AI category suggestion for "${description.substring(0, 50)}..." - using "Uncategorized"`);
         }
         const transactionType = amount > 0 ? 'income' as const : 'expense' as const;

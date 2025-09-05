@@ -299,7 +299,28 @@ export class TransactionExtractionPromptBuilder {
    */
   private buildCategorizationGuidelines(userCategories: Category[]): string {
     if (userCategories.length > 0) {
-      return `3. **Smart Categorization – Think Like a Human Expert**: Infer a plausible category for each transaction based on its description, drawing on domain knowledge of common transaction patterns. ONLY use the user's preferred categories listed above. Analyze the transaction description like a human expert would - look for subtle clues, abbreviations, and patterns that indicate the true nature of each transaction. Match to the most appropriate category from the user's list based on your expert understanding. If the description doesn't clearly match any of the user's categories, use "Uncategorized" instead of guessing.`;
+      const categoryList = userCategories
+        .map(cat => `"${cat.name}"`)
+        .join(', ');
+      
+      return `3. **Smart Categorization – CRUCIAL REQUIREMENT**: You MUST use ONLY the user's preferred categories listed above. The user has specifically defined these categories: ${categoryList}. 
+
+**CATEGORIZATION RULES:**
+- ONLY use categories from this exact list: ${categoryList}
+- If you cannot confidently match a transaction to one of these categories, use "Uncategorized"
+- Do NOT create new categories or use generic categories not in the user's list
+- Look for keyword matches and semantic similarity between transaction descriptions and user category names
+- Consider partial matches (e.g., if user has "Medical Bills" and transaction is about "Doctor visit", match to "Medical Bills")
+- If user has "Food & Dining" and transaction is from "Restaurant", match to "Food & Dining"
+- Prioritize user category names over generic categorization logic
+
+**EXAMPLES OF GOOD MATCHING:**
+- User category: "Groceries" + Transaction: "SUPERMARKET PURCHASE" → "Groceries"
+- User category: "Car Expenses" + Transaction: "PETROL PUMP" → "Car Expenses"  
+- User category: "Entertainment" + Transaction: "NETFLIX SUBSCRIPTION" → "Entertainment"
+- User category: "Utilities" + Transaction: "ELECTRICITY BILL" → "Utilities"
+
+**IMPORTANT**: The success of this system depends on accurately matching to user's preferred categories. Be smart about matching but never invent categories.`;
     } else {
       return `3. **Smart Categorization – Think Like a Human Expert**: Infer a plausible category for each transaction based on its description, drawing on domain knowledge of common transaction patterns. Consider typical keywords and contexts:
        - Fuel purchases (petrol pumps, gas stations) → "transport" (e.g., descriptions containing "Fuel" or "Petrol").
