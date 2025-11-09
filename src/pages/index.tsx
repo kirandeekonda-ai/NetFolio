@@ -24,7 +24,7 @@ const IndexPage: NextPage = () => {
       if (!session?.user) {
         // Not authenticated - go to marketing landing page
         setLoadingStage('redirecting');
-        setTimeout(() => router.push('/auth/landing'), 500);
+          setTimeout(() => router.push('/auth/landing'), 800);
         return;
       }
 
@@ -80,11 +80,11 @@ const IndexPage: NextPage = () => {
       }
     };
 
-    // Add a small delay for better UX
+    // Add appropriate delays for smooth transitions
     const timer = setTimeout(() => {
       setLoadingStage('authenticating');
-      setTimeout(determineUserFlow, 400);
-    }, 600);
+      setTimeout(determineUserFlow, 800);
+    }, 1000);
 
     return () => clearTimeout(timer);
   }, [session, router, supabase]);
@@ -124,20 +124,10 @@ const IndexPage: NextPage = () => {
   };
 
   const getProgressWidth = () => {
-    switch (loadingStage) {
-      case 'initializing':
-        return '20%';
-      case 'authenticating':
-        return '40%';
-      case 'analyzing':
-        return '60%';
-      case 'routing':
-        return '80%';
-      case 'redirecting':
-        return '100%';
-      default:
-        return '0%';
-    }
+    const stages = ['initializing', 'authenticating', 'analyzing', 'routing', 'redirecting'];
+    const currentIndex = stages.indexOf(loadingStage);
+    const baseProgress = currentIndex >= 0 ? (currentIndex + 1) * (100 / stages.length) : 0;
+    return `${baseProgress}%`;
   };
 
   return (
@@ -186,37 +176,59 @@ const IndexPage: NextPage = () => {
 
         {/* Progressive Loading Message */}
         <motion.div
-          key={loadingStage}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          transition={{ duration: 0.3 }}
+          transition={{ duration: 0.6 }}
           className="space-y-2"
         >
-          <p className="text-gray-700 font-medium">{getLoadingMessage()}</p>
+          <motion.p
+            key={loadingStage}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.4 }}
+            className="text-gray-700 font-medium h-6"
+          >
+            {getLoadingMessage()}
+          </motion.p>
           
           {/* Progress Indicator */}
           <div className="w-64 mx-auto">
             <div className="flex justify-between text-xs text-gray-500 mb-2">
-              <span className={loadingStage === 'initializing' ? 'text-blue-600 font-medium' : ''}>
-                Initialize
-              </span>
-              <span className={['authenticating', 'analyzing'].includes(loadingStage) ? 'text-blue-600 font-medium' : ''}>
-                Authenticate
-              </span>
-              <span className={loadingStage === 'routing' ? 'text-blue-600 font-medium' : ''}>
-                Analyze
-              </span>
-              <span className={loadingStage === 'redirecting' ? 'text-blue-600 font-medium' : ''}>
-                Navigate
-              </span>
+              {[
+                { stage: 'initializing', label: 'Initialize' },
+                { stage: ['authenticating', 'analyzing'], label: 'Authenticate' },
+                { stage: 'routing', label: 'Analyze' },
+                { stage: 'redirecting', label: 'Navigate' }
+              ].map(({ stage, label }) => (
+                <motion.span
+                  key={label}
+                  animate={{
+                    color: Array.isArray(stage) 
+                      ? stage.includes(loadingStage) ? '#2563EB' : '#6B7280'
+                      : stage === loadingStage ? '#2563EB' : '#6B7280',
+                    fontWeight: Array.isArray(stage)
+                      ? stage.includes(loadingStage) ? 500 : 400
+                      : stage === loadingStage ? 500 : 400
+                  }}
+                  transition={{ duration: 0.4 }}
+                >
+                  {label}
+                </motion.span>
+              ))}
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
               <motion.div
                 className="bg-gradient-to-r from-blue-500 to-indigo-500 h-2 rounded-full"
-                initial={{ width: '0%' }}
-                animate={{ width: getProgressWidth() }}
-                transition={{ duration: 0.5, ease: "easeInOut" }}
+                initial={{ width: '0%', x: '-10%' }}
+                animate={{ 
+                  width: getProgressWidth(),
+                  x: '0%'
+                }}
+                transition={{ 
+                  duration: 1.2,
+                  ease: [0.4, 0.0, 0.2, 1], // Custom cubic-bezier for smooth animation
+                  bounce: 0
+                }}
               />
             </div>
           </div>
