@@ -887,7 +887,7 @@ const LandingPage: NextPage = () => {
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="bg-white rounded-2xl p-8 max-w-lg w-full relative"
+              className="bg-white rounded-2xl max-w-lg w-full relative"
             >
               <button
                 onClick={() => setShowAuth(false)}
@@ -897,21 +897,6 @@ const LandingPage: NextPage = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
-              
-              <div className="text-center mb-6">
-                <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center mx-auto mb-4">
-                  <span className="text-white font-bold text-lg">N</span>
-                </div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                  {authMode === 'signup' ? 'Create Your Account' : 'Welcome Back'}
-                </h2>
-                <p className="text-gray-600">
-                  {authMode === 'signup' 
-                    ? 'Start your journey to better financial management' 
-                    : 'Sign in to access your financial dashboard'
-                  }
-                </p>
-              </div>
               
               <Auth />
             </motion.div>
