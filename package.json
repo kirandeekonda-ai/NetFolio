@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "node dev-with-logging.js",
+    "dev": "node scripts/dev-with-logging.js",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
