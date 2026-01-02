@@ -28,6 +28,7 @@ export default function FinanceDashboard() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [filterPerson, setFilterPerson] = useState<'All' | 'Kiran' | 'Anusha'>('All');
     const [activeAnalyticsTab, setActiveAnalyticsTab] = useState<'Sector' | 'Assets' | 'Performance'>('Sector');
+    const [isExporting, setIsExporting] = useState(false);
 
     const fetchData = async () => {
         if (!user) return;
@@ -82,6 +83,52 @@ export default function FinanceDashboard() {
     useEffect(() => {
         fetchData();
     }, [user, filterPerson]);
+
+    const handleExport = async () => {
+        if (!user) return;
+
+        setIsExporting(true);
+        try {
+            const response = await fetch(`/api/finance/export?userId=${user.id}`);
+            const data = await response.json();
+
+            if (!response.ok) throw new Error(data.error);
+
+            // Create and download holdings CSV
+            const holdingsBlob = new Blob([data.holdings], { type: 'text/csv' });
+            const holdingsUrl = URL.createObjectURL(holdingsBlob);
+            const holdingsLink = document.createElement('a');
+            holdingsLink.href = holdingsUrl;
+            holdingsLink.download = `portfolio_holdings_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(holdingsLink);
+            holdingsLink.click();
+            document.body.removeChild(holdingsLink);
+            URL.revokeObjectURL(holdingsUrl);
+
+            // Small delay before second download
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Create and download transactions CSV
+            const transactionsBlob = new Blob([data.transactions], { type: 'text/csv' });
+            const transactionsUrl = URL.createObjectURL(transactionsBlob);
+            const transactionsLink = document.createElement('a');
+            transactionsLink.href = transactionsUrl;
+            transactionsLink.download = `portfolio_transactions_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(transactionsLink);
+            transactionsLink.click();
+            document.body.removeChild(transactionsLink);
+            URL.revokeObjectURL(transactionsUrl);
+
+            // Show success message
+            alert(`✅ Export successful!\n\n📊 Holdings: ${data.stats?.holdingsCount || 0}\n📝 Transactions: ${data.stats?.transactionsCount || 0}\n\nFiles downloaded to your Downloads folder.`);
+
+        } catch (error) {
+            console.error('Export failed:', error);
+            alert('Failed to export portfolio. Please try again.');
+        } finally {
+            setIsExporting(false);
+        }
+    };
 
     const [editingHolding, setEditingHolding] = useState<InvestmentHolding | null>(null);
     const [editingTransaction, setEditingTransaction] = useState<{ tx: any, holding: InvestmentHolding } | null>(null);
@@ -210,13 +257,19 @@ export default function FinanceDashboard() {
                                         ))}
                                     </div>
 
-                                    <Button
-                                        variant="custom"
+                                    <button
                                         onClick={() => setIsModalOpen(true)}
-                                        className="bg-white text-indigo-600 hover:bg-blue-50 border-none px-6 py-3 font-medium flex items-center space-x-2 rounded-lg shadow-sm"
+                                        className="bg-white/20 backdrop-blur-sm text-white px-6 py-3 rounded-lg font-medium hover:bg-white/30 transition-all duration-200 border border-white/30 shadow-lg hover:shadow-xl hover:scale-105"
                                     >
-                                        <span>+ Add Investment</span>
-                                    </Button>
+                                        + Add Investment
+                                    </button>
+                                    <button
+                                        onClick={handleExport}
+                                        disabled={isExporting || holdings.length === 0}
+                                        className="bg-emerald-500/20 backdrop-blur-sm text-white px-6 py-3 rounded-lg font-medium hover:bg-emerald-500/30 transition-all duration-200 border border-emerald-400/30 shadow-lg hover:shadow-xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                                    >
+                                        {isExporting ? '⏳ Exporting...' : '📥 Export Portfolio'}
+                                    </button>
                                 </motion.div>
                             </div>
                         </div>
@@ -273,8 +326,8 @@ export default function FinanceDashboard() {
                                         key={tab}
                                         onClick={() => setActiveAnalyticsTab(tab)}
                                         className={`pb-4 text-sm font-medium transition-colors relative ${activeAnalyticsTab === tab
-                                                ? 'text-blue-600'
-                                                : 'text-gray-500 hover:text-gray-700'
+                                            ? 'text-blue-600'
+                                            : 'text-gray-500 hover:text-gray-700'
                                             }`}
                                     >
                                         {tab}
