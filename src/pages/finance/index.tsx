@@ -10,6 +10,7 @@ import { AddTransactionModal } from '@/components/finance/AddTransactionModal';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { AllocationChart } from '@/components/finance/AllocationChart';
+import { PortfolioHeatmap } from '@/components/finance/PortfolioHeatmap';
 
 export default function FinanceDashboard() {
     const user = useUser();
@@ -19,11 +20,14 @@ export default function FinanceDashboard() {
         total_invested: 0,
         current_value: 0,
         total_pnl: 0,
-        total_pnl_percentage: 0
+        total_pnl_percentage: 0,
+        day_change_amount: 0,
+        day_change_percentage: 0
     });
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [filterPerson, setFilterPerson] = useState<'All' | 'Kiran' | 'Anusha'>('All');
+    const [activeAnalyticsTab, setActiveAnalyticsTab] = useState<'Sector' | 'Assets' | 'Performance'>('Sector');
 
     const fetchData = async () => {
         if (!user) return;
@@ -36,18 +40,29 @@ export default function FinanceDashboard() {
                 const symbols = data.map(h => h.ticker_symbol).filter(Boolean);
                 if (symbols.length > 0) {
                     const { clientMarketData } = await import('@/services/ClientMarketDataService');
-                    const livePrices = await clientMarketData.getBatchQuotes(symbols);
+                    // Now returns Record<string, MarketQuote>
+                    const liveQuotes = await clientMarketData.getBatchQuotes(symbols);
 
                     // Update holdings with live prices
                     data.forEach(h => {
-                        if (livePrices[h.ticker_symbol]) {
-                            h.current_price = livePrices[h.ticker_symbol];
-                            // Recalculate values based on live price
+                        const quote = liveQuotes[h.ticker_symbol];
+                        if (quote) {
+                            h.current_price = quote.price;
+
+                            // Calculate Basic Metrics
                             h.current_value = h.quantity * (h.current_price || 0);
                             h.pnl_amount = (h.current_value || 0) - (h.invested_amount || 0);
                             h.pnl_percentage = (h.invested_amount || 0) > 0
                                 ? (h.pnl_amount! / h.invested_amount!) * 100
                                 : 0;
+
+                            // Calculate Day's Change
+                            // Change per share * quantity = Total Day Change Amount
+                            // We use regularMarketChange if available, else calc manually from prevClose
+                            const changePerShare = quote.change || (quote.price - (quote.previousClose || quote.price));
+
+                            h.day_change_amount = changePerShare * h.quantity;
+                            h.day_change_percentage = quote.changePercent || 0;
                         }
                     });
                 }
@@ -209,7 +224,7 @@ export default function FinanceDashboard() {
 
 
                     {/* Scorecards */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                         <Card className="p-6 border-l-4 border-blue-500">
                             <p className="text-gray-500 text-sm uppercase tracking-wide font-medium">Net Worth</p>
                             <p className="text-3xl font-bold text-gray-900 mt-2">{formatMoney(metrics.current_value)}</p>
@@ -222,10 +237,23 @@ export default function FinanceDashboard() {
                             <p className="text-sm text-gray-400 mt-1">Total Capital Deployed</p>
                         </Card>
 
-                        <Card className={`p-6 border-l-4 ${metrics.total_pnl >= 0 ? 'border-emerald-500' : 'border-red-500'}`}>
+                        <Card className={`p-6 border-l-4 ${metrics.day_change_amount >= 0 ? 'border-emerald-400' : 'border-rose-400'}`}>
+                            <p className="text-gray-500 text-sm uppercase tracking-wide font-medium">Day's Change</p>
+                            <div className="flex items-baseline space-x-2 mt-2">
+                                <p className={`text-3xl font-bold ${metrics.day_change_amount >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                    {metrics.day_change_amount >= 0 ? '+' : ''}{formatMoney(metrics.day_change_amount)}
+                                </p>
+                                <span className={`px-2 py-0.5 rounded text-sm font-medium ${metrics.day_change_amount >= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                                    {metrics.day_change_percentage.toFixed(2)}%
+                                </span>
+                            </div>
+                            <p className="text-sm text-gray-400 mt-1">Live Daily Movement</p>
+                        </Card>
+
+                        <Card className={`p-6 border-l-4 ${metrics.total_pnl >= 0 ? 'border-emerald-600' : 'border-red-600'}`}>
                             <p className="text-gray-500 text-sm uppercase tracking-wide font-medium">Overall P&L</p>
                             <div className="flex items-baseline space-x-2 mt-2">
-                                <p className={`text-3xl font-bold ${metrics.total_pnl >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                                <p className={`text-3xl font-bold ${metrics.total_pnl >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
                                     {metrics.total_pnl >= 0 ? '+' : ''}{formatMoney(metrics.total_pnl)}
                                 </p>
                                 <span className={`px-2 py-0.5 rounded text-sm font-medium ${metrics.total_pnl >= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>
@@ -236,20 +264,77 @@ export default function FinanceDashboard() {
                         </Card>
                     </div>
 
-                    {/* Analytics Section */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                        <Card className="p-6">
-                            <h3 className="text-lg font-medium text-gray-900 mb-4">Sector Allocation</h3>
-                            <div className="h-[300px]">
-                                <AllocationChart holdings={holdings} type="sector" />
+                    {/* Analytics Tabs */}
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-8">
+                        <div className="border-b border-gray-100 px-6 pt-4">
+                            <div className="flex space-x-8">
+                                {(['Sector', 'Assets', 'Performance'] as const).map((tab) => (
+                                    <button
+                                        key={tab}
+                                        onClick={() => setActiveAnalyticsTab(tab)}
+                                        className={`pb-4 text-sm font-medium transition-colors relative ${activeAnalyticsTab === tab
+                                                ? 'text-blue-600'
+                                                : 'text-gray-500 hover:text-gray-700'
+                                            }`}
+                                    >
+                                        {tab}
+                                        {activeAnalyticsTab === tab && (
+                                            <motion.div
+                                                layoutId="activeTab"
+                                                className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"
+                                            />
+                                        )}
+                                    </button>
+                                ))}
                             </div>
-                        </Card>
-                        <Card className="p-6">
-                            <h3 className="text-lg font-medium text-gray-900 mb-4">Asset Allocation</h3>
-                            <div className="h-[300px]">
-                                <AllocationChart holdings={holdings} type="asset_class" />
-                            </div>
-                        </Card>
+                        </div>
+
+                        <div className="p-6">
+                            {activeAnalyticsTab === 'Sector' && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0 }}
+                                >
+                                    <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-6">Sector Allocation</h3>
+                                    <div className="h-[400px]">
+                                        <AllocationChart holdings={holdings} type="sector" />
+                                    </div>
+                                </motion.div>
+                            )}
+
+                            {activeAnalyticsTab === 'Assets' && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0 }}
+                                >
+                                    <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-6">Asset Class Allocation</h3>
+                                    <div className="h-[400px]">
+                                        <AllocationChart holdings={holdings} type="asset_class" />
+                                    </div>
+                                </motion.div>
+                            )}
+
+                            {activeAnalyticsTab === 'Performance' && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0 }}
+                                >
+                                    <div className="flex justify-between items-center mb-6">
+                                        <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Portfolio Heatmap</h3>
+                                        <div className="flex space-x-3 text-xs">
+                                            <span className="flex items-center"><span className="w-2.5 h-2.5 rounded bg-emerald-500 mr-2"></span>Profit</span>
+                                            <span className="flex items-center"><span className="w-2.5 h-2.5 rounded bg-red-500 mr-2"></span>Loss</span>
+                                        </div>
+                                    </div>
+                                    <div className="h-[400px]">
+                                        <PortfolioHeatmap holdings={holdings} />
+                                    </div>
+                                </motion.div>
+                            )}
+                        </div>
                     </div>
 
                     {/* Main Table */}

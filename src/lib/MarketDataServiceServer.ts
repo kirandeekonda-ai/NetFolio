@@ -117,27 +117,33 @@ class MarketDataService {
      * Batch fetch prices for portfolio 
      * (Yahoo Finance supports passing array)
      */
-    async getBatchQuotes(symbols: string[]): Promise<Record<string, number>> {
+    async getBatchQuotes(symbols: string[]): Promise<Record<string, MarketQuote>> {
         if (symbols.length === 0) return {};
 
         try {
             const quotes = await yahooFinance.quote(symbols);
-            const priceMap: Record<string, number> = {};
+            const quoteMap: Record<string, MarketQuote> = {};
+
+            const processQuote = (q: any) => {
+                const quote: MarketQuote = {
+                    symbol: q.symbol,
+                    price: q.regularMarketPrice || 0,
+                    change: q.regularMarketChange || 0,
+                    changePercent: q.regularMarketChangePercent || 0,
+                    currency: q.currency || 'INR',
+                    previousClose: q.regularMarketPreviousClose || q.regularMarketPrice,
+                    sector: undefined // Batch quote doesn't strictly provide this reliably
+                };
+                quoteMap[q.symbol] = quote;
+            };
 
             if (Array.isArray(quotes)) {
-                quotes.forEach(q => {
-                    if (q.regularMarketPrice) {
-                        priceMap[q.symbol] = q.regularMarketPrice;
-                    }
-                });
+                quotes.forEach(processQuote);
             } else {
-                // Single result
-                if (quotes.regularMarketPrice) {
-                    priceMap[quotes.symbol] = quotes.regularMarketPrice;
-                }
+                processQuote(quotes);
             }
 
-            return priceMap;
+            return quoteMap;
         } catch (error) {
             console.error('MarketDataService: Batch quote failed', error);
             return {};

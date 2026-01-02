@@ -19,6 +19,8 @@ export interface InvestmentHolding {
   pnl_amount?: number;
   pnl_percentage?: number;
   days_held?: number;
+  day_change_amount?: number;
+  day_change_percentage?: number;
   transactions?: InvestmentTransaction[];
 }
 
@@ -40,8 +42,8 @@ export interface FinancePortfolioMetrics {
   current_value: number;
   total_pnl: number;
   total_pnl_percentage: number;
-  day_change_amount?: number;
-  day_change_percentage?: number;
+  day_change_amount: number;
+  day_change_percentage: number;
 }
 
 export interface FinanceDashboardData {

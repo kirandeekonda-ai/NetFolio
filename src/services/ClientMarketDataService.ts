@@ -21,6 +21,7 @@ class ClientMarketDataService {
         const res = await axios.get(`/api/finance/market-data`, {
             params: { action: 'batch', symbols: symbols.join(',') }
         });
+        // Returns Record<string, MarketQuote>
         return res.data;
     }
 }

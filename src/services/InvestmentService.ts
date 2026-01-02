@@ -73,25 +73,34 @@ class InvestmentService {
     /**
      * Calculate portfolio-level metrics
      */
+    /**
+     * Calculate portfolio-level metrics
+     */
     calculateMetrics(holdings: InvestmentHolding[]): FinanceDashboardData['metrics'] {
         let totalInvested = 0;
         let currentValue = 0;
+        let totalDayChange = 0;
 
         holdings.forEach(h => {
             totalInvested += h.invested_amount || 0;
             currentValue += h.current_value || 0;
+            totalDayChange += h.day_change_amount || 0;
         });
 
         const totalPnl = currentValue - totalInvested;
         const totalPnlPercentage = totalInvested > 0 ? (totalPnl / totalInvested) * 100 : 0;
+
+        // Day Change % is based on (Current Value - Day Change) i.e., Yesterday's Value
+        const yesterdayValue = currentValue - totalDayChange;
+        const totalDayChangePercentage = yesterdayValue > 0 ? (totalDayChange / yesterdayValue) * 100 : 0;
 
         return {
             total_invested: totalInvested,
             current_value: currentValue,
             total_pnl: totalPnl,
             total_pnl_percentage: totalPnlPercentage,
-            day_change_amount: 0, // Pending Market Data Integration
-            day_change_percentage: 0
+            day_change_amount: totalDayChange,
+            day_change_percentage: totalDayChangePercentage
         };
     }
 
