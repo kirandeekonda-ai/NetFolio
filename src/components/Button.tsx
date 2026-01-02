@@ -2,7 +2,7 @@ import { ButtonHTMLAttributes, FC } from 'react';
 import { motion, HTMLMotionProps } from 'framer-motion';
 
 interface ButtonProps extends Omit<HTMLMotionProps<"button">, "className"> {
-  variant?: 'primary' | 'secondary';
+  variant?: 'primary' | 'secondary' | 'custom';
   size?: 'sm' | 'md' | 'lg';
   className?: string;
 }
@@ -15,12 +15,13 @@ export const Button: FC<ButtonProps> = ({
   ...props
 }) => {
   const baseStyles = 'rounded font-medium transition-all duration-200';
-  
+
   const variants = {
     primary: 'bg-primary text-white hover:bg-primary-dark',
     secondary: 'bg-white text-primary border border-primary hover:bg-neutral-50',
+    custom: '',
   };
-  
+
   const sizes = {
     sm: 'px-3 py-1.5 text-sm',
     md: 'px-4 py-2',

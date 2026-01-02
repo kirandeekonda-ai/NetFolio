@@ -16,6 +16,7 @@ const navItems = [
   { href: '/statements', label: 'Statements', icon: '📄' },
   { href: '/categorize', label: 'Categorize', icon: '🏷️' },
   { href: '/dashboard', label: 'Dashboard', icon: '📊' },
+  { href: '/finance', label: 'Portfolio', icon: '📈' },
   { href: '/profile', label: 'Profile', icon: '👤' },
 ];
 
@@ -138,11 +139,11 @@ export const Layout: FC<LayoutProps> = ({ children }) => {
             transition={{ duration: 0.3 }}
           >
             {/* Show UserFlowGuide only on main pages, not onboarding/quick-start */}
-            {!router.pathname.includes('/onboarding') && 
-             !router.pathname.includes('/quick-start') && 
-             !router.pathname.includes('/auth') && (
-              <UserFlowGuide />
-            )}
+            {!router.pathname.includes('/onboarding') &&
+              !router.pathname.includes('/quick-start') &&
+              !router.pathname.includes('/auth') && (
+                <UserFlowGuide />
+              )}
             {children}
           </motion.div>
         </div>

@@ -12,13 +12,14 @@ export interface InvestmentHolding {
   investment_date: string; // ISO date string
   current_price?: number;
   last_price_update?: string;
-  
+
   // Computed fields for UI
   invested_amount?: number;
   current_value?: number;
   pnl_amount?: number;
   pnl_percentage?: number;
   days_held?: number;
+  transactions?: InvestmentTransaction[];
 }
 
 export interface InvestmentTransaction {

@@ -11,7 +11,7 @@ class InvestmentService {
         try {
             let query = this.supabase
                 .from('investments_holdings')
-                .select('*')
+                .select('*, investment_transactions(*)')
                 .eq('user_id', userId)
                 .order('name');
 
@@ -62,7 +62,11 @@ class InvestmentService {
             current_value: currentValue,
             pnl_amount: pnlAmount,
             pnl_percentage: pnlPercentage,
-            days_held: daysHeld
+            pnl_percentage: pnlPercentage,
+            days_held: daysHeld,
+            transactions: holding.investment_transactions?.sort((a: any, b: any) =>
+                new Date(b.date).getTime() - new Date(a.date).getTime()
+            )
         };
     }
 
@@ -206,6 +210,88 @@ class InvestmentService {
             console.error('Error deleting holding:', error);
             return false;
         }
+    }
+
+    // --- Transaction Management ---
+
+    async updateTransaction(id: string, updates: Partial<InvestmentTransaction>): Promise<void> {
+        const { error, data } = await this.supabase
+            .from('investment_transactions')
+            .update(updates)
+            .eq('id', id)
+            .select('holding_id') // Get holding ID to recalculate
+            .single();
+
+        if (error) throw error;
+
+        if (data && data.holding_id) {
+            await this.recalculateHolding(data.holding_id);
+        }
+    }
+
+    async deleteTransaction(id: string): Promise<void> {
+        // Get holding ID first
+        const { data: tx } = await this.supabase
+            .from('investment_transactions')
+            .select('holding_id')
+            .eq('id', id)
+            .single();
+
+        const { error } = await this.supabase
+            .from('investment_transactions')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+
+        if (tx && tx.holding_id) {
+            await this.recalculateHolding(tx.holding_id);
+        }
+    }
+
+    async recalculateHolding(holdingId: string): Promise<void> {
+        // Fetch ALL transactions for this holding
+        const { data: transactions, error } = await this.supabase
+            .from('investment_transactions')
+            .select('*')
+            .eq('holding_id', holdingId);
+
+        if (error || !transactions) return;
+
+        let totalQty = 0;
+        let totalCost = 0;
+
+        // Simple FIFO / Weighted Avg Logic
+        // For simplicity in this app, we use Weighted Average Price
+        // Valid for long-term investing visualization
+        transactions.forEach(tx => {
+            if (tx.type === 'buy') {
+                totalQty += Number(tx.quantity);
+                totalCost += Number(tx.quantity) * Number(tx.price_per_unit);
+            } else if (tx.type === 'sell') {
+                totalQty -= Number(tx.quantity);
+                // For sell, we reduce cost proportionally to keep avg price same
+                if (totalQty > 0) {
+                    // avg remains same, so we remove cost equal to (sell_qty * current_avg)
+                    const currentAvg = totalCost / (totalQty + Number(tx.quantity));
+                    totalCost -= Number(tx.quantity) * currentAvg;
+                } else {
+                    totalCost = 0;
+                }
+            }
+        });
+
+        // Update Holding
+        const avgPrice = totalQty > 0 ? totalCost / totalQty : 0;
+
+        await this.supabase
+            .from('investments_holdings')
+            .update({
+                quantity: totalQty,
+                avg_price: avgPrice,
+                invested_amount: totalCost
+            })
+            .eq('id', holdingId);
     }
 }
 

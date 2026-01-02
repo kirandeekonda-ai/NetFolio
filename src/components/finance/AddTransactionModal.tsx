@@ -12,9 +12,10 @@ interface AddTransactionModalProps {
     onClose: () => void;
     onSave: (data: any) => Promise<void>;
     initialData?: InvestmentHolding | null;
+    initialTransaction?: any | null; // Cheap way to avoid import cycle or duplicate types
 }
 
-export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClose, onSave, initialData }) => {
+export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClose, onSave, initialData, initialTransaction }) => {
     const [formData, setFormData] = useState({
         ticker_symbol: '',
         name: '',
@@ -34,21 +35,36 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen
     // Populate form on open/change of initialData
     React.useEffect(() => {
         if (isOpen) {
-            if (initialData) {
+            if (initialTransaction) {
+                // Edit Transaction Mode
+                setFormData({
+                    ticker_symbol: initialData?.ticker_symbol || '',
+                    name: initialData?.name || '',
+                    holder_name: initialData?.holder_name || 'Kiran',
+                    type: initialTransaction.type,
+                    asset_class: initialData?.asset_class || 'Equity',
+                    sector: initialData?.sector || '',
+                    strategy_bucket: initialData?.strategy_bucket || 'Long',
+                    date: initialTransaction.date ? new Date(initialTransaction.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+                    quantity: String(initialTransaction.quantity),
+                    price: String(initialTransaction.price_per_unit),
+                });
+            } else if (initialData) {
+                // Edit Holding / Add Transaction to Holding Mode
                 setFormData({
                     ticker_symbol: initialData.ticker_symbol,
                     name: initialData.name,
                     holder_name: initialData.holder_name,
-                    type: 'buy', // Default to buy for edit? Or maybe we are just editing the holding details.
+                    type: 'buy',
                     asset_class: initialData.asset_class || 'Equity',
                     sector: initialData.sector || '',
                     strategy_bucket: initialData.strategy_bucket || 'Long',
-                    date: new Date().toISOString().split('T')[0], // Reset date for new transaction
-                    quantity: String(initialData.quantity),
-                    price: String(initialData.avg_price), // For edit, this is Avg Price
+                    date: new Date().toISOString().split('T')[0],
+                    quantity: String(initialData.quantity), // Default to current qty? Or 0? Maybe 0 for new tx.
+                    price: String(initialData.avg_price),
                 });
             } else {
-                // Reset
+                // Reset - New Investment
                 setFormData({
                     ticker_symbol: '',
                     name: '',
@@ -63,7 +79,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen
                 });
             }
         }
-    }, [isOpen, initialData]);
+    }, [isOpen, initialData, initialTransaction]);
 
     // NEW state for search
     const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -166,7 +182,9 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen
                 className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden"
             >
                 <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                    <h3 className="text-lg font-semibold text-gray-900">{initialData ? 'Edit Holding' : 'Add Investment'}</h3>
+                    <h3 className="text-lg font-semibold text-gray-900">
+                        {initialTransaction ? 'Edit Transaction' : (initialData ? 'Add / Edit Investment' : 'Add Investment')}
+                    </h3>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600">✕</button>
                 </div>
 
@@ -178,7 +196,8 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen
                             <input
                                 type="text"
                                 required
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none uppercase"
+                                disabled={!!initialData || !!initialTransaction}
+                                className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none uppercase ${initialData || initialTransaction ? 'bg-gray-100 text-gray-500' : ''}`}
                                 value={formData.ticker_symbol}
                                 onChange={(e) => handleSymbolSearch(e.target.value)}
                                 onBlur={() => {
@@ -347,7 +366,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen
                             disabled={isSubmitting}
                             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200 disabled:opacity-50"
                         >
-                            {isSubmitting ? 'Saving...' : (initialData ? 'Update Holding' : 'Add Investment')}
+                            {isSubmitting ? 'Saving...' : (initialTransaction ? 'Update Transaction' : (initialData ? 'Update Holding' : 'Add Investment'))}
                         </button>
                     </div>
 

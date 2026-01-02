@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useUser } from '@supabase/auth-helpers-react';
+import { Layout } from '@/components/layout/Layout';
 import Head from 'next/head';
 import { motion } from 'framer-motion';
 import { InvestmentHolding, FinanceDashboardData } from '@/types/finance';
@@ -68,12 +69,22 @@ export default function FinanceDashboard() {
     }, [user, filterPerson]);
 
     const [editingHolding, setEditingHolding] = useState<InvestmentHolding | null>(null);
+    const [editingTransaction, setEditingTransaction] = useState<{ tx: any, holding: InvestmentHolding } | null>(null);
 
     const handleSaveTransaction = async (data: any) => {
         if (!user) return;
 
-        if (editingHolding) {
-            // Edit Mode
+        if (editingTransaction) {
+            // Edit Transaction
+            await investmentService.updateTransaction(editingTransaction.tx.id, {
+                type: data.type,
+                date: data.date,
+                quantity: Number(data.quantity),
+                price_per_unit: Number(data.price),
+            });
+            setEditingTransaction(null);
+        } else if (editingHolding) {
+            // Edit Mode (Holding)
             await investmentService.updateHolding(editingHolding.id, {
                 quantity: Number(data.quantity),
                 avg_price: Number(data.price),
@@ -115,6 +126,12 @@ export default function FinanceDashboard() {
         await fetchData();
     };
 
+    const handleDeleteTransaction = async (id: string) => {
+        setLoading(true);
+        await investmentService.deleteTransaction(id);
+        await fetchData();
+    };
+
     // ...
 
 
@@ -130,110 +147,142 @@ export default function FinanceDashboard() {
     if (!user) return <div className="p-10">Please log in.</div>;
 
     return (
-        <div className="min-h-screen bg-gray-50/50 pb-20">
-            <Head>
-                <title>Finance | NetFolio</title>
-            </Head>
+        <Layout>
+            <div className="max-w-7xl mx-auto px-4 py-8">
+                <Head>
+                    <title>Portfolio | NetFolio</title>
+                </Head>
 
-            {/* Header */}
-            <div className="bg-white border-b border-gray-200">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                    <div className="flex justify-between items-center">
-                        <div>
-                            <h1 className="text-3xl font-light text-gray-900">Portfolio Tracker</h1>
-                            <p className="text-gray-500 mt-1">Track stocks, mutual funds, and assets</p>
-                        </div>
-                        <div className="flex space-x-3">
-                            <div className="flex bg-gray-100 p-1 rounded-lg">
-                                {(['All', 'Kiran', 'Anusha'] as const).map(p => (
-                                    <button
-                                        key={p}
-                                        onClick={() => setFilterPerson(p)}
-                                        className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${filterPerson === p
-                                            ? 'bg-white text-gray-900 shadow-sm'
-                                            : 'text-gray-500 hover:text-gray-700'
-                                            }`}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="space-y-8"
+                >
+                    {/* Premium Header */}
+                    <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-700 rounded-3xl">
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent"></div>
+                        <div className="relative px-8 py-12">
+                            <div className="flex items-center justify-between">
+                                <motion.div
+                                    initial={{ opacity: 0, x: -20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: 0.2 }}
+                                >
+                                    <h1 className="text-4xl font-light text-white mb-2">Portfolio Tracker</h1>
+                                    <p className="text-xl text-blue-100 font-light">
+                                        Track stocks, mutual funds, and assets
+                                    </p>
+                                </motion.div>
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    transition={{ delay: 0.4 }}
+                                    className="flex space-x-3 items-center"
+                                >
+                                    {/* Person Filter */}
+                                    <div className="flex bg-white/10 backdrop-blur-sm p-1 rounded-lg border border-white/20 mr-4">
+                                        {(['All', 'Kiran', 'Anusha'] as const).map(p => (
+                                            <button
+                                                key={p}
+                                                onClick={() => setFilterPerson(p)}
+                                                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${filterPerson === p
+                                                    ? 'bg-white text-indigo-900 shadow-sm'
+                                                    : 'text-blue-100 hover:bg-white/10'
+                                                    }`}
+                                            >
+                                                {p}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    <Button
+                                        variant="custom"
+                                        onClick={() => setIsModalOpen(true)}
+                                        className="bg-white text-indigo-600 hover:bg-blue-50 border-none px-6 py-3 font-medium flex items-center space-x-2 rounded-lg shadow-sm"
                                     >
-                                        {p}
-                                    </button>
-                                ))}
+                                        <span>+ Add Investment</span>
+                                    </Button>
+                                </motion.div>
                             </div>
-                            <Button onClick={() => setIsModalOpen(true)} className="bg-blue-600 text-white hover:bg-blue-700">
-                                + Add Investment
-                            </Button>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                {/* Scorecards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <Card className="p-6 border-l-4 border-blue-500">
-                        <p className="text-gray-500 text-sm uppercase tracking-wide font-medium">Net Worth</p>
-                        <p className="text-3xl font-bold text-gray-900 mt-2">{formatMoney(metrics.current_value)}</p>
-                        <p className="text-sm text-gray-400 mt-1">Total Portfolio Value</p>
-                    </Card>
 
-                    <Card className="p-6 border-l-4 border-purple-500">
-                        <p className="text-gray-500 text-sm uppercase tracking-wide font-medium">Invested</p>
-                        <p className="text-3xl font-bold text-gray-900 mt-2">{formatMoney(metrics.total_invested)}</p>
-                        <p className="text-sm text-gray-400 mt-1">Total Capital Deployed</p>
-                    </Card>
+                    {/* Scorecards */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                        <Card className="p-6 border-l-4 border-blue-500">
+                            <p className="text-gray-500 text-sm uppercase tracking-wide font-medium">Net Worth</p>
+                            <p className="text-3xl font-bold text-gray-900 mt-2">{formatMoney(metrics.current_value)}</p>
+                            <p className="text-sm text-gray-400 mt-1">Total Portfolio Value</p>
+                        </Card>
 
-                    <Card className={`p-6 border-l-4 ${metrics.total_pnl >= 0 ? 'border-emerald-500' : 'border-red-500'}`}>
-                        <p className="text-gray-500 text-sm uppercase tracking-wide font-medium">Overall P&L</p>
-                        <div className="flex items-baseline space-x-2 mt-2">
-                            <p className={`text-3xl font-bold ${metrics.total_pnl >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                                {metrics.total_pnl >= 0 ? '+' : ''}{formatMoney(metrics.total_pnl)}
-                            </p>
-                            <span className={`px-2 py-0.5 rounded text-sm font-medium ${metrics.total_pnl >= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>
-                                {metrics.total_pnl_percentage.toFixed(2)}%
-                            </span>
-                        </div>
-                        <p className="text-sm text-gray-400 mt-1">Unrealized Gains</p>
-                    </Card>
-                </div>
+                        <Card className="p-6 border-l-4 border-purple-500">
+                            <p className="text-gray-500 text-sm uppercase tracking-wide font-medium">Invested</p>
+                            <p className="text-3xl font-bold text-gray-900 mt-2">{formatMoney(metrics.total_invested)}</p>
+                            <p className="text-sm text-gray-400 mt-1">Total Capital Deployed</p>
+                        </Card>
 
-                {/* Analytics Section */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                    <Card className="p-6">
-                        <h3 className="text-lg font-medium text-gray-900 mb-4">Sector Allocation</h3>
-                        <div className="h-[300px]">
-                            <AllocationChart holdings={holdings} type="sector" />
-                        </div>
-                    </Card>
-                    <Card className="p-6">
-                        <h3 className="text-lg font-medium text-gray-900 mb-4">Asset Allocation</h3>
-                        <div className="h-[300px]">
-                            <AllocationChart holdings={holdings} type="asset_class" />
-                        </div>
-                    </Card>
-                </div>
+                        <Card className={`p-6 border-l-4 ${metrics.total_pnl >= 0 ? 'border-emerald-500' : 'border-red-500'}`}>
+                            <p className="text-gray-500 text-sm uppercase tracking-wide font-medium">Overall P&L</p>
+                            <div className="flex items-baseline space-x-2 mt-2">
+                                <p className={`text-3xl font-bold ${metrics.total_pnl >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                                    {metrics.total_pnl >= 0 ? '+' : ''}{formatMoney(metrics.total_pnl)}
+                                </p>
+                                <span className={`px-2 py-0.5 rounded text-sm font-medium ${metrics.total_pnl >= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>
+                                    {metrics.total_pnl_percentage.toFixed(2)}%
+                                </span>
+                            </div>
+                            <p className="text-sm text-gray-400 mt-1">Unrealized Gains</p>
+                        </Card>
+                    </div>
 
-                {/* Main Table */}
-                <div>
-                    <HoldingsTable
-                        holdings={holdings}
-                        isLoading={loading}
-                        onEdit={(h) => {
-                            setEditingHolding(h);
-                            setIsModalOpen(true);
-                        }}
-                        onDelete={handleDelete}
-                    />
-                </div>
+                    {/* Analytics Section */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                        <Card className="p-6">
+                            <h3 className="text-lg font-medium text-gray-900 mb-4">Sector Allocation</h3>
+                            <div className="h-[300px]">
+                                <AllocationChart holdings={holdings} type="sector" />
+                            </div>
+                        </Card>
+                        <Card className="p-6">
+                            <h3 className="text-lg font-medium text-gray-900 mb-4">Asset Allocation</h3>
+                            <div className="h-[300px]">
+                                <AllocationChart holdings={holdings} type="asset_class" />
+                            </div>
+                        </Card>
+                    </div>
+
+                    {/* Main Table */}
+                    <div>
+                        <HoldingsTable
+                            holdings={holdings}
+                            isLoading={loading}
+                            onEdit={(h) => {
+                                setEditingHolding(h);
+                                setIsModalOpen(true);
+                            }}
+                            onDelete={handleDelete}
+                            onEditTransaction={(tx, h) => {
+                                setEditingTransaction({ tx, holding: h });
+                                setIsModalOpen(true);
+                            }}
+                            onDeleteTransaction={handleDeleteTransaction}
+                        />
+                    </div>
+                </motion.div>
             </div>
 
             <AddTransactionModal
                 isOpen={isModalOpen}
-                initialData={editingHolding}
+                initialData={editingHolding || (editingTransaction ? editingTransaction.holding : null)}
+                initialTransaction={editingTransaction ? editingTransaction.tx : null}
                 onClose={() => {
                     setIsModalOpen(false);
                     setEditingHolding(null);
+                    setEditingTransaction(null);
                 }}
                 onSave={handleSaveTransaction}
             />
-        </div>
+        </Layout>
     );
 }
