@@ -9,6 +9,17 @@ interface PortfolioHeatmapProps {
 const CustomizedContent = (props: any) => {
     const { root, depth, x, y, width, height, index, name, pnlPercent, value } = props;
 
+    // Function to truncate text
+    const truncateText = (text: string, maxWidth: number, fontSize: number) => {
+        if (!text) return '';
+        const charWidth = fontSize * 0.6; // Approximation for average character width
+        const maxChars = Math.floor(maxWidth / charWidth);
+        if (text.length > maxChars && maxChars > 3) {
+            return text.substring(0, maxChars - 3) + '...';
+        }
+        return text;
+    };
+
     return (
         <g>
             <rect
@@ -25,29 +36,38 @@ const CustomizedContent = (props: any) => {
                     strokeOpacity: 1 / (depth + 1e-10),
                 }}
             />
-            {width > 50 && height > 30 && (
+            {name && (
                 <text
-                    x={x + width / 2}
-                    y={y + height / 2}
-                    textAnchor="middle"
-                    fill="#fff"
-                    fontSize={Math.min(width / 5, height / 2, 14)}
-                    fontWeight="bold"
-                    style={{ pointerEvents: 'none' }}
+                    x={x + 4}
+                    y={y + 18}
+                    fontSize={Math.max(10, Math.min(14, width / 8))}
+                    fill="white"
+                    fontWeight="600"
+                    style={{
+                        pointerEvents: 'none',
+                        textShadow: '0 1px 2px rgba(0,0,0,0.3)',
+                    }}
                 >
-                    {name}
+                    {/* Truncate name to fit box width */}
+                    {(() => {
+                        const maxChars = Math.floor(width / 7);
+                        return name.length > maxChars ? name.substring(0, maxChars - 2) + '..' : name;
+                    })()}
                 </text>
             )}
-            {width > 50 && height > 50 && (
+            {pnlPercent !== undefined && (
                 <text
-                    x={x + width / 2}
-                    y={y + height / 2 + 16}
-                    textAnchor="middle"
-                    fill="rgba(255,255,255,0.9)"
-                    fontSize={12}
-                    style={{ pointerEvents: 'none' }}
+                    x={x + 4}
+                    y={y + 34}
+                    fontSize={Math.max(9, Math.min(12, width / 10))}
+                    fill="white"
+                    fontWeight="500"
+                    style={{
+                        pointerEvents: 'none',
+                        textShadow: '0 1px 2px rgba(0,0,0,0.3)',
+                    }}
                 >
-                    {pnlPercent > 0 ? '+' : ''}{(pnlPercent || 0).toFixed(1)}%
+                    {pnlPercent >= 0 ? '+' : ''}{(pnlPercent || 0).toFixed(1)}%
                 </text>
             )}
         </g>
@@ -83,7 +103,7 @@ export const PortfolioHeatmap: React.FC<PortfolioHeatmapProps> = ({ holdings }) 
         return holdings
             .filter(h => (h.current_value || 0) > 0)
             .map(h => ({
-                name: h.ticker_symbol.replace('.NS', '').replace('.BO', ''),
+                name: h.name || 'Unknown', // Use investment name instead of symbol
                 value: h.current_value || 0,
                 pnlPercent: h.pnl_percentage || 0
             }))
