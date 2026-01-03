@@ -12,6 +12,7 @@ import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { AllocationChart } from '@/components/finance/AllocationChart';
 import { PortfolioHeatmap } from '@/components/finance/PortfolioHeatmap';
+import { DashboardInsights } from '@/components/finance/DashboardInsights';
 
 export default function FinanceDashboard() {
     const user = useUser();
@@ -258,27 +259,62 @@ export default function FinanceDashboard() {
                                         ))}
                                     </div>
 
-                                    <div className="flex items-center gap-3">
-                                        {/* Analytics Links */}
-                                        <Link href="/finance/performance" className="bg-white/20 backdrop-blur-sm text-white px-4 py-2 rounded-lg font-medium hover:bg-white/30 transition-all duration-200 border border-white/30 shadow-lg hover:shadow-xl hover:scale-105 text-sm">
-                                            📈 Performance
-                                        </Link>
-                                        <Link href="/finance/allocation" className="bg-white/20 backdrop-blur-sm text-white px-4 py-2 rounded-lg font-medium hover:bg-white/30 transition-all duration-200 border border-white/30 shadow-lg hover:shadow-xl hover:scale-105 text-sm">
-                                            🎯 Allocation
-                                        </Link>
+                                    <div className="flex items-center gap-4">
+                                        {/* Analytics Links - Outline Style */}
+                                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/10 backdrop-blur-sm border border-white/20">
+                                            <Link
+                                                href="/finance/performance"
+                                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-white text-sm font-medium hover:bg-white/20 transition-all duration-200"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                                </svg>
+                                                Performance
+                                            </Link>
+                                            <div className="h-6 w-px bg-white/20"></div>
+                                            <Link
+                                                href="/finance/allocation"
+                                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-white text-sm font-medium hover:bg-white/20 transition-all duration-200"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+                                                </svg>
+                                                Allocation
+                                            </Link>
+                                        </div>
 
+                                        {/* Action Buttons - Solid Style */}
                                         <button
                                             onClick={() => setIsModalOpen(true)}
-                                            className="bg-white/20 backdrop-blur-sm text-white px-6 py-3 rounded-lg font-medium hover:bg-white/30 transition-all duration-200 border border-white/30 shadow-lg hover:shadow-xl hover:scale-105"
+                                            className="flex items-center gap-2 bg-white text-indigo-600 px-5 py-2.5 rounded-lg font-semibold hover:bg-white/90 transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
                                         >
-                                            + Add Investment
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                            </svg>
+                                            Add Investment
                                         </button>
                                         <button
                                             onClick={handleExport}
                                             disabled={isExporting || holdings.length === 0}
-                                            className="bg-emerald-500/20 backdrop-blur-sm text-white px-6 py-3 rounded-lg font-medium hover:bg-emerald-500/30 transition-all duration-200 border border-emerald-400/30 shadow-lg hover:shadow-xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                                            className="flex items-center gap-2 bg-emerald-500 text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-emerald-600 transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                                         >
-                                            {isExporting ? '⏳ Exporting...' : '📥 Export Portfolio'}
+                                            {isExporting ? (
+                                                <>
+                                                    <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                    Exporting...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                                    </svg>
+                                                    Export Portfolio
+                                                </>
+                                            )}
                                         </button>
                                     </div>
                                 </motion.div>
@@ -289,46 +325,107 @@ export default function FinanceDashboard() {
 
                     {/* Scorecards */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                        <Card className="p-6 border-l-4 border-blue-500">
-                            <p className="text-gray-500 text-sm uppercase tracking-wide font-medium">Net Worth</p>
-                            <p className="text-3xl font-bold text-gray-900 mt-2">{formatMoney(metrics.current_value)}</p>
-                            <p className="text-sm text-gray-400 mt-1">Total Portfolio Value</p>
-                        </Card>
-
-                        <Card className="p-6 border-l-4 border-purple-500">
-                            <p className="text-gray-500 text-sm uppercase tracking-wide font-medium">Invested</p>
-                            <p className="text-3xl font-bold text-gray-900 mt-2">{formatMoney(metrics.total_invested)}</p>
-                            <p className="text-sm text-gray-400 mt-1">Total Capital Deployed</p>
-                        </Card>
-
-                        <Card className={`p-6 border-l-4 ${metrics.day_change_amount >= 0 ? 'border-emerald-400' : 'border-rose-400'}`}>
-                            <p className="text-gray-500 text-sm uppercase tracking-wide font-medium">Day's Change</p>
-                            <div className="flex items-baseline space-x-2 mt-2">
-                                <p className={`text-3xl font-bold ${metrics.day_change_amount >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                                    {metrics.day_change_amount >= 0 ? '+' : ''}{formatMoney(metrics.day_change_amount)}
-                                </p>
-                                <span className={`px-2 py-0.5 rounded text-sm font-medium ${metrics.day_change_amount >= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
-                                    {metrics.day_change_percentage.toFixed(2)}%
-                                </span>
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.1 }}
+                            className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 p-6 shadow-xl"
+                        >
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+                            <div className="relative">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <svg className="w-5 h-5 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <p className="text-white/90 text-sm font-medium uppercase tracking-wide">Net Worth</p>
+                                </div>
+                                <p className="text-4xl font-bold text-white mb-1">{formatMoney(metrics.current_value)}</p>
+                                <p className="text-white/70 text-sm">Total Portfolio Value</p>
                             </div>
-                            <p className="text-sm text-gray-400 mt-1">Live Daily Movement</p>
-                        </Card>
+                        </motion.div>
 
-                        <Card className={`p-6 border-l-4 ${metrics.total_pnl >= 0 ? 'border-emerald-600' : 'border-red-600'}`}>
-                            <p className="text-gray-500 text-sm uppercase tracking-wide font-medium">Overall P&L</p>
-                            <div className="flex items-baseline space-x-2 mt-2">
-                                <p className={`text-3xl font-bold ${metrics.total_pnl >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
-                                    {metrics.total_pnl >= 0 ? '+' : ''}{formatMoney(metrics.total_pnl)}
-                                </p>
-                                <span className={`px-2 py-0.5 rounded text-sm font-medium ${metrics.total_pnl >= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>
-                                    {metrics.total_pnl_percentage.toFixed(2)}%
-                                </span>
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.2 }}
+                            className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-500 to-pink-600 p-6 shadow-xl"
+                        >
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+                            <div className="relative">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <svg className="w-5 h-5 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                                    </svg>
+                                    <p className="text-white/90 text-sm font-medium uppercase tracking-wide">Invested</p>
+                                </div>
+                                <p className="text-4xl font-bold text-white mb-1">{formatMoney(metrics.total_invested)}</p>
+                                <p className="text-white/70 text-sm">Total Capital Deployed</p>
                             </div>
-                            <p className="text-sm text-gray-400 mt-1">Unrealized Gains</p>
-                        </Card>
+                        </motion.div>
+
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.3 }}
+                            className={`relative overflow-hidden rounded-2xl ${metrics.day_change_amount >= 0
+                                ? 'bg-gradient-to-br from-emerald-400 to-teal-600'
+                                : 'bg-gradient-to-br from-rose-400 to-red-600'
+                                } p-6 shadow-xl`}
+                        >
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+                            <div className="relative">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <svg className="w-5 h-5 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                    </svg>
+                                    <p className="text-white/90 text-sm font-medium uppercase tracking-wide">Day's Change</p>
+                                </div>
+                                <div className="flex items-baseline gap-2 mb-1 flex-wrap">
+                                    <p className="text-3xl font-bold text-white">
+                                        {metrics.day_change_amount >= 0 ? '+' : ''}{formatMoney(metrics.day_change_amount)}
+                                    </p>
+                                    <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-white/20 text-white whitespace-nowrap">
+                                        {metrics.day_change_percentage >= 0 ? '+' : ''}{metrics.day_change_percentage.toFixed(2)}%
+                                    </span>
+                                </div>
+                                <p className="text-white/70 text-sm">Live Daily Movement</p>
+                            </div>
+                        </motion.div>
+
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.4 }}
+                            className={`relative overflow-hidden rounded-2xl ${metrics.total_pnl >= 0
+                                ? 'bg-gradient-to-br from-green-500 to-emerald-700'
+                                : 'bg-gradient-to-br from-red-500 to-rose-700'
+                                } p-6 shadow-xl`}
+                        >
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+                            <div className="relative">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <svg className="w-5 h-5 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                    </svg>
+                                    <p className="text-white/90 text-sm font-medium uppercase tracking-wide">Overall P&L</p>
+                                </div>
+                                <div className="flex items-baseline gap-2 mb-1 flex-wrap">
+                                    <p className="text-3xl font-bold text-white">
+                                        {metrics.total_pnl >= 0 ? '+' : ''}{formatMoney(metrics.total_pnl)}
+                                    </p>
+                                    <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-white/20 text-white whitespace-nowrap">
+                                        {metrics.total_pnl >= 0 ? '+' : ''}{metrics.total_pnl_percentage.toFixed(2)}%
+                                    </span>
+                                </div>
+                                <p className="text-white/70 text-sm">Unrealized Gains</p>
+                            </div>
+                        </motion.div>
                     </div>
 
-                    {/* Analytics Tabs */}
+                    {/* Dashboard Insights */}
+                    <DashboardInsights holdings={holdings} />
+
+                    {/* Analytics Charts Section */}
                     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-8">
                         <div className="border-b border-gray-100 px-6 pt-4">
                             <div className="flex space-x-8">

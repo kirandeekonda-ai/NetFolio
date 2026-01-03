@@ -216,9 +216,9 @@ export const HoldingsTable: React.FC<HoldingsTableProps> = ({ holdings, isLoadin
             </div>
 
             {/* Table */}
-            <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm bg-white">
+            <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm bg-white max-h-[600px] overflow-y-auto">
                 <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
+                    <thead className="bg-gray-50 sticky top-0 z-10">
                         <tr>
                             <th className="w-8 px-3 py-3"></th>
                             <th
@@ -317,17 +317,23 @@ export const HoldingsTable: React.FC<HoldingsTableProps> = ({ holdings, isLoadin
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                        {sortedHoldings.map((h, idx) => {
-                            const isProfit = (h.pnl_amount || 0) >= 0;
+                        {sortedHoldings.map((h) => {
                             const isExpanded = expandedRowId === h.id;
+
+                            // Calculate P&L
+                            const invested = h.quantity * h.avg_price;
+                            const current = h.quantity * (h.current_price || h.avg_price);
+                            const pnl = current - invested;
+                            const pnlPercent = invested > 0 ? (pnl / invested) * 100 : 0;
+                            const isProfit = pnl >= 0;
+
                             return (
                                 <React.Fragment key={h.id}>
-                                    <motion.tr
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: idx * 0.05 }}
-                                        className={`hover:bg-gray-50 transition-colors cursor-pointer group ${isExpanded ? 'bg-gray-50' : ''}`}
+                                    <tr
                                         onClick={() => onEdit(h)}
+                                        className={`hover:bg-gray-50 cursor-pointer group transition-colors ${isExpanded ? 'bg-gray-50' : ''} ${pnlPercent > 20 ? 'bg-emerald-50/40 hover:bg-emerald-50' :
+                                            pnlPercent < -20 ? 'bg-red-50/40 hover:bg-red-50' : ''
+                                            }`}
                                     >
                                         {/* Expand Toggle */}
                                         <td className="px-3 py-4 text-center">
@@ -349,9 +355,15 @@ export const HoldingsTable: React.FC<HoldingsTableProps> = ({ holdings, isLoadin
 
                                         {/* Investment */}
                                         <td className="px-3 py-4 whitespace-nowrap">
-                                            <div className="flex flex-col max-w-[180px]">
-                                                <span className="text-sm font-medium text-gray-900 group-hover:text-blue-600 transition-colors truncate" title={h.name}>{h.name}</span>
-                                                <span className="text-xs text-gray-500">{h.ticker_symbol}</span>
+                                            <div className="flex items-center gap-2 max-w-[220px]">
+                                                <div className="flex flex-col flex-1 min-w-0">
+                                                    <div className="flex items-center gap-1">
+                                                        <span className="text-sm font-medium text-gray-900 group-hover:text-blue-600 transition-colors truncate" title={h.name}>{h.name}</span>
+                                                        {pnlPercent > 50 && <span className="text-xs">🔥</span>}
+                                                        {pnlPercent < -30 && <span className="text-xs">⚠️</span>}
+                                                    </div>
+                                                    <span className="text-xs text-gray-500">{h.ticker_symbol}</span>
+                                                </div>
                                             </div>
                                         </td>
 
@@ -401,12 +413,11 @@ export const HoldingsTable: React.FC<HoldingsTableProps> = ({ holdings, isLoadin
                                         </td>
 
                                         {/* P&L */}
-                                        <td className={`px-3 py-4 whitespace-nowrap text-sm text-right font-medium font-mono border-l-4 ${isProfit ? 'border-l-emerald-500 bg-emerald-50/30' : 'border-l-red-500 bg-red-50/30'
-                                            }`}>
+                                        <td className={`px-3 py-4 whitespace-nowrap text-sm text-right font-medium font-mono border-l-4 ${isProfit ? 'border-l-emerald-500 bg-emerald-50/30' : 'border-l-red-500 bg-red-50/30'}`}>
                                             <div className={isProfit ? 'text-emerald-700' : 'text-red-700'}>
-                                                <div>{isProfit ? '+' : ''}{formatValue(h.pnl_amount || 0)}</div>
+                                                <div>{isProfit ? '+' : ''}{formatValue(pnl)}</div>
                                                 <div className="text-xs opacity-80">
-                                                    ({isProfit ? '+' : ''}{h.pnl_percentage?.toFixed(2)}%)
+                                                    ({isProfit ? '+' : ''}{pnlPercent.toFixed(2)}%)
                                                 </div>
                                             </div>
                                         </td>
@@ -440,7 +451,7 @@ export const HoldingsTable: React.FC<HoldingsTableProps> = ({ holdings, isLoadin
                                                 </button>
                                             </div>
                                         </td>
-                                    </motion.tr>
+                                    </tr>
 
                                     {/* Expanded History Row */}
                                     <AnimatePresence>
