@@ -14,6 +14,8 @@ import { Card } from '@/components/Card';
 import { AllocationChart } from '@/components/finance/AllocationChart';
 import { PortfolioHeatmap } from '@/components/finance/PortfolioHeatmap';
 import { DashboardInsights } from '@/components/finance/DashboardInsights';
+import { useBalanceProtection } from '@/hooks/useBalanceProtection';
+import { BalanceProtectionDialog } from '@/components/BalanceProtectionDialog';
 
 export default function FinanceDashboard() {
     const user = useUser();
@@ -32,6 +34,25 @@ export default function FinanceDashboard() {
     const [filterPerson, setFilterPerson] = useState<'All' | 'Kiran' | 'Anusha'>('All');
     const [activeAnalyticsTab, setActiveAnalyticsTab] = useState<'Sector' | 'Assets' | 'Performance'>('Sector');
     const [isExporting, setIsExporting] = useState(false);
+
+    // Balance protection
+    const { isProtected, isUnlocked, protectionType, unlock, lock } = useBalanceProtection();
+    const [showProtectionDialog, setShowProtectionDialog] = useState(false);
+
+    const handleBalanceUnlock = () => {
+        if (isUnlocked) {
+            // Already unlocked, lock it
+            lock();
+        } else {
+            // Show password dialog
+            setShowProtectionDialog(true);
+        }
+    };
+
+    const handleUnlockSuccess = () => {
+        unlock();
+        setShowProtectionDialog(false);
+    };
 
     const fetchData = async () => {
         if (!user) return;
@@ -334,13 +355,26 @@ export default function FinanceDashboard() {
                         >
                             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
                             <div className="relative">
-                                <div className="flex items-center gap-2 mb-3">
-                                    <svg className="w-5 h-5 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                    <p className="text-white/90 text-sm font-medium uppercase tracking-wide">Net Worth</p>
+                                <div className="flex items-center justify-between gap-2 mb-3">
+                                    <div className="flex items-center gap-2">
+                                        <svg className="w-5 h-5 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <p className="text-white/90 text-sm font-medium uppercase tracking-wide">Net Worth</p>
+                                    </div>
+                                    {isProtected && (
+                                        <button
+                                            onClick={handleBalanceUnlock}
+                                            className="text-white/70 hover:text-white transition-colors"
+                                            title={isUnlocked ? 'Lock balance' : 'Unlock balance'}
+                                        >
+                                            <span className="text-lg">{isUnlocked ? '🔓' : '🔒'}</span>
+                                        </button>
+                                    )}
                                 </div>
-                                <p className="text-4xl font-bold text-white mb-1">{formatMoney(metrics.current_value)}</p>
+                                <p className="text-4xl font-bold text-white mb-1">
+                                    {isProtected && !isUnlocked ? '••••••••' : formatMoney(metrics.current_value)}
+                                </p>
                                 <p className="text-white/70 text-sm">Total Portfolio Value</p>
                             </div>
                         </motion.div>
@@ -353,13 +387,26 @@ export default function FinanceDashboard() {
                         >
                             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
                             <div className="relative">
-                                <div className="flex items-center gap-2 mb-3">
-                                    <svg className="w-5 h-5 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                                    </svg>
-                                    <p className="text-white/90 text-sm font-medium uppercase tracking-wide">Invested</p>
+                                <div className="flex items-center justify-between gap-2 mb-3">
+                                    <div className="flex items-center gap-2">
+                                        <svg className="w-5 h-5 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                                        </svg>
+                                        <p className="text-white/90 text-sm font-medium uppercase tracking-wide">Invested</p>
+                                    </div>
+                                    {isProtected && (
+                                        <button
+                                            onClick={handleBalanceUnlock}
+                                            className="text-white/70 hover:text-white transition-colors"
+                                            title={isUnlocked ? 'Lock balance' : 'Unlock balance'}
+                                        >
+                                            <span className="text-lg">{isUnlocked ? '🔓' : '🔒'}</span>
+                                        </button>
+                                    )}
                                 </div>
-                                <p className="text-4xl font-bold text-white mb-1">{formatMoney(metrics.total_invested)}</p>
+                                <p className="text-4xl font-bold text-white mb-1">
+                                    {isProtected && !isUnlocked ? '••••••••' : formatMoney(metrics.total_invested)}
+                                </p>
                                 <p className="text-white/70 text-sm">Total Capital Deployed</p>
                             </div>
                         </motion.div>
@@ -404,19 +451,36 @@ export default function FinanceDashboard() {
                         >
                             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
                             <div className="relative">
-                                <div className="flex items-center gap-2 mb-3">
-                                    <svg className="w-5 h-5 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                                    </svg>
-                                    <p className="text-white/90 text-sm font-medium uppercase tracking-wide">Overall P&L</p>
+                                <div className="flex items-center justify-between gap-2 mb-3">
+                                    <div className="flex items-center gap-2">
+                                        <svg className="w-5 h-5 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                        </svg>
+                                        <p className="text-white/90 text-sm font-medium uppercase tracking-wide">Overall P&L</p>
+                                    </div>
+                                    {isProtected && (
+                                        <button
+                                            onClick={handleBalanceUnlock}
+                                            className="text-white/70 hover:text-white transition-colors"
+                                            title={isUnlocked ? 'Lock balance' : 'Unlock balance'}
+                                        >
+                                            <span className="text-lg">{isUnlocked ? '🔓' : '🔒'}</span>
+                                        </button>
+                                    )}
                                 </div>
                                 <div className="flex items-baseline gap-2 mb-1 flex-wrap">
                                     <p className="text-3xl font-bold text-white">
-                                        {metrics.total_pnl >= 0 ? '+' : ''}{formatMoney(metrics.total_pnl)}
+                                        {isProtected && !isUnlocked ? '••••••••' : (
+                                            <>
+                                                {metrics.total_pnl >= 0 ? '+' : ''}{formatMoney(metrics.total_pnl)}
+                                            </>
+                                        )}
                                     </p>
-                                    <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-white/20 text-white whitespace-nowrap">
-                                        {metrics.total_pnl >= 0 ? '+' : ''}{metrics.total_pnl_percentage.toFixed(2)}%
-                                    </span>
+                                    {(!isProtected || isUnlocked) && (
+                                        <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-white/20 text-white whitespace-nowrap">
+                                            {metrics.total_pnl_percentage >= 0 ? '+' : ''}{metrics.total_pnl_percentage.toFixed(2)}%
+                                        </span>
+                                    )}
                                 </div>
                                 <p className="text-white/70 text-sm">Unrealized Gains</p>
                             </div>
@@ -581,6 +645,14 @@ export default function FinanceDashboard() {
                     await fetchData();
                     setEditingHolding(null);
                 }}
+            />
+
+            {/* Balance Protection Dialog */}
+            <BalanceProtectionDialog
+                isOpen={showProtectionDialog}
+                onCancel={() => setShowProtectionDialog(false)}
+                onSuccess={handleUnlockSuccess}
+                protectionType={protectionType || 'password'}
             />
         </Layout>
     );
