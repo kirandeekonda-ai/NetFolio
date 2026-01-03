@@ -113,7 +113,7 @@ export const StatementDashboard = forwardRef<StatementDashboardRef, StatementDas
       }
 
       const response = await fetch(`/api/bank-statements?${params}`);
-      
+
       if (response.ok) {
         const data = await response.json();
         setStatements(data.statements || []);
@@ -144,11 +144,11 @@ export const StatementDashboard = forwardRef<StatementDashboardRef, StatementDas
     try {
       // Fetch transactions for this specific statement
       const response = await fetch(`/api/transactions/by-statement/${statementId}`);
-      
+
       if (response.ok) {
         const data = await response.json();
         const transactions = data.transactions || [];
-        
+
         console.log('Fetched transactions:', transactions.length);
         console.log('Transaction category fields debug:', transactions.map((t: any) => ({
           id: t.id,
@@ -156,15 +156,15 @@ export const StatementDashboard = forwardRef<StatementDashboardRef, StatementDas
           category_name: t.category_name,
           category: t.category
         })));
-        
+
         if (transactions.length === 0) {
           alert('No transactions found for this statement.');
           return;
         }
-        
+
         // Store transactions in Redux store
         dispatch(setTransactions(transactions));
-        
+
         // Navigate to categorize page with statement context
         router.push(`/categorize?statement=${statementId}`);
       } else {
@@ -183,9 +183,9 @@ export const StatementDashboard = forwardRef<StatementDashboardRef, StatementDas
   };
 
   const getStatementForMonth = (accountId: string, month: number) => {
-    return statements.find(stmt => 
-      stmt.bank_account_id === accountId && 
-      stmt.statement_month === month && 
+    return statements.find(stmt =>
+      stmt.bank_account_id === accountId &&
+      stmt.statement_month === month &&
       stmt.statement_year === selectedYear
     );
   };
@@ -194,7 +194,7 @@ export const StatementDashboard = forwardRef<StatementDashboardRef, StatementDas
     const currentDate = new Date();
     const currentYear = currentDate.getFullYear();
     const currentMonth = currentDate.getMonth() + 1; // getMonth() returns 0-11, we need 1-12
-    
+
     // Calculate total slots based on current date
     let totalSlots = 0;
     for (const account of activeAccounts) {
@@ -209,7 +209,7 @@ export const StatementDashboard = forwardRef<StatementDashboardRef, StatementDas
         totalSlots += 0;
       }
     }
-    
+
     const completedSlots = statements.filter(stmt => stmt.processing_status === 'completed').length;
 
     return {
@@ -221,6 +221,18 @@ export const StatementDashboard = forwardRef<StatementDashboardRef, StatementDas
   };
 
   const stats = getCompletionStats();
+
+  // Show loading skeleton while fetching accounts to prevent flash of empty state  
+  if (isLoading && accounts.length === 0) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-100/50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 mx-auto mb-4 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+          <p className="text-slate-600">Loading statements...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (activeAccounts.length === 0) {
     return (
@@ -266,7 +278,7 @@ export const StatementDashboard = forwardRef<StatementDashboardRef, StatementDas
                   You need to add active bank accounts before managing statements. Get started by adding your first account.
                 </p>
               </div>
-              <Button 
+              <Button
                 onClick={() => window.location.href = '/bank-accounts'}
                 className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
               >
@@ -491,7 +503,7 @@ export const StatementDashboard = forwardRef<StatementDashboardRef, StatementDas
                         size="lg"
                         className="shadow-md"
                       />
-                      
+
                       {/* Account Details */}
                       <div>
                         <h3 className="text-xl font-bold text-slate-900 mb-1">
@@ -515,7 +527,7 @@ export const StatementDashboard = forwardRef<StatementDashboardRef, StatementDas
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
                       <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4zM18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" />
@@ -592,7 +604,7 @@ export const StatementDashboard = forwardRef<StatementDashboardRef, StatementDas
                           <div className="text-xs font-semibold text-slate-700 mb-2 uppercase tracking-wide">
                             {month}
                           </div>
-                          
+
                           {statement ? (
                             <div className="space-y-2">
                               <div className="text-2xl">
@@ -610,7 +622,7 @@ export const StatementDashboard = forwardRef<StatementDashboardRef, StatementDas
                                   ⋯
                                 </button>
                                 {openDropdown === statement.id && (
-                                  <motion.div 
+                                  <motion.div
                                     initial={{ opacity: 0, scale: 0.8, y: 10 }}
                                     animate={{ opacity: 1, scale: 1, y: 0 }}
                                     exit={{ opacity: 0, scale: 0.8, y: 10 }}
@@ -649,11 +661,10 @@ export const StatementDashboard = forwardRef<StatementDashboardRef, StatementDas
                                           handleRemoveStatementWithUpdate(statement.id);
                                         }}
                                         disabled={isDeleting === statement.id}
-                                        className={`w-full text-left px-4 py-3 text-sm hover:bg-red-50 flex items-center gap-3 transition-colors ${
-                                          isDeleting === statement.id 
+                                        className={`w-full text-left px-4 py-3 text-sm hover:bg-red-50 flex items-center gap-3 transition-colors ${isDeleting === statement.id
                                             ? 'text-slate-400 cursor-not-allowed'
                                             : 'text-red-600'
-                                        }`}
+                                          }`}
                                       >
                                         <span className={`w-6 h-6 ${isDeleting === statement.id ? 'bg-slate-100 text-slate-400' : 'bg-red-100 text-red-600'} rounded-lg flex items-center justify-center text-xs`}>
                                           {isDeleting === statement.id ? '⏳' : '🗑️'}
@@ -704,7 +715,7 @@ export const StatementDashboard = forwardRef<StatementDashboardRef, StatementDas
               </div>
               <h4 className="text-xl font-bold text-slate-900">Statement Status Guide</h4>
             </div>
-            
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Status Icons Section */}
               <div>
@@ -749,7 +760,7 @@ export const StatementDashboard = forwardRef<StatementDashboardRef, StatementDas
                 </div>
               </div>
 
-              {/* Action Buttons Section */}  
+              {/* Action Buttons Section */}
               <div>
                 <h5 className="text-sm font-bold text-slate-700 mb-4 uppercase tracking-wide">Available Actions</h5>
                 <div className="space-y-3">

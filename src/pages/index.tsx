@@ -24,70 +24,61 @@ const IndexPage: NextPage = () => {
       if (!session?.user) {
         // Not authenticated - go to marketing landing page
         setLoadingStage('redirecting');
-          setTimeout(() => router.push('/auth/landing'), 800);
+        router.push('/auth/landing');
         return;
       }
 
       try {
         setLoadingStage('analyzing');
 
-        // Check user preferences for onboarding completion
-        const { data: preferences } = await supabase
-          .from('user_preferences')
-          .select('onboarded')
-          .eq('user_id', session.user.id)
-          .single();
-
-        // Check if user has bank accounts
-        const { data: accounts } = await supabase
-          .from('bank_accounts')
-          .select('id')
-          .eq('user_id', session.user.id)
-          .limit(1);
-
-        // Check if user has transactions (using Redux store count since no DB table)
-        // In a real app, this would query the transactions table
-        const hasTransactions = false; // Will be updated when transactions table exists
+        // Parallel DB queries for faster loading
+        const [preferencesResult, accountsResult] = await Promise.all([
+          supabase
+            .from('user_preferences')
+            .select('onboarded')
+            .eq('user_id', session.user.id)
+            .single(),
+          supabase
+            .from('bank_accounts')
+            .select('id')
+            .eq('user_id', session.user.id)
+            .limit(1)
+        ]);
 
         const flowState: UserFlowState = {
-          hasCompletedOnboarding: preferences?.onboarded || false,
-          hasAccounts: (accounts?.length || 0) > 0,
-          hasTransactions,
+          hasCompletedOnboarding: preferencesResult.data?.onboarded || false,
+          hasAccounts: (accountsResult.data?.length || 0) > 0,
+          hasTransactions: false,
           lastVisit: new Date().toISOString()
         };
 
         setUserState(flowState);
 
-        // Intelligent routing logic
+        // Intelligent routing logic - instant, no delays
         setLoadingStage('routing');
-        
+
         if (!flowState.hasCompletedOnboarding) {
-          // First-time user - go to onboarding
-          setTimeout(() => router.push('/onboarding'), 300);
+          router.push('/onboarding');
         } else if (!flowState.hasAccounts) {
-          // Onboarded but no accounts - go to quick-start
-          setTimeout(() => router.push('/quick-start'), 300);
+          router.push('/quick-start');
         } else {
-          // Established user - go to main landing dashboard
-          setTimeout(() => router.push('/landing'), 300);
+          router.push('/landing');
         }
 
       } catch (error) {
         console.error('Error determining user flow:', error);
-        // Fallback to landing page on error
         setLoadingStage('redirecting');
-        setTimeout(() => router.push('/landing'), 300);
+        router.push('/landing');
       }
     };
 
-    // Add appropriate delays for smooth transitions
-    const timer = setTimeout(() => {
+    // Execute immediately, no artificial delays
+    if (session?.user) {
       setLoadingStage('authenticating');
-      setTimeout(determineUserFlow, 800);
-    }, 1000);
+      determineUserFlow();
+    }
 
-    return () => clearTimeout(timer);
-  }, [session, router, supabase]);
+  }, [session?.user?.id, router, supabase]); // Use stable user ID
 
   const getLoadingMessage = () => {
     switch (loadingStage) {
@@ -190,7 +181,7 @@ const IndexPage: NextPage = () => {
           >
             {getLoadingMessage()}
           </motion.p>
-          
+
           {/* Progress Indicator */}
           <div className="w-64 mx-auto">
             <div className="flex justify-between text-xs text-gray-500 mb-2">
@@ -203,7 +194,7 @@ const IndexPage: NextPage = () => {
                 <motion.span
                   key={label}
                   animate={{
-                    color: Array.isArray(stage) 
+                    color: Array.isArray(stage)
                       ? stage.includes(loadingStage) ? '#2563EB' : '#6B7280'
                       : stage === loadingStage ? '#2563EB' : '#6B7280',
                     fontWeight: Array.isArray(stage)
@@ -220,11 +211,11 @@ const IndexPage: NextPage = () => {
               <motion.div
                 className="bg-gradient-to-r from-blue-500 to-indigo-500 h-2 rounded-full"
                 initial={{ width: '0%', x: '-10%' }}
-                animate={{ 
+                animate={{
                   width: getProgressWidth(),
                   x: '0%'
                 }}
-                transition={{ 
+                transition={{
                   duration: 1.2,
                   ease: [0.4, 0.0, 0.2, 1], // Custom cubic-bezier for smooth animation
                   bounce: 0
