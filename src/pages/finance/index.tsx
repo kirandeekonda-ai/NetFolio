@@ -82,7 +82,7 @@ export default function FinanceDashboard() {
 
     useEffect(() => {
         fetchData();
-    }, [user, filterPerson]);
+    }, [user?.id, filterPerson]); // Use user?.id instead of user to prevent unnecessary re-renders
 
     const handleExport = async () => {
         if (!user) return;
