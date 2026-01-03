@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { InvestmentHolding } from '@/types/finance';
 import { motion, AnimatePresence } from 'framer-motion';
+import { FilterDropdown } from './FilterDropdown';
 
 interface HoldingsTableProps {
     holdings: InvestmentHolding[];
@@ -32,6 +33,12 @@ export const HoldingsTable: React.FC<HoldingsTableProps> = ({ holdings, isLoadin
     const [sortColumn, setSortColumn] = useState<keyof InvestmentHolding | 'pnl' | 'currentValue' | 'investedValue'>('name');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
+    // Multi-select filters
+    const [selectedInvestments, setSelectedInvestments] = useState<Set<string>>(new Set());
+    const [selectedAssetClasses, setSelectedAssetClasses] = useState<Set<string>>(new Set());
+    const [selectedSectors, setSelectedSectors] = useState<Set<string>>(new Set());
+    const [selectedPersons, setSelectedPersons] = useState<Set<string>>(new Set());
+
     const toggleRow = (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
         setExpandedRowId(expandedRowId === id ? null : id);
@@ -46,13 +53,52 @@ export const HoldingsTable: React.FC<HoldingsTableProps> = ({ holdings, isLoadin
         }
     };
 
-    // Filter holdings based on search query
-    const filteredHoldings = holdings.filter(holding =>
-        holding.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        holding.ticker_symbol?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        holding.sector?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        holding.holder_name?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    // Extract unique values for filters
+    const uniqueInvestments = Array.from(new Set(holdings.map(h => h.name).filter(Boolean))) as string[];
+    const uniqueAssetClasses = Array.from(new Set(holdings.map(h => h.asset_class).filter(Boolean))) as string[];
+    const uniqueSectors = Array.from(new Set(holdings.map(h => h.sector).filter(Boolean))) as string[];
+    const uniquePersons = Array.from(new Set(holdings.map(h => h.holder_name).filter(Boolean))) as string[];
+
+    // Toggle filter selection
+    const toggleFilter = (filterSet: Set<string>, setFilterSet: React.Dispatch<React.SetStateAction<Set<string>>>, value: string) => {
+        const newSet = new Set(filterSet);
+        if (newSet.has(value)) {
+            newSet.delete(value);
+        } else {
+            newSet.add(value);
+        }
+        setFilterSet(newSet);
+    };
+
+    // Clear all filters
+    const clearAllFilters = () => {
+        setSelectedInvestments(new Set());
+        setSelectedAssetClasses(new Set());
+        setSelectedSectors(new Set());
+        setSelectedPersons(new Set());
+        setSearchQuery('');
+    };
+
+    const hasActiveFilters = selectedInvestments.size > 0 || selectedAssetClasses.size > 0 ||
+        selectedSectors.size > 0 || selectedPersons.size > 0;
+
+    // Filter holdings based on search query and selected filters
+    const filteredHoldings = holdings.filter(holding => {
+        // Search filter
+        const matchesSearch = !searchQuery ||
+            holding.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            holding.ticker_symbol?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            holding.sector?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            holding.holder_name?.toLowerCase().includes(searchQuery.toLowerCase());
+
+        // Multi-select filters
+        const matchesInvestment = selectedInvestments.size === 0 || selectedInvestments.has(holding.name || '');
+        const matchesAssetClass = selectedAssetClasses.size === 0 || selectedAssetClasses.has(holding.asset_class || '');
+        const matchesSector = selectedSectors.size === 0 || selectedSectors.has(holding.sector || '');
+        const matchesPerson = selectedPersons.size === 0 || selectedPersons.has(holding.holder_name || '');
+
+        return matchesSearch && matchesInvestment && matchesAssetClass && matchesSector && matchesPerson;
+    });
 
     // Sort filtered holdings
     const sortedHoldings = [...filteredHoldings].sort((a, b) => {
@@ -97,6 +143,51 @@ export const HoldingsTable: React.FC<HoldingsTableProps> = ({ holdings, isLoadin
 
     return (
         <div className="space-y-4">
+            {/* Filter Dropdowns */}
+            <div className="flex items-center gap-3 flex-wrap">
+                {/* Investment Filter */}
+                <FilterDropdown
+                    label="Investment"
+                    options={uniqueInvestments}
+                    selected={selectedInvestments}
+                    onToggle={(value) => toggleFilter(selectedInvestments, setSelectedInvestments, value)}
+                />
+
+                {/* Asset Class Filter */}
+                <FilterDropdown
+                    label="Asset Class"
+                    options={uniqueAssetClasses}
+                    selected={selectedAssetClasses}
+                    onToggle={(value) => toggleFilter(selectedAssetClasses, setSelectedAssetClasses, value)}
+                />
+
+                {/* Sector Filter */}
+                <FilterDropdown
+                    label="Sector"
+                    options={uniqueSectors}
+                    selected={selectedSectors}
+                    onToggle={(value) => toggleFilter(selectedSectors, setSelectedSectors, value)}
+                />
+
+                {/* Person Filter */}
+                <FilterDropdown
+                    label="Person"
+                    options={uniquePersons}
+                    selected={selectedPersons}
+                    onToggle={(value) => toggleFilter(selectedPersons, setSelectedPersons, value)}
+                />
+
+                {/* Clear Filters Button */}
+                {hasActiveFilters && (
+                    <button
+                        onClick={clearAllFilters}
+                        className="px-4 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors border border-red-200"
+                    >
+                        Clear Filters
+                    </button>
+                )}
+            </div>
+
             {/* Search Bar */}
             <div className="flex items-center gap-3 p-4 bg-white rounded-xl border border-gray-200 shadow-sm">
                 <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -286,7 +377,7 @@ export const HoldingsTable: React.FC<HoldingsTableProps> = ({ holdings, isLoadin
 
                                         {/* Units */}
                                         <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-mono">
-                                            {h.quantity}
+                                            {Number(h.quantity).toFixed(2)}
                                         </td>
 
                                         {/* Avg Price */}
