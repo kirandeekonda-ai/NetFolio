@@ -24,13 +24,13 @@ const BankAccountsPage: NextPage = () => {
     if (session?.user) {
       fetchAccounts();
     }
-  }, [session?.user]);
+  }, [session?.user?.id]); // Use stable user ID instead of user object
 
   const fetchAccounts = async () => {
     try {
       setIsLoading(true);
       const response = await fetch('/api/bank-accounts');
-      
+
       if (response.ok) {
         const data = await response.json();
         setAccounts(data.accounts || []);
@@ -87,7 +87,7 @@ const BankAccountsPage: NextPage = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setAccounts(prev => prev.map(acc => 
+        setAccounts(prev => prev.map(acc =>
           acc.id === editingAccount.id ? data.account : acc
         ));
         setShowForm(false);
@@ -154,7 +154,7 @@ const BankAccountsPage: NextPage = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setAccounts(prev => prev.map(acc => 
+        setAccounts(prev => prev.map(acc =>
           acc.id === accountToDeactivate.id ? data.account : acc
         ));
         setShowDeactivateDialog(false);

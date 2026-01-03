@@ -102,7 +102,7 @@ export const BankAccountList: FC<BankAccountListProps> = ({
       // If globally unlocked, can't lock individual accounts
       return;
     }
-    
+
     if (individuallyUnlockedAccounts.has(accountId)) {
       // Lock this individual account
       setIndividuallyUnlockedAccounts(prev => {
@@ -133,11 +133,9 @@ export const BankAccountList: FC<BankAccountListProps> = ({
     const loadBalances = async () => {
       try {
         setBalancesLoading(true);
-        console.log('🔄 Loading account balances...');
-        
+
         const balances = await SimplifiedBalanceService.getAccountBalances();
-        console.log('✅ Loaded balances:', balances);
-        
+
         // Convert balance array to lookup object
         const balanceMap: Record<string, { balance: number; hasBalance: boolean }> = {};
         balances.forEach(balance => {
@@ -146,7 +144,7 @@ export const BankAccountList: FC<BankAccountListProps> = ({
             hasBalance: balance.current_balance !== null
           };
         });
-        
+
         setAccountBalances(balanceMap);
       } catch (error) {
         console.error('❌ Error loading balances:', error);
@@ -166,17 +164,17 @@ export const BankAccountList: FC<BankAccountListProps> = ({
   const handleDelete = async (accountId: string) => {
     const account = accounts.find(acc => acc.id === accountId);
     if (!account) return;
-    
+
     setAccountToDelete(account);
     setShowDeleteDialog(true);
   };
 
   const handleConfirmDelete = async () => {
     if (!accountToDelete) return;
-    
+
     setDeletingId(accountToDelete.id);
     setShowDeleteDialog(false);
-    
+
     try {
       await onDelete(accountToDelete.id);
     } finally {
@@ -206,8 +204,9 @@ export const BankAccountList: FC<BankAccountListProps> = ({
   const activeAccounts = enhanceAccountsWithBalances(accounts.filter(acc => acc.is_active));
   const inactiveAccounts = enhanceAccountsWithBalances(accounts.filter(acc => !acc.is_active));
 
-  // Show loading state while accounts or balances are loading
-  if (isLoading || balancesLoading) {
+  // Show loading state ONLY while accounts are loading
+  // Let balances load in the background for better perceived performance
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/20 to-indigo-50/30">
         <div className="max-w-4xl mx-auto px-6 py-20">
@@ -223,7 +222,7 @@ export const BankAccountList: FC<BankAccountListProps> = ({
               Loading Account Information...
             </h1>
             <p className="text-gray-600 max-w-md mx-auto">
-              {balancesLoading ? 'Fetching latest statement balances...' : 'Loading your accounts...'}
+              Loading your accounts...
             </p>
           </motion.div>
         </div>
@@ -247,8 +246,8 @@ export const BankAccountList: FC<BankAccountListProps> = ({
             <p className="text-lg text-gray-600 mb-8 max-w-md mx-auto">
               Connect your first bank account to start tracking your finances with style
             </p>
-            <Button 
-              onClick={onAdd} 
+            <Button
+              onClick={onAdd}
               disabled={isLoading}
               className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-8 py-3 text-lg font-medium"
             >
@@ -289,8 +288,8 @@ export const BankAccountList: FC<BankAccountListProps> = ({
                   transition={{ delay: 0.4 }}
                   className="flex space-x-3"
                 >
-                  <Button 
-                    onClick={handleUploadStatement} 
+                  <Button
+                    onClick={handleUploadStatement}
                     disabled={isLoading}
                     className="bg-white/20 hover:bg-white/30 text-white border-white/20 backdrop-blur-sm px-6 py-3 font-medium flex items-center space-x-2"
                   >
@@ -299,8 +298,8 @@ export const BankAccountList: FC<BankAccountListProps> = ({
                     </svg>
                     <span>Upload Statement</span>
                   </Button>
-                  <Button 
-                    onClick={onAdd} 
+                  <Button
+                    onClick={onAdd}
                     disabled={isLoading}
                     className="bg-white/20 hover:bg-white/30 text-white border-white/20 backdrop-blur-sm px-6 py-3 font-medium flex items-center space-x-2"
                   >
@@ -407,7 +406,7 @@ export const BankAccountList: FC<BankAccountListProps> = ({
                 <span className="w-2 h-2 bg-emerald-400 rounded-full mr-3"></span>
                 Active Accounts
               </h2>
-              
+
               <div className="grid gap-6">
                 {activeAccounts.map((account, index) => (
                   <motion.div
@@ -433,7 +432,7 @@ export const BankAccountList: FC<BankAccountListProps> = ({
                               <span className="text-xs text-white">✓</span>
                             </div>
                           </div>
-                          
+
                           {/* Account Details */}
                           <div className="flex-1">
                             <div className="flex items-center space-x-3 mb-2">
@@ -461,7 +460,7 @@ export const BankAccountList: FC<BankAccountListProps> = ({
                             </div>
                           </div>
                         </div>
-                        
+
                         {/* Balance & Actions */}
                         <div className="flex items-center space-x-8">
                           {/* Balance Display */}
@@ -502,7 +501,7 @@ export const BankAccountList: FC<BankAccountListProps> = ({
                               </button>
                             )}
                           </div>
-                          
+
                           {/* Action Buttons */}
                           <div className="flex items-center space-x-3">
                             <Button
@@ -551,7 +550,7 @@ export const BankAccountList: FC<BankAccountListProps> = ({
                 <span className="w-2 h-2 bg-gray-400 rounded-full mr-3"></span>
                 Inactive Accounts
               </h2>
-              
+
               <div className="grid gap-6">
                 {inactiveAccounts.map((account, index) => (
                   <motion.div
@@ -570,7 +569,7 @@ export const BankAccountList: FC<BankAccountListProps> = ({
                             size="lg"
                             className="opacity-50"
                           />
-                          
+
                           <div className="flex-1">
                             <div className="flex items-center space-x-3 mb-2">
                               <h3 className="text-xl font-semibold text-gray-600">
@@ -592,7 +591,7 @@ export const BankAccountList: FC<BankAccountListProps> = ({
                             </div>
                           </div>
                         </div>
-                        
+
                         <div className="flex items-center space-x-8">
                           <div className="text-right">
                             <div className="text-3xl font-light text-gray-600 mb-1">
@@ -622,7 +621,7 @@ export const BankAccountList: FC<BankAccountListProps> = ({
                               )}
                             </div>
                           </div>
-                          
+
                           <div className="flex items-center space-x-3">
                             <Button
                               variant="secondary"
@@ -669,7 +668,7 @@ export const BankAccountList: FC<BankAccountListProps> = ({
           onCancel={() => setShowProtectionDialog(false)}
           protectionType={protectionType || 'pin'}
           title={unlockTarget === 'total' ? "Unlock All Account Balances" : "Unlock Individual Account Balance"}
-          description={unlockTarget === 'total' 
+          description={unlockTarget === 'total'
             ? "Enter your PIN or password to unlock all account balances. This will override any individual account locks."
             : "Enter your PIN or password to unlock this specific account balance only."
           }
