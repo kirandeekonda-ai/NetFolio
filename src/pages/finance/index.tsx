@@ -8,6 +8,7 @@ import { InvestmentHolding, FinanceDashboardData } from '@/types/finance';
 import { investmentService } from '@/services/InvestmentService';
 import { HoldingsTable } from '@/components/finance/HoldingsTable';
 import { AddTransactionModal } from '@/components/finance/AddTransactionModal';
+import { HoldingManagementModal } from '@/components/finance/HoldingManagementModal';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { AllocationChart } from '@/components/finance/AllocationChart';
@@ -505,7 +506,7 @@ export default function FinanceDashboard() {
                             isLoading={loading}
                             onEdit={(h) => {
                                 setEditingHolding(h);
-                                setIsModalOpen(true);
+                                // Don't set isModalOpen - HoldingManagementModal uses editingHolding
                             }}
                             onDelete={handleDelete}
                             onEditTransaction={(tx, h) => {
@@ -518,16 +519,68 @@ export default function FinanceDashboard() {
                 </motion.div>
             </div>
 
+            {/* Add Investment Modal - for NEW investments only */}
             <AddTransactionModal
-                isOpen={isModalOpen}
-                initialData={editingHolding || (editingTransaction ? editingTransaction.holding : null)}
+                isOpen={isModalOpen && !editingHolding}
+                initialData={editingTransaction ? editingTransaction.holding : null}
                 initialTransaction={editingTransaction ? editingTransaction.tx : null}
                 onClose={() => {
                     setIsModalOpen(false);
-                    setEditingHolding(null);
                     setEditingTransaction(null);
                 }}
                 onSave={handleSaveTransaction}
+            />
+
+            {/* Holding Management Modal - for EXISTING holdings */}
+            <HoldingManagementModal
+                isOpen={!!editingHolding}
+                holding={editingHolding}
+                onClose={() => setEditingHolding(null)}
+                onAddTransaction={async (data) => {
+                    // Add new transaction to existing holding
+                    const transaction = {
+                        type: data.type,
+                        date: data.date,
+                        quantity: Number(data.quantity),
+                        price_per_unit: Number(data.price),
+                        notes: data.notes || ''
+                    };
+                    const holdingDetails = {
+                        ticker_symbol: data.ticker_symbol,
+                        name: data.name,
+                        holder_name: data.holder_name,
+                        asset_class: data.asset_class,
+                        sector: data.sector,
+                        strategy_bucket: data.strategy_bucket
+                    };
+                    await investmentService.addTransaction(transaction, holdingDetails);
+                    await fetchData();
+                }}
+                onEditTransaction={async (txId, data) => {
+                    // Edit existing transaction
+                    await investmentService.updateTransaction(txId, {
+                        type: data.type,
+                        date: data.date,
+                        quantity: Number(data.quantity),
+                        price_per_unit: Number(data.price),
+                    });
+                    await fetchData();
+                }}
+                onDeleteTransaction={async (txId) => {
+                    await handleDeleteTransaction(txId);
+                }}
+                onUpdateDetails={async (data) => {
+                    // Update holding details
+                    await investmentService.updateHolding(data.id, {
+                        name: data.name,
+                        sector: data.sector,
+                        asset_class: data.asset_class,
+                        strategy_bucket: data.strategy_bucket,
+                        holder_name: data.holder_name
+                    });
+                    await fetchData();
+                    setEditingHolding(null);
+                }}
             />
         </Layout>
     );
