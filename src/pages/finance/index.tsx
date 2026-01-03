@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useUser } from '@supabase/auth-helpers-react';
 import { Layout } from '@/components/layout/Layout';
 import Head from 'next/head';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { InvestmentHolding, FinanceDashboardData } from '@/types/finance';
 import { investmentService } from '@/services/InvestmentService';
@@ -257,19 +258,29 @@ export default function FinanceDashboard() {
                                         ))}
                                     </div>
 
-                                    <button
-                                        onClick={() => setIsModalOpen(true)}
-                                        className="bg-white/20 backdrop-blur-sm text-white px-6 py-3 rounded-lg font-medium hover:bg-white/30 transition-all duration-200 border border-white/30 shadow-lg hover:shadow-xl hover:scale-105"
-                                    >
-                                        + Add Investment
-                                    </button>
-                                    <button
-                                        onClick={handleExport}
-                                        disabled={isExporting || holdings.length === 0}
-                                        className="bg-emerald-500/20 backdrop-blur-sm text-white px-6 py-3 rounded-lg font-medium hover:bg-emerald-500/30 transition-all duration-200 border border-emerald-400/30 shadow-lg hover:shadow-xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                                    >
-                                        {isExporting ? '⏳ Exporting...' : '📥 Export Portfolio'}
-                                    </button>
+                                    <div className="flex items-center gap-3">
+                                        {/* Analytics Links */}
+                                        <Link href="/finance/performance" className="bg-white/20 backdrop-blur-sm text-white px-4 py-2 rounded-lg font-medium hover:bg-white/30 transition-all duration-200 border border-white/30 shadow-lg hover:shadow-xl hover:scale-105 text-sm">
+                                            📈 Performance
+                                        </Link>
+                                        <Link href="/finance/allocation" className="bg-white/20 backdrop-blur-sm text-white px-4 py-2 rounded-lg font-medium hover:bg-white/30 transition-all duration-200 border border-white/30 shadow-lg hover:shadow-xl hover:scale-105 text-sm">
+                                            🎯 Allocation
+                                        </Link>
+
+                                        <button
+                                            onClick={() => setIsModalOpen(true)}
+                                            className="bg-white/20 backdrop-blur-sm text-white px-6 py-3 rounded-lg font-medium hover:bg-white/30 transition-all duration-200 border border-white/30 shadow-lg hover:shadow-xl hover:scale-105"
+                                        >
+                                            + Add Investment
+                                        </button>
+                                        <button
+                                            onClick={handleExport}
+                                            disabled={isExporting || holdings.length === 0}
+                                            className="bg-emerald-500/20 backdrop-blur-sm text-white px-6 py-3 rounded-lg font-medium hover:bg-emerald-500/30 transition-all duration-200 border border-emerald-400/30 shadow-lg hover:shadow-xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                                        >
+                                            {isExporting ? '⏳ Exporting...' : '📥 Export Portfolio'}
+                                        </button>
+                                    </div>
                                 </motion.div>
                             </div>
                         </div>
