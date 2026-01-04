@@ -34,13 +34,13 @@ const StatementsPageContent: React.FC = () => {
     if (session?.user) {
       fetchAccounts();
     }
-  }, [session?.user]);
+  }, [session?.user?.id]); // Use stable user ID instead of user object
 
   const fetchAccounts = async () => {
     try {
       setIsLoading(true);
       const response = await fetch('/api/bank-accounts');
-      
+
       if (response.ok) {
         const data = await response.json();
         setAccounts(data.accounts || []);
@@ -85,25 +85,25 @@ const StatementsPageContent: React.FC = () => {
 
     try {
       setIsLoading(true);
-      
+
       const response = await fetch(`/api/bank-statements?id=${statementToDelete}`, {
         method: 'DELETE',
       });
 
       if (response.ok) {
         const result = await response.json();
-        
+
         // Refresh both the accounts and statement dashboard immediately
         await Promise.all([
           fetchAccounts(),
           statementDashboardRef.current?.refreshStatements()
         ]);
-        
+
         // Show success notification with details
-        const message = result.deletedTransactionsCount > 0 
+        const message = result.deletedTransactionsCount > 0
           ? `Statement deleted successfully! ${result.deletedTransactionsCount} associated transactions were also removed.`
           : 'Statement deleted successfully!';
-        
+
         addToast({
           type: 'success',
           message,
@@ -147,12 +147,12 @@ File: ${statement.file_name || 'N/A'}`);
 
       // Use transactions from uploadData directly (from AI processing)
       const transactionsToUse = uploadData.extractedTransactions || extractedTransactions;
-      
+
       // Finalize balance after all pages are processed using new consolidated approach
       let closingBalance = null;
       if (uploadData.pageResults && uploadData.pageResults.length > 0) {
         console.log('🔍 Finalizing balance from all processed pages...');
-        
+
         // Prepare balance data from all pages for finalization
         const pageBalanceData = uploadData.pageResults
           .filter(page => page.balance_data && page.balance_data.balance_confidence > 0)
@@ -200,12 +200,12 @@ File: ${statement.file_name || 'N/A'}`);
 
       if (response.ok) {
         const data = await response.json();
-        
+
         // Save extracted transactions to database if there are any
         let savedTransactions = transactionsToUse;
         if (transactionsToUse.length > 0) {
           console.log(`Saving ${transactionsToUse.length} extracted transactions to database...`);
-          
+
           try {
             const saveResponse = await fetch('/api/transactions/save-extracted', {
               method: 'POST',
@@ -233,11 +233,11 @@ File: ${statement.file_name || 'N/A'}`);
             alert('Warning: Error saving transactions to database. You can still categorize them, but changes won\'t persist.');
           }
         }
-        
+
         // Finalize balance after all transactions are saved
         if (uploadData.pageResults && uploadData.pageResults.length > 0) {
           console.log('🎯 Finalizing statement balance...');
-          
+
           const pageBalanceData = uploadData.pageResults
             .filter(page => page.balance_data && page.balance_data.balance_confidence > 0)
             .map(page => ({
@@ -275,10 +275,10 @@ File: ${statement.file_name || 'N/A'}`);
             console.log('ℹ️ No balance data found in any processed pages');
           }
         }
-        
+
         // Store transactions in Redux store for categorize page (use saved transactions with real UUIDs)
         dispatch(setTransactions(savedTransactions));
-        
+
         // Update statement status to completed
         await fetch(`/api/bank-statements?id=${data.statement.id}`, {
           method: 'PUT',
@@ -294,7 +294,7 @@ File: ${statement.file_name || 'N/A'}`);
 
         // Always redirect to categorize page after successful upload
         setShowUploadForm(false);
-        
+
         if (transactionsToUse.length > 0) {
           // Redirect to categorize page with the extracted transactions
           router.push('/categorize');
@@ -318,7 +318,7 @@ File: ${statement.file_name || 'N/A'}`);
   const handleTransactionsExtracted = async (transactions: Transaction[], pageResults?: PageProcessingResult[]) => {
     try {
       setIsLoading(true);
-      
+
       // Store extracted transactions
       setExtractedTransactions(transactions);
       console.log(`Extracted ${transactions.length} transactions, starting upload process...`);
@@ -366,7 +366,7 @@ File: ${statement.file_name || 'N/A'}`);
 
       if (response.ok) {
         const data = await response.json();
-        
+
         // Save extracted transactions to database if there are any
         let savedTransactions = transactions;
         if (transactions.length > 0) {
@@ -377,7 +377,7 @@ File: ${statement.file_name || 'N/A'}`);
             category_name: t.category_name,
             amount: t.amount
           })));
-          
+
           try {
             const saveResponse = await fetch('/api/transactions/save-extracted', {
               method: 'POST',
@@ -405,11 +405,11 @@ File: ${statement.file_name || 'N/A'}`);
             alert('Warning: Error saving transactions to database. You can still categorize them, but changes won\'t persist.');
           }
         }
-        
+
         // Finalize balance after all transactions are saved using new consolidated approach
         if (pageResults && pageResults.length > 0) {
           console.log('🎯 Finalizing statement balance...');
-          
+
           const pageBalanceData = pageResults
             .filter(page => page.balance_data && page.balance_data.balance_confidence > 0)
             .map(page => ({
@@ -446,10 +446,10 @@ File: ${statement.file_name || 'N/A'}`);
             console.log('ℹ️ No balance data found in any processed pages');
           }
         }
-        
+
         // Store transactions in Redux store for categorize page (use saved transactions with real UUIDs)
         dispatch(setTransactions(savedTransactions));
-        
+
         // Update statement status to completed
         await fetch(`/api/bank-statements?id=${data.statement.id}`, {
           method: 'PUT',
@@ -465,7 +465,7 @@ File: ${statement.file_name || 'N/A'}`);
 
         // Always redirect to categorize page after successful upload
         setShowUploadForm(false);
-        
+
         if (transactions.length > 0) {
           // Redirect to categorize page with the extracted transactions
           router.push('/categorize');

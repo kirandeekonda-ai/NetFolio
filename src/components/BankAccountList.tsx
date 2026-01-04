@@ -1,4 +1,4 @@
-import { FC, useState, useEffect } from 'react';
+import { FC, useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/router';
 import { BankAccount } from '@/types';
@@ -7,6 +7,8 @@ import { Button } from './Button';
 import { BankLogo } from './BankLogo';
 import { BankAccountDeleteDialog } from './BankAccountDeleteDialog';
 import { BalanceProtectionDialog } from './BalanceProtectionDialog';
+import { ManualBalanceModal } from './ManualBalanceModal';
+import { BalanceHistoryModal } from './BalanceHistoryModal'; // Import history modal
 import { useBalanceProtection } from '@/hooks/useBalanceProtection';
 import SimplifiedBalanceService from '@/services/SimplifiedBalanceService';
 
@@ -58,6 +60,15 @@ export const BankAccountList: FC<BankAccountListProps> = ({
   const [showProtectionDialog, setShowProtectionDialog] = useState(false);
   const [unlockTarget, setUnlockTarget] = useState<'total' | string>('total'); // 'total' or account ID
   const [individuallyUnlockedAccounts, setIndividuallyUnlockedAccounts] = useState<Set<string>>(new Set());
+
+  // State for manual balance modal
+  const [selectedAccountForBalance, setSelectedAccountForBalance] = useState<BankAccount | null>(null);
+  const [isManualBalanceModalOpen, setIsManualBalanceModalOpen] = useState(false);
+  const [editingBalanceData, setEditingBalanceData] = useState<{ id: string; amount: number; date: string; notes?: string } | null>(null);
+
+  // State for history modal
+  const [selectedAccountForHistory, setSelectedAccountForHistory] = useState<BankAccount | null>(null);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
 
   // Balance protection hook
   const {
@@ -128,38 +139,48 @@ export const BankAccountList: FC<BankAccountListProps> = ({
     setShowProtectionDialog(false);
   };
 
-  // Load account balances from SimplifiedBalanceService
+  // Define loadBalances as a reusable function
+  const loadBalances = useCallback(async () => {
+    try {
+      setBalancesLoading(true);
+
+      const balances = await SimplifiedBalanceService.getAccountBalances();
+
+      // Convert balance array to lookup object
+      const balanceMap: Record<string, { balance: number; hasBalance: boolean }> = {};
+      balances.forEach(balance => {
+        balanceMap[balance.account_id] = {
+          balance: balance.current_balance || 0,
+          hasBalance: balance.current_balance !== null
+        };
+      });
+
+      setAccountBalances(balanceMap);
+    } catch (error) {
+      console.error('❌ Error loading balances:', error);
+      setAccountBalances({});
+    } finally {
+      setBalancesLoading(false);
+    }
+  }, []);
+
+  // Use the reusable function in useEffect
   useEffect(() => {
-    const loadBalances = async () => {
-      try {
-        setBalancesLoading(true);
-
-        const balances = await SimplifiedBalanceService.getAccountBalances();
-
-        // Convert balance array to lookup object
-        const balanceMap: Record<string, { balance: number; hasBalance: boolean }> = {};
-        balances.forEach(balance => {
-          balanceMap[balance.account_id] = {
-            balance: balance.current_balance || 0,
-            hasBalance: balance.current_balance !== null
-          };
-        });
-
-        setAccountBalances(balanceMap);
-      } catch (error) {
-        console.error('❌ Error loading balances:', error);
-        setAccountBalances({});
-      } finally {
-        setBalancesLoading(false);
-      }
-    };
-
     if (accounts.length > 0) {
       loadBalances();
     } else {
       setBalancesLoading(false);
     }
-  }, [accounts]);
+  }, [accounts, loadBalances]);
+
+  const handleUpdateBalance = (account: BankAccount) => {
+    setSelectedAccountForBalance(account);
+    setIsManualBalanceModalOpen(true);
+  };
+
+  const handleManualBalanceSuccess = () => {
+    loadBalances(); // Refresh balances
+  };
 
   const handleDelete = async (accountId: string) => {
     const account = accounts.find(acc => acc.id === accountId);
@@ -500,6 +521,26 @@ export const BankAccountList: FC<BankAccountListProps> = ({
                                 </div>
                               </button>
                             )}
+
+                            {/* History and Update Buttons */}
+                            <div className="flex justify-end gap-3 mt-1">
+                              <button
+                                onClick={() => {
+                                  setSelectedAccountForHistory(account);
+                                  setIsHistoryModalOpen(true);
+                                }}
+                                className="text-xs text-gray-400 hover:text-blue-600 underline"
+                              >
+                                History
+                              </button>
+                              <span className="text-gray-300">|</span>
+                              <button
+                                onClick={() => handleUpdateBalance(account)}
+                                className="text-xs text-gray-400 hover:text-blue-600 underline"
+                              >
+                                Update
+                              </button>
+                            </div>
                           </div>
 
                           {/* Action Buttons */}
@@ -659,6 +700,50 @@ export const BankAccountList: FC<BankAccountListProps> = ({
         account={accountToDelete}
         isLoading={deletingId === accountToDelete?.id}
       />
+
+      {/* Manual Balance Update Modal */}
+      {selectedAccountForBalance && (
+        <ManualBalanceModal
+          isOpen={isManualBalanceModalOpen}
+          onClose={() => {
+            setIsManualBalanceModalOpen(false);
+            setSelectedAccountForBalance(null);
+            setEditingBalanceData(null); // Clear edit data
+          }}
+          account={selectedAccountForBalance}
+          onSuccess={handleManualBalanceSuccess}
+          initialData={editingBalanceData}
+        />
+      )}
+
+      {/* Balance History Modal */}
+      {selectedAccountForHistory && (
+        <BalanceHistoryModal
+          isOpen={isHistoryModalOpen}
+          onClose={() => {
+            setIsHistoryModalOpen(false);
+            setSelectedAccountForHistory(null);
+          }}
+          account={selectedAccountForHistory}
+          onHistoryChanged={loadBalances}
+          onEdit={(item) => {
+            if (item.source === 'manual' && item.id) {
+              // Close history modal first
+              setIsHistoryModalOpen(false);
+
+              // Set up edit
+              setEditingBalanceData({
+                id: item.id,
+                amount: item.amount,
+                date: item.date,
+                notes: item.notes
+              });
+              setSelectedAccountForBalance(selectedAccountForHistory);
+              setIsManualBalanceModalOpen(true);
+            }
+          }}
+        />
+      )}
 
       {/* Balance Protection Dialog */}
       {isProtected && (

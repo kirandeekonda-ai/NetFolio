@@ -7,9 +7,7 @@ interface ConfirmationDialogProps {
   onConfirm: () => void;
   title: string;
   message: string;
-  confirmButtonText?: string;
-  cancelButtonText?: string;
-  type?: 'danger' | 'warning' | 'info';
+  isLoading?: boolean;
 }
 
 export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
@@ -18,110 +16,69 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
   onConfirm,
   title,
   message,
-  confirmButtonText = 'Confirm',
-  cancelButtonText = 'Cancel',
-  type = 'warning'
+  isLoading = false,
 }) => {
-  const handleConfirm = () => {
-    onConfirm();
-    onClose();
-  };
-
-  const typeStyles = {
-    danger: {
-      headerBg: 'bg-red-50',
-      headerIcon: 'text-red-600',
-      confirmButton: 'bg-red-600 hover:bg-red-700 text-white'
-    },
-    warning: {
-      headerBg: 'bg-yellow-50',
-      headerIcon: 'text-yellow-600',
-      confirmButton: 'bg-yellow-600 hover:bg-yellow-700 text-white'
-    },
-    info: {
-      headerBg: 'bg-blue-50',
-      headerIcon: 'text-blue-600',
-      confirmButton: 'bg-blue-600 hover:bg-blue-700 text-white'
-    }
-  };
-
-  const styles = typeStyles[type];
+  if (!isOpen) return null;
 
   return (
     <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex min-h-screen items-center justify-center p-4">
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={onClose}
-              className="fixed inset-0 bg-black bg-opacity-50"
-            />
-            
-            {/* Dialog */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4"
-            >
-              {/* Header */}
-              <div className={`px-6 py-4 ${styles.headerBg} rounded-t-lg`}>
-                <div className="flex items-center">
-                  <div className={`flex-shrink-0 ${styles.headerIcon}`}>
-                    {type === 'danger' && (
-                      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                      </svg>
-                    )}
-                    {type === 'warning' && (
-                      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                      </svg>
-                    )}
-                    {type === 'info' && (
-                      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    )}
-                  </div>
-                  <h3 className="ml-3 text-lg font-medium text-gray-900">
-                    {title}
-                  </h3>
-                </div>
+      <div className="fixed inset-0 z-[60] overflow-y-auto">
+        <div className="flex min-h-screen items-center justify-center p-4">
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={isLoading ? undefined : onClose}
+            className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm"
+          />
+
+          {/* Dialog */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+            className="relative bg-white rounded-2xl shadow-xl max-w-sm w-full mx-4 overflow-hidden"
+          >
+            <div className="p-6">
+              <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full mb-4">
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
               </div>
 
-              {/* Content */}
-              <div className="px-6 py-4">
-                <div className="text-sm text-gray-600 whitespace-pre-line">
-                  {message}
-                </div>
-              </div>
+              <h3 className="text-lg font-semibold text-center text-gray-900 mb-2">
+                {title}
+              </h3>
 
-              {/* Actions */}
-              <div className="px-6 py-4 bg-gray-50 rounded-b-lg flex space-x-3 justify-end">
+              <p className="text-sm text-center text-gray-500 mb-6">
+                {message}
+              </p>
+
+              <div className="flex space-x-3">
                 <button
-                  type="button"
                   onClick={onClose}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                  disabled={isLoading}
+                  className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 font-medium disabled:opacity-50 transition-colors"
                 >
-                  {cancelButtonText}
+                  Cancel
                 </button>
                 <button
-                  type="button"
-                  onClick={handleConfirm}
-                  className={`px-4 py-2 text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors ${styles.confirmButton}`}
+                  onClick={onConfirm}
+                  disabled={isLoading}
+                  className="flex-1 px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 font-medium disabled:opacity-50 transition-colors flex items-center justify-center"
                 >
-                  {confirmButtonText}
+                  {isLoading ? (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    'Delete'
+                  )}
                 </button>
               </div>
-            </motion.div>
-          </div>
+            </div>
+          </motion.div>
         </div>
-      )}
+      </div>
     </AnimatePresence>
   );
 };
