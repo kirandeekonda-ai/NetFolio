@@ -66,8 +66,8 @@ class NetWorthService {
         // A. Fetch Bank History for ALL accounts
         const bankHistories = await Promise.all(
             accounts.map(async (acc) => {
-                const h = await simplifiedBalanceService.getBalanceHistory(acc.id);
-                return { accountId: acc.id, history: h }; // h is sorted DESC usually
+                const h = await simplifiedBalanceService.getBalanceHistory(acc.account_id);
+                return { accountId: acc.account_id, history: h }; // h is sorted DESC usually
             })
         );
 
@@ -176,7 +176,7 @@ class NetWorthService {
 
         // Re-implement Daily Loop with efficient Pointers
         const accPointers: Record<string, number> = {}; // Index in accountTimeLines
-        accounts.forEach(a => accPointers[a.id] = 0);
+        accounts.forEach(a => accPointers[a.account_id] = 0);
 
         let cumulativeInvested = 0;
         let txPtr = 0;

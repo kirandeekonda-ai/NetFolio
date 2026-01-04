@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { NetWorthSnapshot } from '@/services/NetWorthService';
+import { useBalanceProtection } from '@/hooks/useBalanceProtection';
 
 interface NetWorthCardProps {
     data: NetWorthSnapshot | null;
@@ -9,6 +10,8 @@ interface NetWorthCardProps {
 }
 
 export const NetWorthCard: React.FC<NetWorthCardProps> = ({ data, isLoading }) => {
+    const { isProtected, isUnlocked } = useBalanceProtection();
+    const isVisible = !isProtected || isUnlocked;
 
     const formatCurrency = (val: number) => {
         if (val >= 10000000) return `₹${(val / 10000000).toFixed(2)} Cr`;
@@ -18,22 +21,25 @@ export const NetWorthCard: React.FC<NetWorthCardProps> = ({ data, isLoading }) =
 
     const ChartTooltip = ({ active, payload, label }: any) => {
         if (active && payload && payload.length) {
+            // Get the actual data point
+            const dataPoint = payload[0].payload;
+
             return (
                 <div className="bg-white p-3 border border-gray-100 shadow-xl rounded-xl text-xs">
                     <p className="font-medium text-gray-900 mb-2">{new Date(label).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
                     <div className="space-y-1">
                         <p className="flex items-center justify-between gap-4">
                             <span className="text-blue-600 font-medium">Cash</span>
-                            <span className="font-bold">{formatCurrency(payload[1].value - payload[0].value)}</span> {/* Cash is stacked on top? No, let's check stackId */}
+                            <span className="font-bold">{formatCurrency(dataPoint.cashBalance)}</span>
                         </p>
                         <p className="flex items-center justify-between gap-4">
                             <span className="text-purple-600 font-medium">Invested</span>
-                            <span className="font-bold">{formatCurrency(payload[0].value)}</span>
+                            <span className="font-bold">{formatCurrency(dataPoint.investedAmount)}</span>
                         </p>
                         <div className="border-t border-gray-100 my-1 pt-1">
                             <p className="flex items-center justify-between gap-4">
                                 <span className="text-gray-600 font-medium">Total</span>
-                                <span className="font-bold text-gray-900">{formatCurrency(payload[1].value)}</span>
+                                <span className="font-bold text-gray-900">{formatCurrency(dataPoint.total)}</span>
                             </p>
                         </div>
                     </div>
@@ -71,7 +77,7 @@ export const NetWorthCard: React.FC<NetWorthCardProps> = ({ data, isLoading }) =
                     <h2 className="text-gray-500 text-sm font-semibold uppercase tracking-wider mb-1">Total Net Worth</h2>
                     <div className="flex items-baseline gap-2">
                         <h1 className="text-4xl md:text-5xl font-bold text-gray-900 tracking-tight">
-                            {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(data.totalNetWorth)}
+                            {isVisible ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(data.totalNetWorth) : '••••••••'}
                         </h1>
                     </div>
                 </div>
@@ -81,14 +87,14 @@ export const NetWorthCard: React.FC<NetWorthCardProps> = ({ data, isLoading }) =
                         <div className="w-3 h-3 rounded-full bg-blue-500"></div>
                         <div>
                             <p className="text-xs text-blue-600 font-semibold mb-0.5">Liquidity (Cash)</p>
-                            <p className="text-sm font-bold text-gray-900">{formatCurrency(data.cashTotal)}</p>
+                            <p className="text-sm font-bold text-gray-900">{isVisible ? formatCurrency(data.cashTotal) : '••••••'}</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-2 px-4 py-2 bg-purple-50 rounded-xl border border-purple-100">
                         <div className="w-3 h-3 rounded-full bg-purple-500"></div>
                         <div>
                             <p className="text-xs text-purple-600 font-semibold mb-0.5">Investments</p>
-                            <p className="text-sm font-bold text-gray-900">{formatCurrency(data.investmentsTotal)}</p>
+                            <p className="text-sm font-bold text-gray-900">{isVisible ? formatCurrency(data.investmentsTotal) : '••••••'}</p>
                         </div>
                     </div>
                 </div>

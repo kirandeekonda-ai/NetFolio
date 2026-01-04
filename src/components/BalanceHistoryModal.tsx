@@ -95,106 +95,141 @@ export const BalanceHistoryModal: React.FC<BalanceHistoryModalProps> = ({
 
     return (
         <>
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
                 <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[80vh] flex flex-col overflow-hidden"
+                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                    className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden border border-gray-100"
                 >
-                    {/* Header */}
-                    <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                        <div>
-                            <h3 className="text-xl font-bold text-gray-900">Balance History</h3>
-                            <p className="text-sm text-gray-600 mt-0.5">{account.bank_name} - {account.account_nickname || account.account_type}</p>
+                    {/* Premium Header with Gradient */}
+                    <div className="relative overflow-hidden">
+                        <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600"></div>
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent"></div>
+                        <div className="relative px-8 py-6 flex justify-between items-start">
+                            <div>
+                                <div className="flex items-center gap-3 mb-2">
+                                    <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                                        <span className="text-2xl">📊</span>
+                                    </div>
+                                    <h3 className="text-2xl font-bold text-white">Balance History</h3>
+                                </div>
+                                <p className="text-blue-100 font-medium ml-13">{account.bank_name}</p>
+                                <p className="text-blue-200 text-sm ml-13">{account.account_nickname || account.account_type}</p>
+                            </div>
+                            <button
+                                onClick={onClose}
+                                className="w-10 h-10 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center transition-colors text-white"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
                         </div>
-                        <button
-                            onClick={onClose}
-                            className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
-                        >
-                            ✕
-                        </button>
                     </div>
 
                     {/* Content */}
-                    <div className="flex-1 overflow-y-auto p-0">
+                    <div className="flex-1 overflow-y-auto">
                         {isLoading ? (
-                            <div className="py-12 text-center text-gray-500">
-                                Loading history...
+                            <div className="py-20 text-center">
+                                <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-2xl flex items-center justify-center animate-pulse">
+                                    <span className="text-3xl">⏳</span>
+                                </div>
+                                <p className="text-gray-500 font-medium">Loading history...</p>
                             </div>
                         ) : history.length === 0 ? (
-                            <div className="py-12 text-center text-gray-500 flex flex-col items-center">
-                                <span className="text-4xl mb-2">📉</span>
-                                <p>No balance history found.</p>
+                            <div className="py-20 text-center flex flex-col items-center">
+                                <div className="w-20 h-20 mb-4 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center">
+                                    <span className="text-4xl">📉</span>
+                                </div>
+                                <p className="text-lg font-semibold text-gray-700 mb-1">No History Found</p>
+                                <p className="text-sm text-gray-500">Balance entries will appear here once added</p>
                             </div>
                         ) : (
-                            <table className="w-full text-left border-collapse">
-                                <thead className="bg-gray-50 sticky top-0 z-10">
-                                    <tr>
-                                        <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                                        <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-right">Balance</th>
-                                        <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Source</th>
-                                        <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Note</th>
-                                        <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100 bg-white">
-                                    {history.map((item, index) => (
-                                        <tr key={index} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                {formatDate(item.date)}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-right">
-                                                {formatCurrency(item.amount)}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${item.source === 'statement'
-                                                        ? 'bg-blue-100 text-blue-800'
-                                                        : 'bg-purple-100 text-purple-800'
-                                                    }`}>
-                                                    {item.source === 'statement' ? 'Statement' : 'Manual'}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 text-sm text-gray-500 max-w-[150px] truncate" title={item.notes}>
-                                                {item.notes || '-'}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                {item.source === 'manual' && item.id && (
-                                                    <div className="flex items-center justify-end space-x-3">
-                                                        {onEdit && (
-                                                            <button
-                                                                onClick={() => onEdit(item)}
-                                                                className="text-blue-600 hover:text-blue-900 font-medium"
-                                                                title="Edit"
-                                                            >
-                                                                ✏️
-                                                            </button>
-                                                        )}
-                                                        <button
-                                                            onClick={() => item.id && handleDeleteClick(item.id)}
-                                                            disabled={deletingId === item.id}
-                                                            className="text-red-600 hover:text-red-900 font-medium disabled:opacity-50"
-                                                            title="Delete"
-                                                        >
-                                                            {deletingId === item.id ? '...' : '🗑️'}
-                                                        </button>
-                                                    </div>
+                            <div className="p-2">
+                                {history.map((item, index) => (
+                                    <motion.div
+                                        key={index}
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: index * 0.03 }}
+                                        className="group relative bg-white hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-indigo-50/50 rounded-xl p-4 mb-2 border border-gray-100 hover:border-blue-200 transition-all duration-200 hover:shadow-md"
+                                    >
+                                        {/* Decorative accent */}
+                                        <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-xl ${item.source === 'statement' ? 'bg-gradient-to-b from-blue-500 to-blue-600' : 'bg-gradient-to-b from-purple-500 to-purple-600'}`}></div>
+
+                                        <div className="flex items-center justify-between gap-4">
+                                            {/* Date & Icon */}
+                                            <div className="flex items-center gap-3 min-w-[140px]">
+                                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${item.source === 'statement' ? 'bg-blue-100' : 'bg-purple-100'}`}>
+                                                    <span className="text-lg">{item.source === 'statement' ? '📄' : '✏️'}</span>
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-bold text-gray-900">{formatDate(item.date)}</p>
+                                                    <p className="text-xs text-gray-500">{item.source === 'statement' ? 'Statement' : 'Manual Entry'}</p>
+                                                </div>
+                                            </div>
+
+                                            {/* Balance */}
+                                            <div className="flex-1 text-right">
+                                                <p className="text-lg font-bold text-gray-900">{formatCurrency(item.amount)}</p>
+                                                {item.notes && (
+                                                    <p className="text-xs text-gray-500 mt-0.5 truncate max-w-[200px] ml-auto" title={item.notes}>
+                                                        {item.notes}
+                                                    </p>
                                                 )}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                            </div>
+
+                                            {/* Actions for manual entries */}
+                                            {item.source === 'manual' && item.id && (
+                                                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    {onEdit && (
+                                                        <button
+                                                            onClick={() => onEdit(item)}
+                                                            className="w-8 h-8 bg-blue-100 hover:bg-blue-200 rounded-lg flex items-center justify-center transition-colors"
+                                                            title="Edit"
+                                                        >
+                                                            <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                            </svg>
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        onClick={() => item.id && handleDeleteClick(item.id)}
+                                                        disabled={deletingId === item.id}
+                                                        className="w-8 h-8 bg-red-100 hover:bg-red-200 rounded-lg flex items-center justify-center transition-colors disabled:opacity-50"
+                                                        title="Delete"
+                                                    >
+                                                        {deletingId === item.id ? (
+                                                            <div className="w-3 h-3 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
+                                                        ) : (
+                                                            <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                            </svg>
+                                                        )}
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </motion.div>
+                                ))}
+                            </div>
                         )}
                     </div>
 
-                    <div className="p-4 border-t border-gray-100 bg-gray-50 text-right">
-                        <button
-                            onClick={onClose}
-                            className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium text-sm transition-colors"
-                        >
-                            Close
-                        </button>
+                    {/* Footer */}
+                    <div className="p-6 border-t border-gray-200 bg-gradient-to-b from-gray-50 to-white">
+                        <div className="flex items-center justify-between">
+                            <p className="text-sm text-gray-600">
+                                <span className="font-semibold text-gray-900">{history.length}</span> {history.length === 1 ? 'entry' : 'entries'} total
+                            </p>
+                            <button
+                                onClick={onClose}
+                                className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+                            >
+                                Close
+                            </button>
+                        </div>
                     </div>
                 </motion.div>
             </div>
