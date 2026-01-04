@@ -34,17 +34,17 @@ const Dashboard: NextPage = () => {
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth();
-    
+
     // Get previous complete month
     const lastCompleteMonth = currentMonth - 1;
     const lastCompleteYear = lastCompleteMonth < 0 ? currentYear - 1 : currentYear;
     const adjustedLastMonth = lastCompleteMonth < 0 ? 11 : lastCompleteMonth;
-    
+
     // First day of last complete month
     const start = new Date(lastCompleteYear, adjustedLastMonth, 1);
     // Last day of last complete month
     const end = new Date(lastCompleteYear, adjustedLastMonth + 1, 0);
-    
+
     // Format dates properly to avoid timezone issues
     const formatDate = (date: Date) => {
       const year = date.getFullYear();
@@ -52,12 +52,13 @@ const Dashboard: NextPage = () => {
       const day = String(date.getDate()).padStart(2, '0');
       return `${year}-${month}-${day}`;
     };
-    
+
     return {
       start: formatDate(start),
       end: formatDate(end)
     };
   });
+
 
   // Fetch transactions when user is available
   useEffect(() => {
@@ -79,32 +80,32 @@ const Dashboard: NextPage = () => {
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth();
-    
+
     // For 1M: Show previous complete month (e.g., if August, show July 1-31)
     // For 3M: Show 3 previous complete months (e.g., if August, show May 1 - July 31)
-    
+
     // Calculate the last complete month (previous month)
     const lastCompleteMonth = currentMonth - 1;
     const lastCompleteYear = lastCompleteMonth < 0 ? currentYear - 1 : currentYear;
     const adjustedLastMonth = lastCompleteMonth < 0 ? 11 : lastCompleteMonth;
-    
+
     // Calculate start month (monthsBack months before the last complete month)
     const startMonthIndex = adjustedLastMonth - monthsBack + 1;
     let startYear = lastCompleteYear;
     let startMonth = startMonthIndex;
-    
+
     // Handle year boundary crossing
     if (startMonth < 0) {
       startYear -= 1;
       startMonth = 12 + startMonth;
     }
-    
+
     // Start of first month in range (1st day)
     const start = new Date(startYear, startMonth, 1);
-    
+
     // End of last complete month (last day)
     const end = new Date(lastCompleteYear, adjustedLastMonth + 1, 0);
-    
+
     // Format dates properly to avoid timezone issues
     const formatDate = (date: Date) => {
       const year = date.getFullYear();
@@ -112,7 +113,7 @@ const Dashboard: NextPage = () => {
       const day = String(date.getDate()).padStart(2, '0');
       return `${year}-${month}-${day}`;
     };
-    
+
     return {
       start: formatDate(start),
       end: formatDate(end),
@@ -124,19 +125,19 @@ const Dashboard: NextPage = () => {
   const getMonthsInRange = (startDate: Date, endDate: Date) => {
     const months = [];
     const current = new Date(startDate);
-    
+
     while (current <= endDate) {
       months.push(current.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }));
       current.setMonth(current.getMonth() + 1);
     }
-    
+
     return months;
   };
 
-  const displayName = user?.user_metadata?.full_name || 
-                     user?.user_metadata?.name || 
-                     user?.email?.split('@')[0] || 
-                     'there';
+  const displayName = user?.user_metadata?.full_name ||
+    user?.user_metadata?.name ||
+    user?.email?.split('@')[0] ||
+    'there';
 
   return (
     <Layout>
@@ -153,7 +154,7 @@ const Dashboard: NextPage = () => {
                   Track your financial health and spending patterns
                 </p>
               </div>
-              
+
               {/* Enhanced Quick Period Selector - Header */}
               <div className="flex items-center space-x-4">
                 <div className="text-right">
@@ -162,47 +163,47 @@ const Dashboard: NextPage = () => {
                 </div>
                 <div className="flex items-center space-x-3 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-2 shadow-sm border">
                   {[
-                    { 
-                      label: '1M', 
-                      icon: '🌱', 
-                      months: 1, 
-                      gradient: 'from-emerald-400 to-emerald-600', 
+                    {
+                      label: '1M',
+                      icon: '🌱',
+                      months: 1,
+                      gradient: 'from-emerald-400 to-emerald-600',
                       desc: 'Last Month',
                       tooltip: 'Previous complete month'
                     },
-                    { 
-                      label: '3M', 
-                      icon: '🌿', 
-                      months: 3, 
-                      gradient: 'from-blue-400 to-blue-600', 
+                    {
+                      label: '3M',
+                      icon: '🌿',
+                      months: 3,
+                      gradient: 'from-blue-400 to-blue-600',
                       desc: 'Quarter',
                       tooltip: 'Last 3 complete months'
                     },
-                    { 
-                      label: '6M', 
-                      icon: '🌳', 
-                      months: 6, 
-                      gradient: 'from-purple-400 to-purple-600', 
+                    {
+                      label: '6M',
+                      icon: '🌳',
+                      months: 6,
+                      gradient: 'from-purple-400 to-purple-600',
                       desc: 'Half Year',
                       tooltip: 'Last 6 complete months'
                     },
-                    { 
-                      label: '1Y', 
-                      icon: '🌲', 
-                      months: 12, 
-                      gradient: 'from-amber-400 to-amber-600', 
+                    {
+                      label: '1Y',
+                      icon: '🌲',
+                      months: 12,
+                      gradient: 'from-amber-400 to-amber-600',
                       desc: 'Annual',
                       tooltip: 'Last 12 complete months'
                     }
                   ].map((period) => {
                     // Calculate the range for this period
                     const periodRange = calculateCompleteMonthsRange(period.months);
-                    
+
                     // Check if this period is currently active
                     const isActive = (() => {
                       return dateRange.start === periodRange.start && dateRange.end === periodRange.end;
                     })();
-                    
+
                     return (
                       <div key={period.label} className="relative group">
                         <motion.button
@@ -217,8 +218,8 @@ const Dashboard: NextPage = () => {
                           whileTap={{ scale: 0.95 }}
                           className={`
                             relative flex flex-col items-center justify-center w-16 h-16 rounded-xl transition-all duration-300 group shadow-sm border-2
-                            ${isActive 
-                              ? `bg-gradient-to-br ${period.gradient} text-white shadow-lg border-transparent transform scale-105` 
+                            ${isActive
+                              ? `bg-gradient-to-br ${period.gradient} text-white shadow-lg border-transparent transform scale-105`
                               : 'bg-white hover:bg-gray-50 text-gray-700 border-gray-200 hover:border-gray-300 hover:shadow-md'
                             }
                           `}
@@ -230,10 +231,10 @@ const Dashboard: NextPage = () => {
                           <span className={`text-xs font-bold ${isActive ? 'text-white' : 'text-gray-700'}`}>
                             {period.label}
                           </span>
-                          
+
                           {/* Active indicator */}
                           {isActive && (
-                            <motion.div 
+                            <motion.div
                               initial={{ scale: 0, opacity: 0 }}
                               animate={{ scale: 1, opacity: 1 }}
                               className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white shadow-sm flex items-center justify-center"
@@ -242,7 +243,7 @@ const Dashboard: NextPage = () => {
                             </motion.div>
                           )}
                         </motion.button>
-                        
+
                         {/* Enhanced Tooltip */}
                         <motion.div
                           initial={{ opacity: 0, y: 10, scale: 0.9 }}
@@ -254,7 +255,7 @@ const Dashboard: NextPage = () => {
                             <div className="text-gray-300">
                               {(() => {
                                 const range = calculateCompleteMonthsRange(period.months);
-                                return range.monthsIncluded.length > 2 
+                                return range.monthsIncluded.length > 2
                                   ? `${range.monthsIncluded[0]} - ${range.monthsIncluded[range.monthsIncluded.length - 1]}`
                                   : range.monthsIncluded.join(', ');
                               })()}
@@ -273,6 +274,7 @@ const Dashboard: NextPage = () => {
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
 
+
           {/* Enhanced Date Range Filter */}
           <Card className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
@@ -284,7 +286,7 @@ const Dashboard: NextPage = () => {
                 <p className="text-sm text-gray-600 mt-1">
                   Viewing complete months for accurate financial insights
                 </p>
-                
+
                 {/* Period Summary */}
                 <div className="mt-3 flex items-center space-x-4">
                   <div className="bg-white px-3 py-1 rounded-full border shadow-sm">
@@ -294,7 +296,7 @@ const Dashboard: NextPage = () => {
                         const end = new Date(dateRange.end);
                         const startMonth = start.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
                         const endMonth = end.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-                        
+
                         if (startMonth === endMonth) {
                           return `${startMonth} Only`;
                         } else {
@@ -314,7 +316,7 @@ const Dashboard: NextPage = () => {
                   </div>
                 </div>
               </div>
-              
+
               <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
                 <div className="flex items-center space-x-2">
                   <label className="text-sm font-medium text-gray-700">From:</label>
@@ -356,15 +358,14 @@ const Dashboard: NextPage = () => {
             {/* Header with Tabs */}
             <div className="flex items-center justify-between mb-6">
               <h3 className="font-medium text-gray-900">Financial Analytics</h3>
-              
+
               <div className="flex items-center bg-gray-100 rounded-lg p-1">
                 <button
                   onClick={() => setActiveChartTab('overview')}
-                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                    activeChartTab === 'overview'
-                      ? 'bg-white text-blue-600 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${activeChartTab === 'overview'
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                    }`}
                 >
                   <span className="flex items-center space-x-2">
                     <span>📂</span>
@@ -373,11 +374,10 @@ const Dashboard: NextPage = () => {
                 </button>
                 <button
                   onClick={() => setActiveChartTab('insights')}
-                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                    activeChartTab === 'insights'
-                      ? 'bg-white text-blue-600 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${activeChartTab === 'insights'
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                    }`}
                 >
                   <span className="flex items-center space-x-2">
                     <span>🎯</span>
@@ -386,11 +386,10 @@ const Dashboard: NextPage = () => {
                 </button>
                 <button
                   onClick={() => setActiveChartTab('analytics')}
-                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                    activeChartTab === 'analytics'
-                      ? 'bg-white text-blue-600 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${activeChartTab === 'analytics'
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                    }`}
                 >
                   <span className="flex items-center space-x-2">
                     <span>📊</span>
@@ -399,21 +398,21 @@ const Dashboard: NextPage = () => {
                 </button>
               </div>
             </div>
-            
+
             {/* Chart Content */}
             <div className="min-h-[400px]">
               {activeChartTab === 'overview' ? (
-                <IncomeExpenseCategories 
+                <IncomeExpenseCategories
                   transactions={transactions}
                   dateRange={dateRange}
                 />
               ) : activeChartTab === 'insights' ? (
-                <IncomeExpenseCharts 
+                <IncomeExpenseCharts
                   transactions={transactions}
                   dateRange={dateRange}
                 />
               ) : (
-                <SpendingAnalytics 
+                <SpendingAnalytics
                   transactions={transactions}
                   dateRange={dateRange}
                 />
@@ -433,7 +432,7 @@ const Dashboard: NextPage = () => {
                   Welcome to Your Financial Dashboard
                 </h3>
                 <p className="text-gray-600 mb-8 max-w-lg mx-auto">
-                  Get started by uploading your bank statements to unlock powerful insights about your spending patterns, 
+                  Get started by uploading your bank statements to unlock powerful insights about your spending patterns,
                   AI-driven recommendations, and clear visualizations of your financial health.
                 </p>
                 <div className="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4">

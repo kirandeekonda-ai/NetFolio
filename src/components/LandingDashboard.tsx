@@ -4,16 +4,13 @@ import { useSelector, useDispatch } from 'react-redux';
 import { motion } from 'framer-motion';
 import { Card } from './Card';
 import { Button } from './Button';
-import { ServiceLayerDemo } from './ServiceLayerDemo';
-import { ConnectionStatus } from './ConnectionStatus';
-import { BalanceProtectionDialog } from './BalanceProtectionDialog';
 import { RootState, AppDispatch } from '@/store';
 import { formatAmount } from '@/utils/currency';
 import { useRealtimeIntegration } from '@/hooks/useRealtimeIntegration';
-import { useBalanceProtection } from '@/hooks/useBalanceProtection';
 import { fetchTransactions, refreshTransactions } from '@/store/enhancedTransactionsSlice';
 import { LoggingService } from '@/services/logging/LoggingService';
-import SimplifiedBalanceService from '@/services/SimplifiedBalanceService';
+import { netWorthService, NetWorthSnapshot } from '@/services/NetWorthService';
+import { NetWorthCard } from '@/components/finance/NetWorthCard';
 
 interface LandingDashboardProps {
   user: any;
@@ -26,17 +23,6 @@ interface QuickActionButtonProps {
   icon: string;
   href: string;
   color: string;
-}
-
-interface StatsCardProps {
-  title: string;
-  value: string;
-  icon: string;
-  color: string;
-  trend?: {
-    value: string;
-    isPositive: boolean;
-  };
 }
 
 const QuickActionButton: FC<QuickActionButtonProps> = ({ title, description, icon, href, color }) => {
@@ -77,37 +63,6 @@ const QuickActionButton: FC<QuickActionButtonProps> = ({ title, description, ico
   );
 };
 
-const StatsCard: FC<StatsCardProps> = ({ title, value, icon, color, trend }) => {
-  const colorClasses = {
-    green: 'text-green-600 bg-green-100',
-    red: 'text-red-600 bg-red-100',
-    blue: 'text-blue-600 bg-blue-100'
-  };
-
-  return (
-    <Card className="p-6 bg-gradient-to-br from-white to-gray-50">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-gray-600 mb-1">{title}</p>
-          <p className={`text-2xl font-bold ${colorClasses[color as keyof typeof colorClasses]?.split(' ')[0] || 'text-gray-600'}`}>{value}</p>
-          {trend && (
-            <div className={`flex items-center mt-2 text-sm ${trend.isPositive ? 'text-green-600' : 'text-red-600'
-              }`}>
-              <span className="mr-1">
-                {trend.isPositive ? '↗' : '↘'}
-              </span>
-              <span>{trend.value}</span>
-            </div>
-          )}
-        </div>
-        <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${colorClasses[color as keyof typeof colorClasses]?.split(' ')[1] || 'bg-gray-100'}`}>
-          <span className="text-2xl">{icon}</span>
-        </div>
-      </div>
-    </Card>
-  );
-};
-
 export const LandingDashboard: FC<LandingDashboardProps> = ({ user }) => {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
@@ -118,26 +73,12 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user }) => {
   // Initialize real-time integration
   const realtimeIntegration = useRealtimeIntegration();
 
-  // Balance protection hook
-  const {
-    isProtected,
-    isUnlocked,
-    protectionType,
-    isLoading: protectionLoading,
-    unlock: unlockBalance,
-    lock: lockBalance,
-  } = useBalanceProtection();
-
   // Local state for refresh functionality and balance data
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [showProtectionDialog, setShowProtectionDialog] = useState(false);
-  const [balanceData, setBalanceData] = useState<{
-    totalBalance: number;
-    isLoading: boolean;
-  }>({
-    totalBalance: 0,
-    isLoading: false,
-  });
+
+  // Replaced simple balanceData with full NetWorthSnapshot
+  const [netWorthData, setNetWorthData] = useState<NetWorthSnapshot | null>(null);
+  const [netWorthLoading, setNetWorthLoading] = useState(true);
 
   // Memoized calculations for better performance - showing LAST MONTH data
   const financialMetrics = useMemo(() => {
@@ -172,21 +113,20 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user }) => {
     };
   }, [transactions]);
 
-  // Enhanced balance fetching with BalanceService
+  // Enhanced balance fetching with NetWorthService
   const fetchBalanceData = useCallback(async () => {
     if (!user?.id) return;
 
-    setBalanceData(prev => ({ ...prev, isLoading: true }));
+    setNetWorthLoading(true);
 
     try {
-      const result = await SimplifiedBalanceService.getNetWorth(user.id);
-      setBalanceData({
-        totalBalance: result.total_balance,
-        isLoading: false,
-      });
+      // Changed to NetWorthService to get Trend + Total
+      const result = await netWorthService.getNetWorthData(user.id);
+      setNetWorthData(result);
     } catch (error) {
-      LoggingService.error('LandingDashboard: Failed to fetch balance data', error as Error);
-      setBalanceData(prev => ({ ...prev, isLoading: false }));
+      LoggingService.error('LandingDashboard: Failed to fetch net worth data', error as Error);
+    } finally {
+      setNetWorthLoading(false);
     }
   }, [user?.id]);
 
@@ -244,11 +184,11 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user }) => {
     }
   }, [dispatch, user?.id, fetchBalanceData]);
 
-  // Enhanced balance refresh
+  // Enhanced balance refresh (reuses existing function)
   const handleBalanceRefresh = useCallback(async () => {
-    if (!user?.id || balanceData.isLoading) return;
+    if (!user?.id || netWorthLoading) return;
     await fetchBalanceData();
-  }, [user?.id, balanceData.isLoading, fetchBalanceData]);
+  }, [user?.id, netWorthLoading, fetchBalanceData]);
 
   // Get user's display name with fallback
   const displayName = useMemo(() => {
@@ -346,149 +286,75 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user }) => {
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.4 }}
-          className="mb-16"
+          className="mb-16 space-y-8"
         >
-          {isLoading ? (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {[...Array(3)].map((_, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-xl border border-white/20"
-                >
-                  <div className="animate-pulse">
-                    <div className="w-16 h-16 bg-gradient-to-br from-gray-200 to-gray-300 rounded-2xl mb-6"></div>
-                    <div className="h-6 bg-gray-200 rounded-lg w-1/2 mb-3"></div>
-                    <div className="h-10 bg-gray-300 rounded-lg w-3/4"></div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Total Balance - Hero Card */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.5 }}
-                className="lg:col-span-1 relative group"
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-emerald-400 to-teal-600 rounded-3xl blur-lg opacity-75 group-hover:opacity-100 transition-opacity"></div>
-                <div className="relative bg-gradient-to-br from-emerald-500 to-teal-600 rounded-3xl p-8 shadow-2xl text-white overflow-hidden">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
-                  <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full -ml-12 -mb-12"></div>
+          {/* Net Worth & Trend - Full Width Hero */}
+          <div className="relative z-20">
+            <NetWorthCard data={netWorthData} isLoading={netWorthLoading} />
+          </div>
 
-                  <div className="relative z-10">
-                    <div className="flex items-center justify-between mb-6">
-                      <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
-                        <span className="text-3xl">💰</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        {isProtected && (
-                          <button
-                            onClick={() => isUnlocked ? lockBalance() : setShowProtectionDialog(true)}
-                            className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center hover:bg-white/30 transition-colors backdrop-blur-sm"
-                            title={isUnlocked ? 'Lock balance' : 'Unlock balance'}
-                          >
-                            <span className="text-lg">{isUnlocked ? '🔓' : '🔒'}</span>
-                          </button>
-                        )}
-                        <button
-                          onClick={handleBalanceRefresh}
-                          disabled={balanceData.isLoading}
-                          className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center hover:bg-white/30 transition-colors backdrop-blur-sm"
-                        >
-                          <span className={`text-lg ${balanceData.isLoading ? 'animate-spin' : ''}`}>↻</span>
-                        </button>
-                      </div>
-                    </div>
-                    <p className="text-emerald-100 text-sm font-medium mb-2 uppercase tracking-wider">
-                      Total Balance {isProtected && !isUnlocked && '🔒'}
-                    </p>
-                    <div className="text-4xl font-light mb-2">
-                      {balanceData.isLoading ? (
-                        <span className="animate-pulse">Updating...</span>
-                      ) : isProtected && !isUnlocked ? (
-                        <button
-                          onClick={() => setShowProtectionDialog(true)}
-                          className="text-emerald-100 hover:text-white transition-colors cursor-pointer border-none bg-transparent p-0"
-                        >
-                          <span className="text-3xl">••••••••</span>
-                        </button>
-                      ) : (
-                        formatAmount(balanceData.totalBalance)
-                      )}
-                    </div>
-                    <p className="text-emerald-200 text-sm opacity-75">
-                      {isProtected && !isUnlocked ? 'Click to unlock balance' : 'Your financial foundation'}
-                    </p>
-                  </div>
-                </div>
-              </motion.div>
+          {/* Secondary Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Monthly Net */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.6 }}
+              className="relative group"
+            >
+              <div className="absolute inset-0 bg-white rounded-3xl shadow-lg"></div>
+              <div className="relative bg-white rounded-3xl p-8 shadow-md border border-gray-100 overflow-hidden h-full">
+                <div className={`absolute top-0 right-0 w-full h-1 bg-gradient-to-r ${financialMetrics.netBalance >= 0
+                  ? 'from-emerald-400 to-teal-500'
+                  : 'from-red-400 to-pink-500'
+                  }`}></div>
 
-              {/* Monthly Net - Elegant Card */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.6 }}
-                className="relative group"
-              >
-                <div className="absolute inset-0 bg-white rounded-3xl shadow-2xl"></div>
-                <div className="relative bg-white rounded-3xl p-8 shadow-xl border border-gray-100/50 overflow-hidden">
-                  <div className={`absolute top-0 right-0 w-full h-1 bg-gradient-to-r ${financialMetrics.netBalance >= 0
-                      ? 'from-emerald-400 to-teal-500'
-                      : 'from-red-400 to-pink-500'
-                    }`}></div>
-
-                  <div className="flex items-center justify-between mb-6">
-                    <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${financialMetrics.netBalance >= 0
-                        ? 'bg-gradient-to-br from-emerald-100 to-teal-100'
-                        : 'bg-gradient-to-br from-red-100 to-pink-100'
-                      }`}>
-                      <span className="text-3xl">{financialMetrics.netBalance >= 0 ? '📈' : '📉'}</span>
-                    </div>
-                  </div>
-                  <p className="text-gray-500 text-sm font-medium mb-2 uppercase tracking-wider">
-                    Last Month ({new Date(new Date().getFullYear(), new Date().getMonth() - 1).toLocaleDateString('default', { month: 'short', year: 'numeric' })})
-                  </p>
-                  <p className={`text-4xl font-light mb-2 ${financialMetrics.netBalance >= 0 ? 'text-emerald-600' : 'text-red-600'
+                <div className="flex items-center justify-between mb-6">
+                  <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${financialMetrics.netBalance >= 0
+                    ? 'bg-gradient-to-br from-emerald-100 to-teal-100'
+                    : 'bg-gradient-to-br from-red-100 to-pink-100'
                     }`}>
-                    {financialMetrics.netBalance >= 0 ? '+' : ''}{formatAmount(financialMetrics.netBalance)}
-                  </p>
-                  <p className="text-gray-400 text-sm">Net cash flow</p>
-                </div>
-              </motion.div>
-
-              {/* Transactions Overview */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.7 }}
-                className="relative group"
-              >
-                <div className="absolute inset-0 bg-white rounded-3xl shadow-2xl"></div>
-                <div className="relative bg-white rounded-3xl p-8 shadow-xl border border-gray-100/50">
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-2xl flex items-center justify-center">
-                      <span className="text-3xl">📊</span>
-                    </div>
-                    {financialMetrics.uncategorizedCount > 0 && (
-                      <div className="bg-gradient-to-r from-amber-400 to-orange-500 text-white text-xs px-3 py-1 rounded-full font-medium shadow-lg">
-                        {financialMetrics.uncategorizedCount} pending
-                      </div>
-                    )}
+                    <span className="text-3xl">{financialMetrics.netBalance >= 0 ? '📈' : '📉'}</span>
                   </div>
-                  <p className="text-gray-500 text-sm font-medium mb-2 uppercase tracking-wider">Transactions</p>
-                  <p className="text-4xl font-light text-blue-600 mb-2">
-                    {financialMetrics.totalTransactions}
-                  </p>
-                  <p className="text-gray-400 text-sm">Total recorded</p>
                 </div>
-              </motion.div>
-            </div>
-          )}
+                <p className="text-gray-500 text-sm font-medium mb-2 uppercase tracking-wider">
+                  Last Month ({new Date(new Date().getFullYear(), new Date().getMonth() - 1).toLocaleDateString('default', { month: 'short', year: 'numeric' })})
+                </p>
+                <p className={`text-4xl font-light mb-2 ${financialMetrics.netBalance >= 0 ? 'text-emerald-600' : 'text-red-600'
+                  }`}>
+                  {financialMetrics.netBalance >= 0 ? '+' : ''}{formatAmount(financialMetrics.netBalance)}
+                </p>
+                <p className="text-gray-400 text-sm">Net cash flow</p>
+              </div>
+            </motion.div>
+
+            {/* Transactions Overview */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.7 }}
+              className="relative group"
+            >
+              <div className="absolute inset-0 bg-white rounded-3xl shadow-lg"></div>
+              <div className="relative bg-white rounded-3xl p-8 shadow-md border border-gray-100 h-full">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-2xl flex items-center justify-center">
+                    <span className="text-3xl">📊</span>
+                  </div>
+                  {financialMetrics.uncategorizedCount > 0 && (
+                    <div className="bg-gradient-to-r from-amber-400 to-orange-500 text-white text-xs px-3 py-1 rounded-full font-medium shadow-lg">
+                      {financialMetrics.uncategorizedCount} pending
+                    </div>
+                  )}
+                </div>
+                <p className="text-gray-500 text-sm font-medium mb-2 uppercase tracking-wider">Transactions</p>
+                <p className="text-4xl font-light text-blue-600 mb-2">
+                  {financialMetrics.totalTransactions}
+                </p>
+                <p className="text-gray-400 text-sm">Total recorded</p>
+              </div>
+            </motion.div>
+          </div>
         </motion.section>
 
         {/* World-Class Quick Actions */}
@@ -528,8 +394,8 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user }) => {
               >
                 {/* Beautiful Glow Effect */}
                 <div className={`absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl ${action.color === 'green' ? 'bg-emerald-200' :
-                    action.color === 'blue' ? 'bg-blue-200' :
-                      'bg-purple-200'
+                  action.color === 'blue' ? 'bg-blue-200' :
+                    'bg-purple-200'
                   }`}></div>
 
                 <button
@@ -539,8 +405,8 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user }) => {
                   {/* Icon Container - Fixed Size */}
                   <div className="flex justify-center mb-4">
                     <div className={`w-16 h-16 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-110 ${action.color === 'green' ? 'bg-gradient-to-br from-emerald-400 to-teal-500' :
-                        action.color === 'blue' ? 'bg-gradient-to-br from-blue-400 to-indigo-500' :
-                          'bg-gradient-to-br from-purple-400 to-pink-500'
+                      action.color === 'blue' ? 'bg-gradient-to-br from-blue-400 to-indigo-500' :
+                        'bg-gradient-to-br from-purple-400 to-pink-500'
                       }`}>
                       <span className="text-2xl text-white">{action.icon}</span>
                     </div>
@@ -638,18 +504,7 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user }) => {
         </motion.div>
       </div>
 
-      {/* Balance Protection Dialog */}
-      <BalanceProtectionDialog
-        isOpen={showProtectionDialog}
-        onSuccess={() => {
-          unlockBalance();
-          setShowProtectionDialog(false);
-        }}
-        onCancel={() => setShowProtectionDialog(false)}
-        protectionType={protectionType || 'pin'}
-        title="Unlock Your Balance"
-        description="Enter your security code to view your total balance"
-      />
+
     </div>
   );
 };
