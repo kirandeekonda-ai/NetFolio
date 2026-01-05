@@ -1,8 +1,9 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { NetWorthSnapshot } from '@/services/NetWorthService';
 import { useBalanceProtection } from '@/hooks/useBalanceProtection';
+import { BalanceProtectionDialog } from '@/components/BalanceProtectionDialog';
 
 interface NetWorthCardProps {
     data: NetWorthSnapshot | null;
@@ -10,7 +11,8 @@ interface NetWorthCardProps {
 }
 
 export const NetWorthCard: React.FC<NetWorthCardProps> = ({ data, isLoading }) => {
-    const { isProtected, isUnlocked } = useBalanceProtection();
+    const { isProtected, isUnlocked, unlock, lock } = useBalanceProtection();
+    const [showProtectionDialog, setShowProtectionDialog] = useState(false);
     const isVisible = !isProtected || isUnlocked;
 
     const formatCurrency = (val: number) => {
@@ -73,8 +75,27 @@ export const NetWorthCard: React.FC<NetWorthCardProps> = ({ data, isLoading }) =
             </div>
 
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 relative z-10">
-                <div>
-                    <h2 className="text-gray-500 text-sm font-semibold uppercase tracking-wider mb-1">Total Net Worth</h2>
+                <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-1">
+                        <h2 className="text-gray-500 text-sm font-semibold uppercase tracking-wider">Total Net Worth</h2>
+                        {isProtected && (
+                            <button
+                                onClick={() => setShowProtectionDialog(true)}
+                                className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors group"
+                                title={isUnlocked ? 'Lock balances' : 'Unlock balances'}
+                            >
+                                {isUnlocked ? (
+                                    <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
+                                    </svg>
+                                ) : (
+                                    <svg className="w-4 h-4 text-gray-400 group-hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                    </svg>
+                                )}
+                            </button>
+                        )}
+                    </div>
                     <div className="flex items-baseline gap-2">
                         <h1 className="text-4xl md:text-5xl font-bold text-gray-900 tracking-tight">
                             {isVisible ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(data.totalNetWorth) : '••••••••'}
@@ -150,6 +171,21 @@ export const NetWorthCard: React.FC<NetWorthCardProps> = ({ data, isLoading }) =
                     </AreaChart>
                 </ResponsiveContainer>
             </div>
+
+            {/* Balance Protection Dialog */}
+            {isProtected && (
+                <BalanceProtectionDialog
+                    isOpen={showProtectionDialog}
+                    onSuccess={() => {
+                        unlock();
+                        setShowProtectionDialog(false);
+                    }}
+                    onCancel={() => setShowProtectionDialog(false)}
+                    protectionType="pin"
+                    title="Unlock Net Worth"
+                    description="Enter your PIN or password to view your net worth and balance details."
+                />
+            )}
         </motion.div>
     );
 };

@@ -30,11 +30,11 @@ const Categorize: NextPage = () => {
   const dispatch = useDispatch<AppDispatch>();
   const user = useUser();
   const { toasts, addToast, removeToast, updateToast } = useToast();
-  
+
   // Redux state
   const { items: transactions, isLoading, error } = useSelector((state: RootState) => state.enhancedTransactions);
   const categories = useSelector((state: RootState) => state.categories.items);
-  
+
   // Enhanced state management
   const [filters, setFilters] = useState<FilterCriteria>({
     searchTerm: '',
@@ -46,12 +46,12 @@ const Categorize: NextPage = () => {
     sortBy: 'date',
     sortOrder: 'desc'
   });
-  
+
   const [selectedTransactions, setSelectedTransactions] = useState<Set<string>>(new Set());
   const [activeView, setActiveView] = useState<'table' | 'insights' | 'analytics' | 'tools' | 'transfers'>('table');
   const [undoStack, setUndoStack] = useState<Array<{ action: string; data: any }>>([]);
   const [redoStack, setRedoStack] = useState<Array<{ action: string; data: any }>>([]);
-  
+
   // Legacy state for compatibility
   const [currency, setCurrency] = useState<string>('INR');
   const [showNoTransactionsMessage, setShowNoTransactionsMessage] = useState(false);
@@ -125,11 +125,11 @@ const Categorize: NextPage = () => {
     let filtered = transactions.filter((transaction) => {
       // Basic validation
       if (!transaction || !transaction.id || !transaction.description) return false;
-      
+
       // Search filter
       if (filters.searchTerm) {
         const searchLower = filters.searchTerm.toLowerCase();
-        const matchesSearch = 
+        const matchesSearch =
           transaction.description.toLowerCase().includes(searchLower) ||
           (transaction.category_name && transaction.category_name.toLowerCase().includes(searchLower)) ||
           (transaction.amount && transaction.amount.toString().includes(searchLower));
@@ -177,7 +177,7 @@ const Categorize: NextPage = () => {
     // Sorting
     filtered.sort((a, b) => {
       let aValue: any, bValue: any;
-      
+
       switch (filters.sortBy) {
         case 'date':
           aValue = new Date(a.transaction_date);
@@ -231,7 +231,7 @@ const Categorize: NextPage = () => {
   // Category change with undo support
   const handleCategoryChange = async (transaction: Transaction, category: Category) => {
     const oldCategory = transaction.category_name;
-    
+
     // Add to undo stack
     setUndoStack(prev => [...prev.slice(-19), {
       action: 'category_change',
@@ -244,9 +244,9 @@ const Categorize: NextPage = () => {
       category_name: category.name,
       category: category.name,
     };
-    
+
     dispatch(updateTransactionFromRealtime(updatedTransaction));
-    
+
     // Persist to database if valid UUID
     if (isValidUUID(transaction.id)) {
       try {
@@ -318,7 +318,7 @@ const Categorize: NextPage = () => {
   const handleExportSelected = (transactions: Transaction[]) => {
     const csvContent = [
       'Date,Description,Amount,Category',
-      ...transactions.map(t => 
+      ...transactions.map(t =>
         `${new Date(t.transaction_date).toLocaleDateString()},"${t.description}",${t.amount},"${t.category_name || 'Uncategorized'}"`
       )
     ].join('\n');
@@ -351,7 +351,7 @@ const Categorize: NextPage = () => {
       for (const cat of categorizations) {
         const transaction = transactions.find(t => t.id === cat.transactionId);
         const category = categories.find(c => c.name === cat.categoryName);
-        
+
         if (transaction && category && isValidUUID(cat.transactionId)) {
           await dispatch(updateTransaction({
             id: cat.transactionId,
@@ -385,11 +385,11 @@ const Categorize: NextPage = () => {
   // Undo/Redo handlers
   const handleUndo = () => {
     if (undoStack.length === 0) return;
-    
+
     const lastAction = undoStack[undoStack.length - 1];
     setUndoStack(prev => prev.slice(0, -1));
     setRedoStack(prev => [...prev, lastAction]);
-    
+
     // Implement undo logic based on action type
     if (lastAction.action === 'category_change') {
       const { transactionId, oldCategory } = lastAction.data;
@@ -403,11 +403,11 @@ const Categorize: NextPage = () => {
 
   const handleRedo = () => {
     if (redoStack.length === 0) return;
-    
+
     const lastUndone = redoStack[redoStack.length - 1];
     setRedoStack(prev => prev.slice(0, -1));
     setUndoStack(prev => [...prev, lastUndone]);
-    
+
     // Implement redo logic
     console.log('Redo action:', lastUndone);
   };
@@ -429,15 +429,15 @@ const Categorize: NextPage = () => {
   return (
     <Layout>
       <ToastProvider toasts={toasts} onRemove={removeToast} />
-      
-      <motion.div 
+
+      <motion.div
         className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-6"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.6 }}
       >
         {/* Enhanced Header */}
-        <motion.div 
+        <motion.div
           className="mb-8"
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -458,7 +458,7 @@ const Categorize: NextPage = () => {
                   </p>
                 </div>
               </div>
-              
+
               <div className="flex items-center space-x-3">
                 {/* View Tabs */}
                 <div className="flex-grow flex justify-center">
@@ -467,11 +467,10 @@ const Categorize: NextPage = () => {
                       <button
                         key={tab.id}
                         onClick={() => setActiveView(tab.id as any)}
-                        className={`relative flex-1 px-5 py-2 rounded-full text-sm font-semibold transition-colors duration-300 focus:outline-none ${
-                          activeView === tab.id
+                        className={`relative flex-1 px-5 py-2 rounded-full text-sm font-semibold transition-colors duration-300 focus:outline-none ${activeView === tab.id
                             ? 'text-slate-800'
                             : 'text-slate-500 hover:text-slate-800'
-                        }`}
+                          }`}
                       >
                         {activeView === tab.id && (
                           <motion.div

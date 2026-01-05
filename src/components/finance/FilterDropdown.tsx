@@ -41,7 +41,7 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({ label, options, selecte
             </button>
 
             {isOpen && (
-                <div className="absolute z-10 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+                <div className="absolute z-50 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto">
                     {options.length === 0 ? (
                         <div className="p-3 text-sm text-gray-500">No options available</div>
                     ) : (
