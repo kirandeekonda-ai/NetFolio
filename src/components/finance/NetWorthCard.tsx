@@ -153,7 +153,6 @@ export const NetWorthCard: React.FC<NetWorthCardProps> = ({ data, isLoading }) =
                         <Area
                             type="monotone"
                             dataKey="investedAmount"
-                            stackId="1"
                             stroke="#8b5cf6"
                             fill="url(#colorInvest)"
                             name="Invested"
@@ -162,7 +161,6 @@ export const NetWorthCard: React.FC<NetWorthCardProps> = ({ data, isLoading }) =
                         <Area
                             type="monotone"
                             dataKey="cashBalance"
-                            stackId="1"
                             stroke="#3b82f6"
                             fill="url(#colorCash)"
                             name="Cash"
