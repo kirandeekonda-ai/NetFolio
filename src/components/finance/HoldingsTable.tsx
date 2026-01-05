@@ -32,6 +32,7 @@ export const HoldingsTable: React.FC<HoldingsTableProps> = ({ holdings, isLoadin
     const [searchQuery, setSearchQuery] = useState('');
     const [sortColumn, setSortColumn] = useState<keyof InvestmentHolding | 'pnl' | 'currentValue' | 'investedValue'>('name');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+    const [pnlView, setPnlView] = useState<'day' | 'total'>('day'); // New state for P&L toggle
 
     // Multi-select filters
     const [selectedInvestments, setSelectedInvestments] = useState<Set<string>>(new Set());
@@ -303,15 +304,27 @@ export const HoldingsTable: React.FC<HoldingsTableProps> = ({ holdings, isLoadin
                                 </div>
                             </th>
                             <th
-                                className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                                className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors w-[140px]"
                                 onClick={() => handleSort('pnl')}
                             >
-                                <div className="flex items-center justify-end gap-1">
-                                    P&L
-                                    {sortColumn === 'pnl' && (sortDirection === 'asc' ? '↑' : '↓')}
+                                <div className="flex items-center justify-end gap-2">
+                                    <span>P&L</span>
+                                    <div className="flex items-center gap-1">
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setPnlView(pnlView === 'day' ? 'total' : 'day');
+                                            }}
+                                            className="text-xs px-2 py-0.5 rounded bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors w-12 text-center font-medium"
+                                            title={pnlView === 'day' ? 'Switch to Total P&L' : 'Switch to Day P&L'}
+                                        >
+                                            {pnlView === 'day' ? 'Day' : 'Total'}
+                                        </button>
+                                        {sortColumn === 'pnl' && (sortDirection === 'asc' ? '↑' : '↓')}
+                                    </div>
                                 </div>
                             </th>
-                            <th className="relative px-3 py-3">
+                            <th className="relative px-3 py-3 w-20">
                                 <span className="sr-only">Actions</span>
                             </th>
                         </tr>
@@ -320,12 +333,26 @@ export const HoldingsTable: React.FC<HoldingsTableProps> = ({ holdings, isLoadin
                         {sortedHoldings.map((h) => {
                             const isExpanded = expandedRowId === h.id;
 
-                            // Calculate P&L
+                            // Calculate Total P&L
                             const invested = h.quantity * h.avg_price;
                             const current = h.quantity * (h.current_price || h.avg_price);
-                            const pnl = current - invested;
-                            const pnlPercent = invested > 0 ? (pnl / invested) * 100 : 0;
+                            const totalPnl = current - invested;
+                            const totalPnlPercent = invested > 0 ? (totalPnl / invested) * 100 : 0;
+
+                            // Calculate Day P&L (only if previous_close is available)
+                            const hasPreviousClose = h.previous_close !== undefined && h.previous_close !== null;
+                            const dayPnl = hasPreviousClose
+                                ? h.quantity * ((h.current_price || h.avg_price) - h.previous_close!)
+                                : 0;
+                            const dayPnlPercent = hasPreviousClose && h.previous_close! > 0
+                                ? (((h.current_price || h.avg_price) - h.previous_close!) / h.previous_close!) * 100
+                                : 0;
+
+                            // Select which P&L to display
+                            const pnl = pnlView === 'day' ? dayPnl : totalPnl;
+                            const pnlPercent = pnlView === 'day' ? dayPnlPercent : totalPnlPercent;
                             const isProfit = pnl >= 0;
+                            const showNA = pnlView === 'day' && !hasPreviousClose;
 
                             return (
                                 <React.Fragment key={h.id}>
@@ -414,12 +441,19 @@ export const HoldingsTable: React.FC<HoldingsTableProps> = ({ holdings, isLoadin
 
                                         {/* P&L */}
                                         <td className={`px-3 py-4 whitespace-nowrap text-sm text-right font-medium font-mono border-l-4 ${isProfit ? 'border-l-emerald-500 bg-emerald-50/30' : 'border-l-red-500 bg-red-50/30'}`}>
-                                            <div className={isProfit ? 'text-emerald-700' : 'text-red-700'}>
-                                                <div>{isProfit ? '+' : ''}{formatValue(pnl)}</div>
-                                                <div className="text-xs opacity-80">
-                                                    ({isProfit ? '+' : ''}{pnlPercent.toFixed(2)}%)
+                                            {showNA ? (
+                                                <div className="text-gray-400 text-xs italic">
+                                                    <div>N/A</div>
+                                                    <div>(No previous close)</div>
                                                 </div>
-                                            </div>
+                                            ) : (
+                                                <div className={isProfit ? 'text-emerald-700' : 'text-red-700'}>
+                                                    <div>{isProfit ? '+' : ''}{formatValue(pnl)}</div>
+                                                    <div className="text-xs opacity-80">
+                                                        ({isProfit ? '+' : ''}{pnlPercent.toFixed(2)}%)
+                                                    </div>
+                                                </div>
+                                            )}
                                         </td>
 
                                         {/* Actions */}

@@ -134,6 +134,10 @@ class MarketDataService {
                     previousClose: q.regularMarketPreviousClose || q.regularMarketPrice,
                     sector: undefined // Batch quote doesn't strictly provide this reliably
                 };
+
+                // Debug: Log to see if previousClose is being set
+                console.log(`[MarketData] ${q.symbol}: price=${q.regularMarketPrice}, previousClose=${q.regularMarketPreviousClose}`);
+
                 quoteMap[q.symbol] = quote;
             };
 

@@ -128,7 +128,7 @@ export const AllocationTab: React.FC<AllocationTabProps> = ({ holdings }) => {
                     <h3 className="text-sm font-medium text-gray-600 mb-2">Diversification Score</h3>
                     <div className="flex items-baseline gap-2">
                         <p className={`text-3xl font-bold ${diversificationScore > 70 ? 'text-emerald-600' :
-                                diversificationScore > 50 ? 'text-yellow-600' : 'text-red-600'
+                            diversificationScore > 50 ? 'text-yellow-600' : 'text-red-600'
                             }`}>
                             {diversificationScore.toFixed(0)}
                         </p>
@@ -143,7 +143,7 @@ export const AllocationTab: React.FC<AllocationTabProps> = ({ holdings }) => {
                 <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
                     <h3 className="text-sm font-medium text-gray-600 mb-2">Top 5 Concentration</h3>
                     <p className={`text-3xl font-bold ${concentrationRisk > 50 ? 'text-red-600' :
-                            concentrationRisk > 30 ? 'text-yellow-600' : 'text-emerald-600'
+                        concentrationRisk > 30 ? 'text-yellow-600' : 'text-emerald-600'
                         }`}>
                         {concentrationRisk.toFixed(1)}%
                     </p>
@@ -212,14 +212,14 @@ export const AllocationTab: React.FC<AllocationTabProps> = ({ holdings }) => {
                     <div className="bg-purple-50 px-6 py-4 border-b border-purple-100">
                         <h3 className="text-lg font-semibold text-purple-900">Sector Allocation</h3>
                     </div>
-                    <div className="p-4 max-h-96 overflow-y-auto">
+                    <div className="max-h-96 overflow-y-auto">
                         <table className="w-full">
                             <thead className="sticky top-0 bg-white">
                                 <tr className="text-left text-xs font-medium text-gray-500 uppercase">
-                                    <th className="pb-3">Sector</th>
-                                    <th className="pb-3 text-right">Value</th>
-                                    <th className="pb-3 text-right">%</th>
-                                    <th className="pb-3 text-right">Count</th>
+                                    <th className="px-6 pb-3 pt-4">Sector</th>
+                                    <th className="px-6 pb-3 pt-4 text-right">Value</th>
+                                    <th className="px-6 pb-3 pt-4 text-right">%</th>
+                                    <th className="px-6 pb-3 pt-4 text-right">Count</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
@@ -229,16 +229,16 @@ export const AllocationTab: React.FC<AllocationTabProps> = ({ holdings }) => {
                                         const percentage = totalValue > 0 ? (data.value / totalValue) * 100 : 0;
                                         return (
                                             <tr key={sector} className="hover:bg-gray-50">
-                                                <td className="py-3">
+                                                <td className="px-6 py-3">
                                                     <span className="font-medium text-gray-900">{sector}</span>
                                                 </td>
-                                                <td className="py-3 text-right font-mono text-gray-900">
+                                                <td className="px-6 py-3 text-right font-mono text-gray-900">
                                                     {formatValue(data.value)}
                                                 </td>
-                                                <td className="py-3 text-right font-mono text-gray-600">
+                                                <td className="px-6 py-3 text-right font-mono text-gray-600">
                                                     {percentage.toFixed(1)}%
                                                 </td>
-                                                <td className="py-3 text-right text-gray-500">
+                                                <td className="px-6 py-3 text-right text-gray-500">
                                                     {data.count}
                                                 </td>
                                             </tr>
@@ -285,7 +285,7 @@ export const AllocationTab: React.FC<AllocationTabProps> = ({ holdings }) => {
                                         </td>
                                         <td className="py-3 text-right">
                                             <span className={`font-mono ${percentage > 15 ? 'text-red-600 font-bold' :
-                                                    percentage > 10 ? 'text-orange-600 font-semibold' : 'text-gray-600'
+                                                percentage > 10 ? 'text-orange-600 font-semibold' : 'text-gray-600'
                                                 }`}>
                                                 {percentage.toFixed(1)}%
                                             </span>

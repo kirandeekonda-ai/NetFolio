@@ -73,6 +73,7 @@ export default function FinanceDashboard() {
                         const quote = liveQuotes[h.ticker_symbol];
                         if (quote) {
                             h.current_price = quote.price;
+                            h.previous_close = quote.previousClose; // Add previous close for Day P&L
 
                             // Calculate Basic Metrics
                             h.current_value = h.quantity * (h.current_price || 0);

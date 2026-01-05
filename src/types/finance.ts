@@ -11,6 +11,7 @@ export interface InvestmentHolding {
   quantity: number;
   investment_date: string; // ISO date string
   current_price?: number;
+  previous_close?: number; // Previous day's closing price for day P&L calculation
   last_price_update?: string;
 
   // Computed fields for UI

@@ -18,6 +18,33 @@ body {
   font-family: 'Inter', sans-serif;
 }
 
+/* Custom Fluid Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #CBD5E0;
+  border-radius: 20px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #94A3B8;
+}
+
+/* Firefox support */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #CBD5E0 transparent;
+}
+
 /* Prevent interaction with background elements when dropdown is open */
 body.dropdown-open * {
   pointer-events: none;
