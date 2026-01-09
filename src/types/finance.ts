@@ -22,6 +22,8 @@ export interface InvestmentHolding {
   days_held?: number;
   day_change_amount?: number;
   day_change_percentage?: number;
+  xirr?: number;
+  cagr?: number;
   transactions?: InvestmentTransaction[];
 }
 

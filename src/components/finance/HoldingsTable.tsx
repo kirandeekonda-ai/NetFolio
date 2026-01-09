@@ -30,7 +30,7 @@ const formatDecimal = (value: number) => {
 export const HoldingsTable: React.FC<HoldingsTableProps> = ({ holdings, isLoading, onEdit, onDelete, onEditTransaction, onDeleteTransaction }) => {
     const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
-    const [sortColumn, setSortColumn] = useState<keyof InvestmentHolding | 'pnl' | 'currentValue' | 'investedValue'>('name');
+    const [sortColumn, setSortColumn] = useState<keyof InvestmentHolding | 'pnl' | 'currentValue' | 'investedValue' | 'xirr' | 'cagr'>('name');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
     const [pnlView, setPnlView] = useState<'day' | 'total'>('day'); // New state for P&L toggle
 
@@ -45,7 +45,7 @@ export const HoldingsTable: React.FC<HoldingsTableProps> = ({ holdings, isLoadin
         setExpandedRowId(expandedRowId === id ? null : id);
     };
 
-    const handleSort = (column: keyof InvestmentHolding | 'pnl' | 'currentValue' | 'investedValue') => {
+    const handleSort = (column: keyof InvestmentHolding | 'pnl' | 'currentValue' | 'investedValue' | 'xirr' | 'cagr') => {
         if (sortColumn === column) {
             setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
         } else {
@@ -324,6 +324,24 @@ export const HoldingsTable: React.FC<HoldingsTableProps> = ({ holdings, isLoadin
                                     </div>
                                 </div>
                             </th>
+                            <th
+                                className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                                onClick={() => handleSort('xirr')}
+                            >
+                                <div className="flex items-center justify-end gap-1">
+                                    XIRR
+                                    {sortColumn === 'xirr' && (sortDirection === 'asc' ? '↑' : '↓')}
+                                </div>
+                            </th>
+                            <th
+                                className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                                onClick={() => handleSort('cagr')}
+                            >
+                                <div className="flex items-center justify-end gap-1">
+                                    CAGR
+                                    {sortColumn === 'cagr' && (sortDirection === 'asc' ? '↑' : '↓')}
+                                </div>
+                            </th>
                             <th className="relative px-3 py-3 w-20">
                                 <span className="sr-only">Actions</span>
                             </th>
@@ -456,6 +474,31 @@ export const HoldingsTable: React.FC<HoldingsTableProps> = ({ holdings, isLoadin
                                             )}
                                         </td>
 
+                                        {/* XIRR */}
+                                        <td className="px-3 py-4 whitespace-nowrap text-sm text-right font-mono">
+                                            {h.xirr !== undefined && h.xirr !== null ? (
+                                                <span className={h.xirr >= 0 ? 'text-emerald-600' : 'text-red-600'}>
+                                                    {Math.abs(h.xirr) > 100 ? '>10,000%' : (h.xirr * 100).toFixed(2) + '%'}
+                                                </span>
+                                            ) : (
+                                                <span className="text-gray-300">-</span>
+                                            )}
+                                        </td>
+
+                                        {/* CAGR */}
+                                        <td className="px-3 py-4 whitespace-nowrap text-sm text-right font-mono">
+                                            {h.cagr !== undefined && h.cagr !== null ? (
+                                                <span
+                                                    className={h.cagr >= 0 ? 'text-emerald-600' : 'text-red-600'}
+                                                    title={`Based on start date: ${new Date(h.investment_date).toLocaleDateString()}`}
+                                                >
+                                                    {Math.abs(h.cagr) > 100 ? '>10,000%' : (h.cagr * 100).toFixed(2) + '%'}
+                                                </span>
+                                            ) : (
+                                                <span className="text-gray-300" title="CAGR available for holdings > 3 months">-</span>
+                                            )}
+                                        </td>
+
                                         {/* Actions */}
                                         <td className="px-3 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             <div className="flex justify-end space-x-1">
@@ -496,7 +539,7 @@ export const HoldingsTable: React.FC<HoldingsTableProps> = ({ holdings, isLoadin
                                                 exit={{ opacity: 0, height: 0 }}
                                                 className="bg-gray-50"
                                             >
-                                                <td colSpan={11} className="px-3 py-3">
+                                                <td colSpan={13} className="px-3 py-3">
                                                     <div className="ml-8 p-4 bg-white rounded-lg border border-gray-200 shadow-inner">
                                                         <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Transaction History</h4>
                                                         {!h.transactions || h.transactions.length === 0 ? (
@@ -569,6 +612,6 @@ export const HoldingsTable: React.FC<HoldingsTableProps> = ({ holdings, isLoadin
                     </tbody>
                 </table>
             </div>
-        </div>
+        </div >
     );
 };

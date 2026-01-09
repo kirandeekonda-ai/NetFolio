@@ -1,5 +1,8 @@
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { InvestmentHolding, InvestmentTransaction, FinanceDashboardData } from '@/types/finance';
+import { calculateXIRR, calculateCAGR } from '@/utils/financeCalculations';
+
+
 
 class InvestmentService {
     private supabase = createClientComponentClient();
@@ -37,7 +40,7 @@ class InvestmentService {
     /**
      * Enrich holding data with calculated fields (Market Value, P&L)
      */
-    private enrichHoldingData(holding: InvestmentHolding): InvestmentHolding {
+    private enrichHoldingData(holding: any): InvestmentHolding {
         const quantity = Number(holding.quantity);
         const avgPrice = Number(holding.avg_price);
         const currentPrice = Number(holding.current_price) || avgPrice; // Fallback to avgPrice if no live data
@@ -48,13 +51,24 @@ class InvestmentService {
         const pnlPercentage = investedAmount > 0 ? (pnlAmount / investedAmount) * 100 : 0;
 
         // Calculate days held
-        const investmentDate = new Date(holding.investment_date);
+        let investmentDate = new Date(holding.investment_date);
+
+        // If transactions exist, use the earliest transaction date as the true investment date
+        if (holding.investment_transactions && holding.investment_transactions.length > 0) {
+            const earliestTx = holding.investment_transactions.reduce((earliest: any, current: any) => {
+                const earliestDate = new Date(earliest.date);
+                const currentDate = new Date(current.date);
+                return currentDate < earliestDate ? current : earliest;
+            });
+            investmentDate = new Date(earliestTx.date);
+        }
         const today = new Date();
         const diffTime = Math.abs(today.getTime() - investmentDate.getTime());
         const daysHeld = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
         return {
             ...holding,
+            investment_date: investmentDate.toISOString(), // Use the calculated/corrected date
             quantity,
             avg_price: avgPrice,
             current_price: currentPrice,
@@ -62,8 +76,12 @@ class InvestmentService {
             current_value: currentValue,
             pnl_amount: pnlAmount,
             pnl_percentage: pnlPercentage,
-            pnl_percentage: pnlPercentage,
             days_held: daysHeld,
+            // Calculate XIRR if transactions exist
+            // Calculate XIRR
+            xirr: this.calculateHoldingXIRR(holding, currentValue),
+            // Calculate CAGR
+            cagr: this.calculateHoldingCAGR(investedAmount, currentValue, investmentDate),
             transactions: holding.investment_transactions?.sort((a: any, b: any) =>
                 new Date(b.date).getTime() - new Date(a.date).getTime()
             )
@@ -102,6 +120,56 @@ class InvestmentService {
             day_change_amount: totalDayChange,
             day_change_percentage: totalDayChangePercentage
         };
+    }
+
+    /**
+     * Helper to calculate XIRR for a single holding
+     */
+    /**
+     * Helper to calculate XIRR for a single holding
+     */
+    private calculateHoldingXIRR(holding: any, currentValue: number): number | undefined {
+        let cashFlows: { amount: number, date: Date }[] = [];
+        const transactions = holding.investment_transactions;
+
+        if (transactions && transactions.length > 0) {
+            // Case 1: Use detailed transaction history
+            cashFlows = transactions.map((tx: any) => ({
+                amount: tx.type === 'buy' ? -Number(tx.price_per_unit) * Number(tx.quantity)
+                    : (tx.type === 'sell' ? Number(tx.price_per_unit) * Number(tx.quantity) : 0),
+                date: new Date(tx.date)
+            })).filter((cf: any) => cf.amount !== 0);
+        } else if (holding.investment_date && holding.quantity && holding.avg_price) {
+            // Case 2: Fallback - Use investment date and average price as a single initial BUY
+            const investedAmount = Number(holding.quantity) * Number(holding.avg_price);
+            if (investedAmount > 0) {
+                cashFlows.push({
+                    amount: -investedAmount,
+                    date: new Date(holding.investment_date)
+                });
+            }
+        } else {
+            return undefined;
+        }
+
+        // Add current value as a positive cash flow (theoretical sell today)
+        if (currentValue > 0) {
+            cashFlows.push({
+                amount: currentValue,
+                date: new Date()
+            });
+        }
+
+        const result = calculateXIRR(cashFlows);
+        return result !== null ? result : undefined;
+    }
+
+    /**
+     * Helper to calculate CAGR for a single holding
+     */
+    private calculateHoldingCAGR(investedAmount: number, currentValue: number, investmentDate: Date): number | undefined {
+        const result = calculateCAGR(investedAmount, currentValue, investmentDate);
+        return result !== null ? result : undefined;
     }
 
     /**
