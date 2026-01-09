@@ -495,7 +495,12 @@ export const HoldingsTable: React.FC<HoldingsTableProps> = ({ holdings, isLoadin
                                                     {Math.abs(h.cagr) > 100 ? '>10,000%' : (h.cagr * 100).toFixed(2) + '%'}
                                                 </span>
                                             ) : (
-                                                <span className="text-gray-300" title="CAGR available for holdings > 3 months">-</span>
+                                                <span
+                                                    className="text-gray-300 cursor-help"
+                                                    title={`Held: ~${((h.days_held || 0) / 30.44).toFixed(1)} months (Requires > 3 months)`}
+                                                >
+                                                    -
+                                                </span>
                                             )}
                                         </td>
 
