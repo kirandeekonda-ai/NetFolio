@@ -1,4 +1,4 @@
-import { FC, ReactNode, useState } from 'react';
+import { FC, ReactNode, useState, useEffect } from 'react';
 import Head from 'next/head';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
@@ -17,6 +17,7 @@ const navItems = [
   { href: '/categorize', label: 'Categorize', icon: '🏷️' },
   { href: '/dashboard', label: 'Dashboard', icon: '📊' },
   { href: '/finance', label: 'Portfolio', icon: '📈' },
+  { href: '/payments', label: 'Payments', icon: '📅' },
   { href: '/profile', label: 'Profile', icon: '👤' },
 ];
 
@@ -24,6 +25,32 @@ export const Layout: FC<LayoutProps> = ({ children }) => {
   const router = useRouter();
   const session = useSession();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
+
+  useEffect(() => {
+    const updateCount = async () => {
+      if (!session?.user?.id) return;
+      try {
+        const today = new Date();
+        const monthYear = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+        const { paymentService } = await import('@/services/PaymentService');
+        const data = await paymentService.fetchDashboardData(session.user.id, monthYear);
+        const count = data.filter(i => i.status !== 'paid' && i.status !== 'skipped').length;
+        setPendingCount(count);
+      } catch (e) {
+        console.error(e);
+      }
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('payments_updated', updateCount);
+      updateCount();
+    }
+    return () => {
+      if (typeof window !== 'undefined') window.removeEventListener('payments_updated', updateCount);
+    }
+  }, [session?.user?.id]);
+
 
   // Don't show navigation for unauthenticated users
   if (!session) {
@@ -77,6 +104,11 @@ export const Layout: FC<LayoutProps> = ({ children }) => {
                 >
                   <span>{item.icon}</span>
                   <span>{item.label}</span>
+                  {item.label === 'Payments' && pendingCount > 0 && (
+                    <span className="ml-auto bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                      {pendingCount}
+                    </span>
+                  )}
                 </Link>
               </li>
             ))}
