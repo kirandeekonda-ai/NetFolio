@@ -1,6 +1,7 @@
 import { LLMProvider as LLMProviderType } from '@/types/llm';
 import { GeminiService } from './GeminiService';
 import { CustomEndpointService } from './CustomEndpointService';
+import { GroqService } from './GroqService';
 import { LLMProvider, ExtractionResult } from './types';
 import { Category } from '@/types';
 import { sanitizeTextForLLM } from '@/utils/dataSanitization';
@@ -40,7 +41,7 @@ export class AzureOpenAIService implements LLMProvider {
     // Sanitize the input text to protect sensitive information
     const sanitizationResult = sanitizeTextForLLM(pageText);
     const sanitizedPageText = sanitizationResult.sanitizedText;
-    
+
     // Log sanitization summary
     if (sanitizationResult.detectedPatterns.length > 0) {
       console.log('🔐 Sanitized sensitive data before sending to Azure OpenAI');
@@ -54,9 +55,9 @@ export class AzureOpenAIService implements LLMProvider {
     );
 
     console.log('🔷 AZURE OPENAI - Complete prompt being sent:');
-    console.log('=' .repeat(100));
+    console.log('='.repeat(100));
     console.log(prompt);
-    console.log('=' .repeat(100));
+    console.log('='.repeat(100));
 
     const endpoint = `https://${this.resourceName}.openai.azure.com/openai/deployments/${this.deploymentName}/chat/completions?api-version=${this.apiVersion}`;
 
@@ -87,9 +88,9 @@ export class AzureOpenAIService implements LLMProvider {
       const text = data.choices?.[0]?.message?.content;
 
       console.log('🔷 AZURE OPENAI - Raw response received:');
-      console.log('-' .repeat(50));
+      console.log('-'.repeat(50));
       console.log(text);
-      console.log('-' .repeat(50));
+      console.log('-'.repeat(50));
 
       if (!text) {
         throw new Error('No response from Azure OpenAI API');
@@ -115,22 +116,22 @@ export class AzureOpenAIService implements LLMProvider {
         };
       }
 
-      const transactions = Array.isArray(parsedResponse.transactions) 
+      const transactions = Array.isArray(parsedResponse.transactions)
         ? parsedResponse.transactions
-            .map((txn: any) => {
-              const amount = parseFloat(txn.amount) || 0;
-              const transaction_type = amount > 0 ? 'income' : 'expense';
-              
-              return {
-                ...txn,
-                category: txn.suggested_category || txn.category || 'Uncategorized',
-                currency: txn.currency || 'INR', // Default to INR for Indian bank statements
-                type: transaction_type, // Legacy field for compatibility
-                transaction_type: transaction_type, // New field for database
-                amount: amount
-              };
-            })
-            .filter((transaction: any) => this.isValidTransaction(transaction))
+          .map((txn: any) => {
+            const amount = parseFloat(txn.amount) || 0;
+            const transaction_type = amount > 0 ? 'income' : 'expense';
+
+            return {
+              ...txn,
+              category: txn.suggested_category || txn.category || 'Uncategorized',
+              currency: txn.currency || 'INR', // Default to INR for Indian bank statements
+              type: transaction_type, // Legacy field for compatibility
+              transaction_type: transaction_type, // New field for database
+              amount: amount
+            };
+          })
+          .filter((transaction: any) => this.isValidTransaction(transaction))
         : [];
 
       // Extract balance data if present
@@ -179,9 +180,9 @@ export class AzureOpenAIService implements LLMProvider {
 
       if (!response.ok) {
         const errorData = await response.json();
-        return { 
-          success: false, 
-          error: errorData.error?.message || `HTTP ${response.status}` 
+        return {
+          success: false,
+          error: errorData.error?.message || `HTTP ${response.status}`
         };
       }
 
@@ -194,9 +195,9 @@ export class AzureOpenAIService implements LLMProvider {
 
       return { success: true };
     } catch (error) {
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
   }
@@ -249,7 +250,7 @@ export class OpenAIService implements LLMProvider {
     // Sanitize the input text to protect sensitive information
     const sanitizationResult = sanitizeTextForLLM(pageText);
     const sanitizedPageText = sanitizationResult.sanitizedText;
-    
+
     // Log sanitization summary
     if (sanitizationResult.detectedPatterns.length > 0) {
       console.log('🔐 Sanitized sensitive data before sending to OpenAI');
@@ -310,22 +311,22 @@ export class OpenAIService implements LLMProvider {
         };
       }
 
-      const transactions = Array.isArray(parsedResponse.transactions) 
+      const transactions = Array.isArray(parsedResponse.transactions)
         ? parsedResponse.transactions
-            .map((txn: any) => {
-              const amount = parseFloat(txn.amount) || 0;
-              const transaction_type = amount > 0 ? 'income' : 'expense';
-              
-              return {
-                ...txn,
-                category: txn.suggested_category || txn.category || 'Uncategorized',
-                currency: txn.currency || 'INR', // Default to INR for Indian bank statements
-                type: transaction_type, // Legacy field for compatibility
-                transaction_type: transaction_type, // New field for database
-                amount: amount
-              };
-            })
-            .filter((transaction: any) => this.isValidTransaction(transaction))
+          .map((txn: any) => {
+            const amount = parseFloat(txn.amount) || 0;
+            const transaction_type = amount > 0 ? 'income' : 'expense';
+
+            return {
+              ...txn,
+              category: txn.suggested_category || txn.category || 'Uncategorized',
+              currency: txn.currency || 'INR', // Default to INR for Indian bank statements
+              type: transaction_type, // Legacy field for compatibility
+              transaction_type: transaction_type, // New field for database
+              amount: amount
+            };
+          })
+          .filter((transaction: any) => this.isValidTransaction(transaction))
         : [];
 
       // Extract balance data if present
@@ -373,9 +374,9 @@ export class OpenAIService implements LLMProvider {
 
       if (!response.ok) {
         const errorData = await response.json();
-        return { 
-          success: false, 
-          error: errorData.error?.message || `HTTP ${response.status}` 
+        return {
+          success: false,
+          error: errorData.error?.message || `HTTP ${response.status}`
         };
       }
 
@@ -388,9 +389,9 @@ export class OpenAIService implements LLMProvider {
 
       return { success: true };
     } catch (error) {
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
   }
@@ -418,7 +419,7 @@ export class OpenAIService implements LLMProvider {
 // Factory function to create LLM provider instances
 export function createLLMProvider(config: LLMProviderType): LLMProvider {
   console.log('🏭 FACTORY - Creating LLM provider:', config.provider_type);
-  
+
   switch (config.provider_type) {
     case 'gemini':
       if (!config.api_key) {
@@ -436,6 +437,16 @@ export function createLLMProvider(config: LLMProviderType): LLMProvider {
         azure_deployment_name: config.azure_deployment_name,
         azure_api_version: config.azure_api_version,
         model_name: config.model_name
+      });
+
+    case 'groq':
+      if (!config.api_key || !config.model_name) {
+        throw new Error('API key and model name are required for Groq provider');
+      }
+      return new GroqService({
+        api_key: config.api_key,
+        model_name: config.model_name,
+        api_endpoint: config.api_endpoint
       });
 
     case 'openai':

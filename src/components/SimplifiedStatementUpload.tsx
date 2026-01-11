@@ -92,12 +92,14 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
     fetchUserCategories();
   }, [user, supabase]);
 
-  const handleFileSelect = async (file: File) => {
+  const handleFileSelect = async (file: File, password?: string) => {
     setSelectedFile(file);
-    clearEnhancedLogs();
+    if (!password) {
+      clearEnhancedLogs();
+      setSecurityBreakdown(null);
+    }
     // Hide upload area immediately when processing starts
     setUploadMinimized(true);
-    setSecurityBreakdown(null);
 
     try {
       console.log('🚀 Starting Enhanced AI-powered PDF processing...');
@@ -110,7 +112,8 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
         bankName,
         monthName,
         yearString,
-        userCategories
+        userCategories,
+        password // Pass the password if provided
       );
 
       // Check if validation failed (now returns result instead of throwing)
@@ -144,6 +147,7 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
         console.log('🔐 Password-protected PDF detected, showing info dialog');
         setPasswordProtectedFileName(file.name);
         setShowPasswordProtectedDialog(true);
+        // Don't reset selected file here so we can retry
         return;
       }
 
@@ -157,6 +161,16 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
     setUploadMinimized(false);
     setSelectedFile(null);
     setSecurityBreakdown(null); // Clear security breakdown on retry
+    setPasswordProtectedFileName('');
+  };
+
+  const handlePasswordSubmit = async (password: string) => {
+    if (selectedFile) {
+      setShowPasswordProtectedDialog(false);
+      // clear logs but keep file selected
+      clearEnhancedLogs();
+      await handleFileSelect(selectedFile, password);
+    }
   };
 
   return (
@@ -258,19 +272,19 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/20 to-teal-500/20 rounded-3xl blur-lg"></div>
               <div className="relative bg-gradient-to-r from-emerald-50 to-teal-50 backdrop-blur-xl rounded-3xl p-6 border border-emerald-200/50 shadow-xl">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4 md:gap-0">
+                  <div className="flex items-center space-x-4 w-full md:w-auto">
+                    <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
                       <span className="text-white text-xl">✓</span>
                     </div>
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <h3 className="font-semibold text-emerald-900 mb-1">File Successfully Uploaded</h3>
-                      <div className="flex items-center space-x-4 text-sm text-emerald-700">
-                        <span className="flex items-center space-x-1">
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-emerald-700">
+                        <span className="flex items-center space-x-1 min-w-0">
                           <span>📄</span>
-                          <span className="font-medium">{selectedFile.name}</span>
+                          <span className="font-medium truncate max-w-[150px] sm:max-w-xs">{selectedFile.name}</span>
                         </span>
-                        <span className="flex items-center space-x-1">
+                        <span className="flex items-center space-x-1 whitespace-nowrap">
                           <span>📊</span>
                           <span>{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</span>
                         </span>
@@ -280,9 +294,9 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
                   <Button
                     onClick={handleRetry}
                     variant="secondary"
-                    className="bg-white/70 hover:bg-white text-emerald-700 border-emerald-200 shadow-sm"
+                    className="w-full md:w-auto bg-white/70 hover:bg-white text-emerald-700 border-emerald-200 shadow-sm"
                   >
-                    <span className="flex items-center space-x-2">
+                    <span className="flex items-center justify-center space-x-2">
                       <span>🔄</span>
                       <span>Change File</span>
                     </span>
@@ -422,7 +436,9 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
           setPasswordProtectedFileName('');
           setSelectedFile(null); // Reset selected file so user can try another
         }}
+        onSubmit={handlePasswordSubmit}
         fileName={passwordProtectedFileName}
+        isRetrying={enhancedProcessing}
       />
     </div>
   );

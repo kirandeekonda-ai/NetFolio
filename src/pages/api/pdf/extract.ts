@@ -6,7 +6,9 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import formidable from 'formidable';
 import fs from 'fs';
-import pdf from 'pdf-parse';
+import path from 'path';
+// @ts-ignore
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 
 export const config = {
   api: {
@@ -27,6 +29,7 @@ interface PDFExtractionResult {
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  console.log('API: /api/pdf/extract hit');
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -39,9 +42,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     const [fields, files] = await form.parse(req);
-    
+
     const uploadedFile = Array.isArray(files.file) ? files.file[0] : files.file;
-    
+    const password = Array.isArray(fields.password) ? fields.password[0] : fields.password;
+
     if (!uploadedFile) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
@@ -58,15 +62,50 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     // Extract text from PDF
+    // Extract text from PDF
     const dataBuffer = fs.readFileSync(uploadedFile.filepath);
-    const pdfData = await pdf(dataBuffer);
-    
-    // Clean up the extracted text
-    const cleanText = pdfData.text.replace(/\s+/g, ' ').trim();
+    const data = new Uint8Array(dataBuffer);
+
+
+
+    const loadingTask = pdfjsLib.getDocument({
+      data,
+      password,
+      disableFontFace: true,
+      // Configure CMaps and Standard Fonts for better text extraction
+      // pdfjs-dist requires trailing slash and often prefers forward slashes
+      cMapUrl: path.join(process.cwd(), 'node_modules/pdfjs-dist/cmaps/').replace(/\\/g, '/') + '/',
+      cMapPacked: true,
+      standardFontDataUrl: path.join(process.cwd(), 'node_modules/pdfjs-dist/standard_fonts/').replace(/\\/g, '/') + '/',
+    });
+
+    const doc = await loadingTask.promise;
+    const numPages = doc.numPages;
+    let fullText = '';
+
+    for (let i = 1; i <= numPages; i++) {
+      const page = await doc.getPage(i);
+      const textContent = await page.getTextContent();
+      let lastY, text = '';
+      // @ts-ignore
+      for (const _item of textContent.items) {
+        const item = _item as any;
+        if (!item.str) continue;
+        if (lastY == item.transform[5] || !lastY) {
+          text += item.str;
+        } else {
+          text += '\n' + item.str;
+        }
+        lastY = item.transform[5];
+      }
+      fullText += text + '\n\n';
+    }
+
+    const cleanText = fullText.replace(/\s+/g, ' ').trim();
 
     const result: PDFExtractionResult = {
       text: cleanText,
-      pageCount: pdfData.numpages,
+      pageCount: numPages,
       metadata: {
         fileSize: uploadedFile.size || 0,
         fileName: uploadedFile.originalFilename || 'unknown.pdf',
@@ -74,6 +113,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         textLength: cleanText.length
       }
     };
+
+
 
     // Clean up temporary file
     try {
@@ -91,7 +132,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   } catch (error) {
     console.error('Error in PDF text extraction endpoint:', error);
-    
+
     // Check if this is a password-protected PDF
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     const isPasswordProtected = (
@@ -103,7 +144,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       errorMessage.includes('Encrypted') ||
       (error as any)?.code === 1
     );
-    
+
     if (isPasswordProtected) {
       console.log('🔐 Password-protected PDF detected in fallback extraction');
       return res.status(422).json({
@@ -118,7 +159,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       });
     }
-    
+
     res.status(500).json({
       error: error instanceof Error ? error.message : 'Failed to extract PDF text',
       text: '',

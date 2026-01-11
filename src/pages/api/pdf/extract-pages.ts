@@ -6,7 +6,9 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import formidable from 'formidable';
 import fs from 'fs';
-import pdf from 'pdf-parse';
+import path from 'path';
+// @ts-ignore
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 
 export const config = {
   api: {
@@ -26,32 +28,60 @@ interface PDFPageExtractionResult {
   error?: string;
 }
 
-const extractTextFromPDFByPages = async (filePath: string, fileName: string, fileSize: number): Promise<PDFPageExtractionResult> => {
+const extractTextFromPDFByPages = async (filePath: string, fileName: string, fileSize: number, password?: string): Promise<PDFPageExtractionResult> => {
   try {
-    console.log('Starting PDF page extraction for:', fileName);
-    
+    console.log('Starting PDF page extraction (via pdfjs-dist) for:', fileName);
+
     const dataBuffer = fs.readFileSync(filePath);
-    const pdfData = await pdf(dataBuffer);
-    
-    console.log(`PDF loaded with ${pdfData.numpages} pages`);
-    console.log('Raw PDF text length:', pdfData.text.length);
-    console.log('First 500 chars of raw text:', pdfData.text.substring(0, 500));
-    
-    // Split the full text into logical pages
-    // Since pdf-parse doesn't give us page boundaries, we'll use heuristics
-    const fullText = pdfData.text;
-    const pages = splitTextIntoPages(fullText, pdfData.numpages);
-    
-    console.log('Pages after splitting:');
-    pages.forEach((page, index) => {
-      console.log(`Page ${index + 1} length: ${page.length}`);
-      console.log(`Page ${index + 1} first 200 chars:`, page.substring(0, 200));
+    const data = new Uint8Array(dataBuffer);
+
+    // Load the PDF document
+    const loadingTask = pdfjsLib.getDocument({
+      data,
+      password,
+      // Disable worker for Node environment
+      disableFontFace: true,
+      // Configure CMaps and Standard Fonts for better text extraction
+      // pdfjs-dist requires trailing slash and often prefers forward slashes
+      cMapUrl: path.join(process.cwd(), 'node_modules/pdfjs-dist/cmaps/').replace(/\\/g, '/') + '/',
+      cMapPacked: true,
+      standardFontDataUrl: path.join(process.cwd(), 'node_modules/pdfjs-dist/standard_fonts/').replace(/\\/g, '/') + '/',
     });
-    
-    const avgPageLength = pages.reduce((sum, page) => sum + page.length, 0) / pages.length;
-    
-    console.log(`PDF page extraction completed. ${pages.length} logical pages extracted`);
-    
+
+    const doc = await loadingTask.promise;
+    const numPages = doc.numPages;
+
+    console.log(`PDF loaded with ${numPages} pages using pdfjs-dist`);
+
+    const pages: string[] = [];
+
+    for (let i = 1; i <= numPages; i++) {
+      const page = await doc.getPage(i);
+      const textContent = await page.getTextContent();
+
+      // Simple text extraction preserving lines based on Y position
+      let lastY, text = '';
+      // @ts-ignore
+      for (const item of textContent.items) {
+        if (!item.str) continue;
+
+        // Check if Y position changed (new line)
+        // Note: transform[5] is Y coordinate
+        if (lastY == item.transform[5] || !lastY) {
+          text += item.str;
+        } else {
+          text += '\n' + item.str;
+        }
+        lastY = item.transform[5];
+      }
+
+      pages.push(text);
+    }
+
+    const avgPageLength = pages.reduce((sum, page) => sum + page.length, 0) / (pages.length || 1);
+
+    console.log(`PDF page extraction completed. ${pages.length} pages extracted`);
+
     return {
       pages,
       pageCount: pages.length,
@@ -64,7 +94,15 @@ const extractTextFromPDFByPages = async (filePath: string, fileName: string, fil
     };
   } catch (error) {
     console.error('Error in PDF page extraction:', error);
-    
+
+    // Debug logging to file
+    try {
+      const debugPath = path.join(process.cwd(), 'pdf-debug.log');
+      fs.appendFileSync(debugPath, `\n[${new Date().toISOString()}] Error extracting ${fileName}: ${error instanceof Error ? error.message : String(error)}\nStack: ${error instanceof Error ? error.stack : 'No stack'}\n`);
+    } catch (e) {
+      console.error('Failed to write debug log', e);
+    }
+
     // Check if this is a password-protected PDF
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     const isPasswordProtected = (
@@ -74,9 +112,11 @@ const extractTextFromPDFByPages = async (filePath: string, fileName: string, fil
       errorMessage.includes('Password required') ||
       errorMessage.includes('encrypted') ||
       errorMessage.includes('Encrypted') ||
-      (error as any)?.code === 1
+      (error as any)?.code === 1 ||
+      errorMessage.includes('Password') ||
+      (error as any)?.name === 'PasswordException'
     );
-    
+
     if (isPasswordProtected) {
       console.log('🔐 Password-protected PDF detected');
       return {
@@ -91,7 +131,7 @@ const extractTextFromPDFByPages = async (filePath: string, fileName: string, fil
         error: 'PASSWORD_PROTECTED_PDF'
       };
     }
-    
+
     return {
       pages: [],
       pageCount: 0,
@@ -106,171 +146,8 @@ const extractTextFromPDFByPages = async (filePath: string, fileName: string, fil
   }
 };
 
-/**
- * Split text into logical pages using heuristics
- * This is a fallback since pdf-parse doesn't provide page boundaries
- */
-const splitTextIntoPages = (text: string, estimatedPageCount: number): string[] => {
-  console.log('Splitting text into pages. Original length:', text.length, 'Estimated pages:', estimatedPageCount);
-  
-  // Less aggressive cleaning - preserve line breaks and structure
-  const cleanText = text.replace(/\n\s*\n\s*\n/g, '\n\n').trim(); // Only remove excessive empty lines
-  console.log('After cleaning, length:', cleanText.length);
-  
-  if (estimatedPageCount <= 1) {
-    console.log('Single page detected, returning as-is');
-    return [cleanText];
-  }
-
-  // Try to find natural page breaks - look for common bank statement patterns
-  const pageBreakIndicators = [
-    /Page \d+ of \d+/gi,
-    /Page \d+/gi,
-    /Statement Date:/gi,
-    /Statement Period:/gi,
-    /Account Summary/gi,
-    /Transaction Details/gi,
-    /ACCOUNT STATEMENT/gi,
-    /BANK STATEMENT/gi,
-    /Beginning Balance/gi,
-    /Ending Balance/gi
-  ];
-
-  let pages: string[] = [];
-  let remainingText = cleanText;
-
-  console.log('Looking for page break indicators...');
-  
-  // Look for page break indicators
-  for (const indicator of pageBreakIndicators) {
-    const matches = [...remainingText.matchAll(indicator)];
-    console.log(`Found ${matches.length} matches for pattern:`, indicator.source);
-    
-    if (matches.length > 1) {
-      // Found multiple matches, use them as page boundaries
-      const chunks: string[] = [];
-      let lastIndex = 0;
-      
-      for (let i = 0; i < matches.length; i++) {
-        const match = matches[i];
-        if (match.index !== undefined) {
-          if (i === 0) {
-            // For the first match, include everything from the beginning
-            const chunk = remainingText.substring(0, match.index + match[0].length).trim();
-            if (chunk.length > 50) { // Lowered threshold to include more content
-              chunks.push(chunk);
-              console.log(`Added chunk ${chunks.length}: ${chunk.length} chars`);
-            }
-            lastIndex = match.index + match[0].length;
-          } else {
-            // For subsequent matches, add content between previous and current match
-            const chunk = remainingText.substring(lastIndex, match.index + match[0].length).trim();
-            if (chunk.length > 50) {
-              chunks.push(chunk);
-              console.log(`Added chunk ${chunks.length}: ${chunk.length} chars`);
-            }
-            lastIndex = match.index + match[0].length;
-          }
-        }
-      }
-      
-      // Add the remaining text after the last match
-      const finalChunk = remainingText.substring(lastIndex).trim();
-      if (finalChunk.length > 50) {
-        chunks.push(finalChunk);
-        console.log(`Added final chunk: ${finalChunk.length} chars`);
-      }
-      
-      if (chunks.length > 1) {
-        pages = chunks;
-        console.log(`Successfully split into ${pages.length} pages using pattern:`, indicator.source);
-        break;
-      }
-    }
-  }
-
-  // If no natural breaks found, split by estimated size but preserve structure
-  if (pages.length === 0) {
-    console.log('No natural page breaks found, using size-based splitting');
-    
-    const avgPageSize = Math.ceil(cleanText.length / estimatedPageCount);
-    const minPageSize = Math.max(300, avgPageSize * 0.3); // Lowered minimum to preserve more content
-    
-    console.log(`Target page size: ${avgPageSize}, minimum: ${minPageSize}`);
-    
-    pages = [];
-    let currentPosition = 0;
-    
-    while (currentPosition < cleanText.length) {
-      let endPosition = Math.min(currentPosition + avgPageSize, cleanText.length);
-      
-      // Try to break at a natural boundary (sentence, paragraph, line break)
-      if (endPosition < cleanText.length) {
-        const searchEnd = Math.min(endPosition + 300, cleanText.length); // Increased search window
-        const naturalBreaks = ['\n\n', '. ', '\n', ';', ',', ' ']; // Added more break options
-        
-        for (const breakChar of naturalBreaks) {
-          const breakIndex = cleanText.lastIndexOf(breakChar, searchEnd);
-          if (breakIndex > currentPosition + minPageSize) {
-            endPosition = breakIndex + breakChar.length;
-            break;
-          }
-        }
-      }
-      
-      const pageText = cleanText.substring(currentPosition, endPosition).trim();
-      if (pageText.length > 0) {
-        pages.push(pageText);
-        console.log(`Size-based page ${pages.length}: ${pageText.length} chars`);
-      }
-      
-      currentPosition = endPosition;
-    }
-  }
-
-  // Ensure we have at least one page with the full content
-  if (pages.length === 0) {
-    console.log('All splitting methods failed, returning complete text as single page');
-    pages = [cleanText];
-  }
-
-  // Verify we haven't lost significant content
-  const totalExtractedLength = pages.reduce((sum, page) => sum + page.length, 0);
-  const originalLength = cleanText.length;
-  const contentLossPercentage = ((originalLength - totalExtractedLength) / originalLength) * 100;
-  
-  console.log(`Content verification: Original=${originalLength}, Extracted=${totalExtractedLength}, Loss=${contentLossPercentage.toFixed(1)}%`);
-  
-  if (contentLossPercentage > 10) {
-    console.warn('Significant content loss detected! Returning original text as single page.');
-    pages = [cleanText];
-  }
-
-  // Limit to reasonable number of pages (safety check)
-  if (pages.length > 20) {
-    console.warn(`Detected ${pages.length} pages, limiting to 10 for processing efficiency`);
-    // Merge smaller pages together
-    const mergedPages: string[] = [];
-    const targetPageCount = 10;
-    const pagesPerMerge = Math.ceil(pages.length / targetPageCount);
-    
-    for (let i = 0; i < pages.length; i += pagesPerMerge) {
-      const pagesToMerge = pages.slice(i, i + pagesPerMerge);
-      mergedPages.push(pagesToMerge.join('\n\n')); // Preserve some separation
-    }
-    
-    pages = mergedPages;
-  }
-
-  console.log(`Final result: Split text into ${pages.length} pages`);
-  pages.forEach((page, index) => {
-    console.log(`Final page ${index + 1}: ${page.length} chars`);
-  });
-  
-  return pages;
-};
-
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  console.log('API: /api/pdf/extract-pages hit');
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -283,9 +160,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     const [fields, files] = await form.parse(req);
-    
+
     const uploadedFile = Array.isArray(files.file) ? files.file[0] : files.file;
-    
+    const password = Array.isArray(fields.password) ? fields.password[0] : fields.password;
+
     if (!uploadedFile) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
@@ -305,7 +183,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const result = await extractTextFromPDFByPages(
       uploadedFile.filepath,
       uploadedFile.originalFilename || 'unknown.pdf',
-      uploadedFile.size || 0
+      uploadedFile.size || 0,
+      password
     );
 
     // Clean up temporary file

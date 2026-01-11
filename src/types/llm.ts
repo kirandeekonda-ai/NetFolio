@@ -1,5 +1,5 @@
 // LLM Provider types
-export type LLMProviderType = 'gemini' | 'azure_openai' | 'openai' | 'custom';
+export type LLMProviderType = 'gemini' | 'azure_openai' | 'openai' | 'custom' | 'groq';
 
 export type TestStatus = 'success' | 'failed' | 'pending' | null;
 
@@ -8,27 +8,27 @@ export interface LLMProvider {
   user_id: string;
   name: string;
   provider_type: LLMProviderType;
-  
+
   // Configuration
   api_endpoint?: string;
   api_key?: string;
   model_name?: string;
-  
+
   // Azure-specific
   azure_resource_name?: string;
   azure_deployment_name?: string;
   azure_api_version?: string;
-  
+
   // Additional config
   additional_config?: Record<string, any>;
-  
+
   // Status
   is_active: boolean;
   is_default: boolean;
   last_tested_at?: string;
   test_status?: TestStatus;
   test_error?: string;
-  
+
   // Audit
   created_at: string;
   updated_at: string;
@@ -99,6 +99,18 @@ export const LLM_PROVIDER_TEMPLATES: LLMProviderTemplate[] = [
     },
     required_fields: ['api_key', 'model_name'],
     optional_fields: []
+  },
+  {
+    name: 'Groq API',
+    provider_type: 'groq',
+    description: 'Groq\'s fast inference API (OpenAI Compatible)',
+    default_config: {
+      provider_type: 'groq',
+      model_name: 'llama-3.3-70b-versatile',
+      api_endpoint: 'https://api.groq.com/openai/v1'
+    },
+    required_fields: ['api_key', 'model_name'],
+    optional_fields: ['api_endpoint']
   },
   {
     name: 'Azure OpenAI',

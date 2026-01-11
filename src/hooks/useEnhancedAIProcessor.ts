@@ -91,7 +91,8 @@ export interface UseEnhancedAIProcessorReturn {
     bankName: string,
     month: string,
     year: string,
-    userCategories?: Category[]
+    userCategories?: Category[],
+    password?: string
   ) => Promise<EnhancedProcessingResult>;
   isProcessing: boolean;
   progress: QueueProgress | null;
@@ -109,7 +110,7 @@ function getMonthNumber(monthName: string): number {
     'january', 'february', 'march', 'april', 'may', 'june',
     'july', 'august', 'september', 'october', 'november', 'december'
   ];
-  
+
   const index = months.findIndex(m => m.startsWith(monthName.toLowerCase().substring(0, 3)));
   return index >= 0 ? index + 1 : 1;
 }
@@ -147,7 +148,7 @@ export const useEnhancedAIProcessor = (): UseEnhancedAIProcessorReturn => {
         addLog(`🔐 Security scanning started - detected ${Object.values(pageSecurityBreakdown).reduce((sum, count) => sum + count, 0)} items on first page`);
         return { ...pageSecurityBreakdown };
       }
-      
+
       // Accumulate the counts from each page
       const newBreakdown = {
         accountNumbers: prev.accountNumbers + pageSecurityBreakdown.accountNumbers,
@@ -160,14 +161,14 @@ export const useEnhancedAIProcessor = (): UseEnhancedAIProcessorReturn => {
         addresses: prev.addresses + pageSecurityBreakdown.addresses,
         names: prev.names + pageSecurityBreakdown.names,
       };
-      
+
       const currentPageTotal = Object.values(pageSecurityBreakdown).reduce((sum, count) => sum + count, 0);
       const totalProtected = Object.values(newBreakdown).reduce((sum, count) => sum + count, 0);
-      
+
       if (currentPageTotal > 0) {
         addLog(`🔐 Protected ${currentPageTotal} more items - Total: ${totalProtected} sensitive items masked`);
       }
-      
+
       return newBreakdown;
     });
   }, [addLog]);
@@ -203,16 +204,19 @@ export const useEnhancedAIProcessor = (): UseEnhancedAIProcessorReturn => {
     });
   }, []);
 
-  const extractTextFromPDFByPages = useCallback(async (file: File): Promise<string[]> => {
+  const extractTextFromPDFByPages = useCallback(async (file: File, password?: string): Promise<string[]> => {
     // This would use a PDF extraction library to get page-by-page content
     // For now, simulating with chunked text
     console.log('📄 PDF EXTRACTION - Starting for file:', file.name, file.size, 'bytes');
     addLog('📄 Extracting text from PDF pages...');
-    
+
     // Mock implementation - in real app, this would use PDF.js or similar
     const formData = new FormData();
     formData.append('file', file);
-    
+    if (password) {
+      formData.append('password', password);
+    }
+
     try {
       console.log('📄 PDF EXTRACTION - Calling /api/pdf/extract-pages');
       const response = await fetch('/api/pdf/extract-pages', {
@@ -222,17 +226,25 @@ export const useEnhancedAIProcessor = (): UseEnhancedAIProcessorReturn => {
 
       if (!response.ok) {
         console.error('📄 PDF EXTRACTION - API failed with status:', response.status);
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
         if (errorData.error === 'PASSWORD_PROTECTED_PDF') {
           throw new Error('PASSWORD_PROTECTED_PDF');
         }
-        throw new Error('Failed to extract PDF pages');
+        const serverError = errorData.error || errorData.message || JSON.stringify(errorData) || 'Unknown server error';
+        throw new Error(`Failed to extract PDF pages: ${serverError}`);
       }
 
       const result = await response.json();
       if (result.error === 'PASSWORD_PROTECTED_PDF') {
         throw new Error('PASSWORD_PROTECTED_PDF');
       }
+      if (result.error) {
+        throw new Error(`Extraction Server Error: ${result.error}`);
+      }
+      if (!result.pages || result.pages.length === 0) {
+        throw new Error('Extraction returned no pages');
+      }
+
       console.log('📄 PDF EXTRACTION - Success! Pages:', result.pages.length);
       addLog(`📄 Successfully extracted ${result.pages.length} pages`);
       return result.pages;
@@ -241,19 +253,22 @@ export const useEnhancedAIProcessor = (): UseEnhancedAIProcessorReturn => {
       if (error instanceof Error && error.message === 'PASSWORD_PROTECTED_PDF') {
         throw error; // Re-throw password-protected errors for special handling
       }
-      
+
       // Fallback to single page processing if pages API fails
       console.error('📄 PDF EXTRACTION - Error:', error);
       addLog('⚠️ Page extraction failed, using fallback method');
-      const text = await extractTextFromPDFFallback(file);
+      const text = await extractTextFromPDFFallback(file, password);
       return [text]; // Return as single page
     }
   }, [addLog]);
 
-  const extractTextFromPDFFallback = async (file: File): Promise<string> => {
+  const extractTextFromPDFFallback = async (file: File, password?: string): Promise<string> => {
     const formData = new FormData();
     formData.append('file', file);
-    
+    if (password) {
+      formData.append('password', password);
+    }
+
     const response = await fetch('/api/pdf/extract', {
       method: 'POST',
       body: formData,
@@ -283,7 +298,7 @@ export const useEnhancedAIProcessor = (): UseEnhancedAIProcessorReturn => {
       // Always use the validation API endpoint which now handles both custom endpoint and LLM providers
       // This ensures consistent validation flow regardless of provider type
       addLog(`🔧 Using validation API for consistent processing`);
-      
+
       const response = await fetch('/api/ai/validate-statement', {
         method: 'POST',
         headers: {
@@ -298,13 +313,13 @@ export const useEnhancedAIProcessor = (): UseEnhancedAIProcessorReturn => {
       }
 
       const result = await response.json();
-      
+
       // Check if this is a service error from the API
       if (result.serviceError) {
         addLog(`🚨 LLM Service Error: ${result.errorMessage}`);
         throw new Error(result.errorMessage);
       }
-      
+
       if (result.isValid) {
         addLog(`✅ Statement validation passed`);
       } else {
@@ -315,7 +330,7 @@ export const useEnhancedAIProcessor = (): UseEnhancedAIProcessorReturn => {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Validation failed';
       addLog(`❌ Validation error: ${errorMessage}`);
-      
+
       return {
         isValid: false,
         bankMatches: false,
@@ -359,15 +374,15 @@ export const useEnhancedAIProcessor = (): UseEnhancedAIProcessorReturn => {
       }
 
       const result = await response.json();
-      
+
       // Check if this is a service error from the page processing API
       if (result.serviceError) {
         addLog(`🚨 Page ${pageNumber} LLM Service Error: ${result.processingNotes}`);
         throw new Error(result.processingNotes);
       }
-      
+
       addLog(`✅ Page ${pageNumber} processed: ${result.transactions.length} transactions found`);
-      
+
       return {
         ...result,
         success: true
@@ -375,7 +390,7 @@ export const useEnhancedAIProcessor = (): UseEnhancedAIProcessorReturn => {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Page processing failed';
       addLog(`❌ Page ${pageNumber} error: ${errorMessage}`);
-      
+
       return {
         pageNumber,
         totalPages,
@@ -417,7 +432,7 @@ export const useEnhancedAIProcessor = (): UseEnhancedAIProcessorReturn => {
 
       const result = await response.json();
       addLog(`✅ Categories finalized successfully`);
-      
+
       return result.finalizedTransactions;
     } catch (error) {
       addLog(`⚠️ Category finalization failed, using original transactions`);
@@ -430,7 +445,8 @@ export const useEnhancedAIProcessor = (): UseEnhancedAIProcessorReturn => {
     bankName: string,
     month: string,
     year: string,
-    userCategories: Category[] = []
+    userCategories: Category[] = [],
+    password?: string
   ): Promise<EnhancedProcessingResult> => {
     if (isProcessing) {
       throw new Error('Another statement is currently being processed');
@@ -451,10 +467,10 @@ export const useEnhancedAIProcessor = (): UseEnhancedAIProcessorReturn => {
       // Step 1: Extract pages from PDF
       updateProgress('validating', 0, 1, 'Extracting pages from PDF...');
       console.log('📄 ENHANCED PROCESSING - Extracting PDF pages...');
-      const pages = await extractTextFromPDFByPages(file);
+      const pages = await extractTextFromPDFByPages(file, password);
       const totalPages = pages.length;
       console.log('📄 ENHANCED PROCESSING - Extracted', totalPages, 'pages');
-      
+
       addLog(`📄 Extracted ${totalPages} pages from PDF`);
 
       // Step 2: Validate statement using first 3 pages (more likely to contain statement period)
@@ -463,20 +479,20 @@ export const useEnhancedAIProcessor = (): UseEnhancedAIProcessorReturn => {
       const validationContent = validationPages.join('\n\n');
       console.log('🔍 ENHANCED PROCESSING - Using first', validationPages.length, 'pages for validation');
       console.log('🔍 ENHANCED PROCESSING - Validation content length:', validationContent.length);
-      
+
       const validation = await validateStatement({
         bankName,
         month,
         year,
         pageContent: validationContent
       });
-      
+
       setValidationResult(validation);
 
       if (!validation.isValid) {
         // Log validation failure but don't throw - return a proper failed result
         addLog(`❌ Statement validation failed: ${validation.errorMessage || 'Unknown validation error'}`);
-        
+
         return {
           transactions: [],
           validationResult: validation,
@@ -629,7 +645,7 @@ export const useEnhancedAIProcessor = (): UseEnhancedAIProcessorReturn => {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       addLog(`❌ Processing failed: ${errorMessage}`);
       setError(errorMessage);
-      
+
       updateProgress(
         'failed',
         0,
@@ -639,7 +655,7 @@ export const useEnhancedAIProcessor = (): UseEnhancedAIProcessorReturn => {
         0,
         1
       );
-      
+
       throw err;
     } finally {
       setIsProcessing(false);

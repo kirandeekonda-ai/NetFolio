@@ -224,11 +224,11 @@ export const UnifiedProcessingDashboard: React.FC<UnifiedProcessingDashboardProp
         <div className="relative bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 px-8 py-6">
           <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20"></div>
           <div className="relative flex items-center justify-between">
-            <div className="flex items-center space-x-6">
+            <div className="flex flex-col md:flex-row items-center md:items-start space-y-4 md:space-y-0 md:space-x-6 text-center md:text-left">
               <motion.div
-                className={`w-20 h-20 rounded-2xl flex items-center justify-center shadow-lg bg-gradient-to-br ${currentStage.id === 'completed' ? 'from-green-500 to-emerald-600' :
-                    currentStage.id === 'failed' ? 'from-red-500 to-rose-600' :
-                      `from-${currentStage.color}-500 to-${currentStage.color}-600`
+                className={`w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center shadow-lg bg-gradient-to-br flex-shrink-0 ${currentStage.id === 'completed' ? 'from-green-500 to-emerald-600' :
+                  currentStage.id === 'failed' ? 'from-red-500 to-rose-600' :
+                    `from-${currentStage.color}-500 to-${currentStage.color}-600`
                   }`}
                 animate={{
                   scale: isProcessing ? [1, 1.05, 1] : 1,
@@ -335,8 +335,8 @@ export const UnifiedProcessingDashboard: React.FC<UnifiedProcessingDashboardProp
         </div>
 
         {/* Navigation Tabs */}
-        <div className="border-b border-gray-200 bg-gray-50/50">
-          <div className="flex space-x-8 px-8">
+        <div className="border-b border-gray-200 bg-gray-50/50 overflow-x-auto scrollbar-hide">
+          <div className="flex space-x-8 px-8 min-w-max">
             {[
               { id: 'overview', label: 'Overview', icon: '📊' },
               { id: 'security', label: 'Security', icon: '🔒', badge: securityInsights?.totalProtected },
@@ -346,9 +346,9 @@ export const UnifiedProcessingDashboard: React.FC<UnifiedProcessingDashboardProp
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`relative py-4 px-2 text-sm font-medium transition-all duration-300 ${activeTab === tab.id
-                    ? 'text-blue-600 border-b-2 border-blue-600'
-                    : 'text-gray-500 hover:text-gray-700'
+                className={`relative py-4 px-2 text-sm font-medium transition-all duration-300 whitespace-nowrap ${activeTab === tab.id
+                  ? 'text-blue-600 border-b-2 border-blue-600'
+                  : 'text-gray-500 hover:text-gray-700'
                   }`}
               >
                 <div className="flex items-center space-x-2">
@@ -401,8 +401,8 @@ export const UnifiedProcessingDashboard: React.FC<UnifiedProcessingDashboardProp
 
                           <motion.div
                             className={`w-12 h-12 rounded-xl flex items-center justify-center text-lg shadow-lg flex-shrink-0 z-10 ${isActive ? `bg-gradient-to-br from-${stage.color}-500 to-${stage.color}-600 text-white` :
-                                isCompleted ? 'bg-green-500 text-white' :
-                                  'bg-gray-200 text-gray-400'
+                              isCompleted ? 'bg-green-500 text-white' :
+                                'bg-gray-200 text-gray-400'
                               }`}
                             animate={isActive ? { scale: [1, 1.1, 1] } : {}}
                             transition={{ repeat: isActive ? Infinity : 0, duration: 2 }}
@@ -548,15 +548,15 @@ export const UnifiedProcessingDashboard: React.FC<UnifiedProcessingDashboardProp
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: index * 0.1 }}
                           className={`bg-white rounded-xl p-6 border-l-4 shadow-sm ${insight.severity === 'high' ? 'border-red-500' :
-                              insight.severity === 'medium' ? 'border-yellow-500' :
-                                'border-green-500'
+                            insight.severity === 'medium' ? 'border-yellow-500' :
+                              'border-green-500'
                             }`}
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-4">
                               <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${insight.severity === 'high' ? 'bg-red-100' :
-                                  insight.severity === 'medium' ? 'bg-yellow-100' :
-                                    'bg-green-100'
+                                insight.severity === 'medium' ? 'bg-yellow-100' :
+                                  'bg-green-100'
                                 }`}>
                                 <span className="text-xl">{insight.icon}</span>
                               </div>
@@ -569,8 +569,8 @@ export const UnifiedProcessingDashboard: React.FC<UnifiedProcessingDashboardProp
                             </div>
                             <div className="flex items-center space-x-3">
                               <span className={`px-3 py-1 rounded-full text-xs font-medium ${insight.severity === 'high' ? 'bg-red-100 text-red-800' :
-                                  insight.severity === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                                    'bg-green-100 text-green-800'
+                                insight.severity === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                                  'bg-green-100 text-green-800'
                                 }`}>
                                 {insight.severity.toUpperCase()} RISK
                               </span>
@@ -697,8 +697,8 @@ export const UnifiedProcessingDashboard: React.FC<UnifiedProcessingDashboardProp
                       onClick={onClearLogs}
                       disabled={isProcessing}
                       className={`px-4 py-2 rounded-lg text-sm font-medium ${isProcessing
-                          ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                          : 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 shadow-sm'
+                        ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                        : 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 shadow-sm'
                         }`}
                     >
                       Clear All Logs
@@ -715,9 +715,9 @@ export const UnifiedProcessingDashboard: React.FC<UnifiedProcessingDashboardProp
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: index * 0.05 }}
                         className={`rounded-lg p-4 border-l-4 ${log.type === 'success' ? 'bg-green-50 border-green-500' :
-                            log.type === 'error' ? 'bg-red-50 border-red-500' :
-                              log.type === 'warning' ? 'bg-yellow-50 border-yellow-500' :
-                                'bg-blue-50 border-blue-500'
+                          log.type === 'error' ? 'bg-red-50 border-red-500' :
+                            log.type === 'warning' ? 'bg-yellow-50 border-yellow-500' :
+                              'bg-blue-50 border-blue-500'
                           }`}
                       >
                         <div className="flex items-start space-x-3">
@@ -728,16 +728,16 @@ export const UnifiedProcessingDashboard: React.FC<UnifiedProcessingDashboardProp
                           </span>
                           <div className="flex-1">
                             <p className={`text-sm font-medium ${log.type === 'success' ? 'text-green-900' :
-                                log.type === 'error' ? 'text-red-900' :
-                                  log.type === 'warning' ? 'text-yellow-900' :
-                                    'text-blue-900'
+                              log.type === 'error' ? 'text-red-900' :
+                                log.type === 'warning' ? 'text-yellow-900' :
+                                  'text-blue-900'
                               }`}>
                               {log.message}
                             </p>
                             <p className={`text-xs mt-1 ${log.type === 'success' ? 'text-green-600' :
-                                log.type === 'error' ? 'text-red-600' :
-                                  log.type === 'warning' ? 'text-yellow-600' :
-                                    'text-blue-600'
+                              log.type === 'error' ? 'text-red-600' :
+                                log.type === 'warning' ? 'text-yellow-600' :
+                                  'text-blue-600'
                               }`}>
                               {log.timestamp}
                             </p>
