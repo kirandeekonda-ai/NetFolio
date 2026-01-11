@@ -109,9 +109,8 @@ const CategoryDropdown = ({
                   itemRefs.current[index] = el;
                 }}
                 onClick={() => onSelect(category)}
-                className={`w-full px-4 py-3 text-left transition-all duration-150 group flex items-center space-x-3 hover:bg-gray-50 ${
-                  isFocused ? 'bg-blue-50 border-r-2 border-blue-500' : ''
-                }`}
+                className={`w-full px-4 py-3 text-left transition-all duration-150 group flex items-center space-x-3 hover:bg-gray-50 ${isFocused ? 'bg-blue-50 border-r-2 border-blue-500' : ''
+                  }`}
               >
                 <div
                   className="w-4 h-4 rounded-full flex-shrink-0 border border-white/40 shadow-sm ring-1 ring-black/5"
@@ -146,7 +145,7 @@ export const EnhancedTable: React.FC<EnhancedTableProps> = ({
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [selectedTransactionForTransfer, setSelectedTransactionForTransfer] = useState<Transaction | null>(null);
-  
+
   // Transfer linking functionality
   const { unlinkTransaction, isLoading: isUnlinking } = useTransferLinking();
   const buttonRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
@@ -166,10 +165,10 @@ export const EnhancedTable: React.FC<EnhancedTableProps> = ({
       const viewportHeight = window.innerHeight;
       const spaceBelow = viewportHeight - rect.bottom;
       const spaceAbove = rect.top;
-      
+
       // Position dropdown above if there's not enough space below
       const shouldPositionAbove = spaceBelow < dropdownHeight + 16 && spaceAbove > dropdownHeight;
-      
+
       setDropdownPosition({
         top: shouldPositionAbove ? rect.top - dropdownHeight - 8 : rect.bottom + 8,
         left: rect.left,
@@ -191,7 +190,7 @@ export const EnhancedTable: React.FC<EnhancedTableProps> = ({
 
   const handleTransferDelinkClick = async (transaction: Transaction) => {
     if (!transaction.id) return;
-    
+
     const success = await unlinkTransaction(transaction.id);
     if (success && onTransferLinked) {
       onTransferLinked();
@@ -252,30 +251,40 @@ export const EnhancedTable: React.FC<EnhancedTableProps> = ({
   const shortcuts: KeyboardShortcut[] = [
     { key: 'Ctrl+A', description: 'Select all transactions', action: onSelectAll },
     { key: 'Ctrl+D', description: 'Deselect all transactions', action: onDeselectAll },
-    { key: 'Ctrl+F', description: 'Focus search box', action: () => {
-      const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
-      searchInput?.focus();
-    }},
+    {
+      key: 'Ctrl+F', description: 'Focus search box', action: () => {
+        const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
+        searchInput?.focus();
+      }
+    },
     { key: 'Shift+?', description: 'Show keyboard shortcuts', action: () => setShowShortcutsHelp(!showShortcutsHelp) },
     { key: 'Q', description: 'Toggle quick category mode', action: () => setQuickCategoryMode(!quickCategoryMode) },
-    { key: 'ArrowUp', description: 'Navigate up', action: () => {
-      setFocusedRowIndex(prev => prev === null ? 0 : Math.max(0, prev - 1));
-    }},
-    { key: 'ArrowDown', description: 'Navigate down', action: () => {
-      setFocusedRowIndex(prev => prev === null ? 0 : Math.min(transactions.length - 1, (prev || 0) + 1));
-    }},
-    { key: ' ', description: 'Select/deselect focused row', action: () => {
-      if (focusedRowIndex !== null && transactions[focusedRowIndex]) {
-        const transaction = transactions[focusedRowIndex];
-        onTransactionSelect(transaction.id, !selectedTransactions.has(transaction.id));
+    {
+      key: 'ArrowUp', description: 'Navigate up', action: () => {
+        setFocusedRowIndex(prev => prev === null ? 0 : Math.max(0, prev - 1));
       }
-    }},
-    { key: 'Enter', description: 'Open category selector for focused row', action: () => {
-      if (focusedRowIndex !== null) {
-        const row = document.querySelector(`[data-row-index="${focusedRowIndex}"] button`);
-        (row as HTMLButtonElement)?.click();
+    },
+    {
+      key: 'ArrowDown', description: 'Navigate down', action: () => {
+        setFocusedRowIndex(prev => prev === null ? 0 : Math.min(transactions.length - 1, (prev || 0) + 1));
       }
-    }}
+    },
+    {
+      key: ' ', description: 'Select/deselect focused row', action: () => {
+        if (focusedRowIndex !== null && transactions[focusedRowIndex]) {
+          const transaction = transactions[focusedRowIndex];
+          onTransactionSelect(transaction.id, !selectedTransactions.has(transaction.id));
+        }
+      }
+    },
+    {
+      key: 'Enter', description: 'Open category selector for focused row', action: () => {
+        if (focusedRowIndex !== null) {
+          const row = document.querySelector(`[data-row-index="${focusedRowIndex}"] button`);
+          (row as HTMLButtonElement)?.click();
+        }
+      }
+    }
   ];
 
   // Add number key shortcuts for quick categorization
@@ -302,12 +311,12 @@ export const EnhancedTable: React.FC<EnhancedTableProps> = ({
     const shortcut = shortcuts.find(s => {
       const keys = s.key.split('+');
       const mainKey = keys.pop()?.toLowerCase();
-      
+
       if (event.key.toLowerCase() !== mainKey) return false;
 
       const ctrl = keys.includes('Ctrl');
       const shift = keys.includes('Shift');
-      
+
       return event.ctrlKey === ctrl && event.shiftKey === shift;
     });
 
@@ -377,8 +386,8 @@ export const EnhancedTable: React.FC<EnhancedTableProps> = ({
       </div>
 
       {/* Enhanced Table */}
-      <div className="overflow-hidden rounded-2xl bg-white/90 shadow-sm">
-        <div className="w-full">
+      <div className="overflow-hidden rounded-2xl bg-white/90 shadow-sm border border-gray-100">
+        <div className="w-full overflow-x-auto">
           <table className="w-full table-fixed">
             <thead className="bg-gray-50/80">
               <tr>
@@ -402,7 +411,7 @@ export const EnhancedTable: React.FC<EnhancedTableProps> = ({
                 const isSelected = selectedTransactions.has(transaction.id);
                 const isFocused = focusedRowIndex === index;
                 const categoryStyle = getCategoryColorStyle(
-                  transaction.category_name || 'Uncategorized', 
+                  transaction.category_name || 'Uncategorized',
                   categories
                 );
 
@@ -501,9 +510,8 @@ export const EnhancedTable: React.FC<EnhancedTableProps> = ({
 
                     {/* Amount */}
                     <td className="px-4 py-3 text-right">
-                      <span className={`text-sm font-medium whitespace-nowrap ${
-                        (transaction.amount || 0) > 0 ? 'text-green-600' : 'text-red-600'
-                      }`}>
+                      <span className={`text-sm font-medium whitespace-nowrap ${(transaction.amount || 0) > 0 ? 'text-green-600' : 'text-red-600'
+                        }`}>
                         {formatAmount(transaction.amount || 0, currency)}
                       </span>
                       {transaction.transfer_detection_confidence && (
@@ -535,8 +543,8 @@ export const EnhancedTable: React.FC<EnhancedTableProps> = ({
                         style={(transaction.category_name !== 'Uncategorized' && transaction.category_name && !isTransferLinked(transaction)) ? categoryStyle.style : undefined}
                       >
                         <span className="truncate pr-2 group-hover:text-opacity-90">
-                          {isTransferLinked(transaction) 
-                            ? 'Internal Transfer' 
+                          {isTransferLinked(transaction)
+                            ? 'Internal Transfer'
                             : transaction.category_name === 'Uncategorized' || !transaction.category_name
                               ? '🏷️ Uncategorized'
                               : transaction.category_name
@@ -580,7 +588,7 @@ export const EnhancedTable: React.FC<EnhancedTableProps> = ({
                   <kbd className="px-2 py-1 bg-white rounded text-xs font-mono border">
                     {index + 1}
                   </kbd>
-                  <div 
+                  <div
                     className={`px-2 py-1 rounded text-xs ${categoryStyle.bg} ${categoryStyle.text}`}
                     style={categoryStyle.style}
                   >

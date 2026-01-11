@@ -5,11 +5,11 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  QueueProgress, 
-  StatementValidationResult, 
-  PageProcessingResult, 
-  SecurityBreakdown 
+import {
+  QueueProgress,
+  StatementValidationResult,
+  PageProcessingResult,
+  SecurityBreakdown
 } from '../hooks/useEnhancedAIProcessor';
 
 interface UnifiedProcessingDashboardProps {
@@ -37,45 +37,45 @@ interface ProcessingStage {
 }
 
 const PROCESSING_STAGES: ProcessingStage[] = [
-  { 
-    id: 'validating', 
-    label: 'Document Validation', 
-    icon: '🔍', 
+  {
+    id: 'validating',
+    label: 'Document Validation',
+    icon: '🔍',
     description: 'Verifying PDF format and bank statement authenticity',
     color: 'blue'
   },
-  { 
-    id: 'processing', 
-    label: 'Data Extraction', 
-    icon: '⚙️', 
+  {
+    id: 'processing',
+    label: 'Data Extraction',
+    icon: '⚙️',
     description: 'AI-powered transaction extraction from document pages',
     color: 'indigo'
   },
-  { 
-    id: 'categorizing', 
-    label: 'Smart Categorization', 
-    icon: '🧠', 
+  {
+    id: 'categorizing',
+    label: 'Smart Categorization',
+    icon: '🧠',
     description: 'Intelligent categorization using machine learning',
     color: 'purple'
   },
-  { 
-    id: 'securing', 
-    label: 'Security Scan', 
-    icon: '🔒', 
+  {
+    id: 'securing',
+    label: 'Security Scan',
+    icon: '🔒',
     description: 'Identifying and masking sensitive information',
     color: 'emerald'
   },
-  { 
-    id: 'completed', 
-    label: 'Processing Complete', 
-    icon: '✅', 
+  {
+    id: 'completed',
+    label: 'Processing Complete',
+    icon: '✅',
     description: 'All transactions processed successfully',
     color: 'green'
   },
-  { 
-    id: 'failed', 
-    label: 'Processing Failed', 
-    icon: '❌', 
+  {
+    id: 'failed',
+    label: 'Processing Failed',
+    icon: '❌',
     description: 'An error occurred during processing',
     color: 'red'
   }
@@ -115,11 +115,11 @@ export const UnifiedProcessingDashboard: React.FC<UnifiedProcessingDashboardProp
     if (validationResult && !validationResult.isValid) {
       return PROCESSING_STAGES.find(s => s.id === 'failed') || PROCESSING_STAGES[0];
     }
-    
+
     if (progress?.status === 'completed') {
       return PROCESSING_STAGES.find(s => s.id === 'completed') || PROCESSING_STAGES[4];
     }
-    
+
     if (progress?.status === 'failed') {
       return PROCESSING_STAGES.find(s => s.id === 'failed') || PROCESSING_STAGES[5];
     }
@@ -127,29 +127,29 @@ export const UnifiedProcessingDashboard: React.FC<UnifiedProcessingDashboardProp
     if (securityBreakdown && Object.values(securityBreakdown).some(count => count > 0)) {
       return PROCESSING_STAGES.find(s => s.id === 'securing') || PROCESSING_STAGES[3];
     }
-    
+
     if (pageResults.length > 0) {
       return PROCESSING_STAGES.find(s => s.id === 'categorizing') || PROCESSING_STAGES[2];
     }
-    
+
     if (progress?.status === 'processing') {
       return PROCESSING_STAGES.find(s => s.id === 'processing') || PROCESSING_STAGES[1];
     }
-    
+
     return PROCESSING_STAGES.find(s => s.id === 'validating') || PROCESSING_STAGES[0];
   };
 
   const currentStage = getCurrentStage();
-  
+
   // Enhanced progress calculation
   const getOverallProgress = (): number => {
     if (currentStage.id === 'completed') return 100;
     if (currentStage.id === 'failed') return 0;
-    
+
     if (progress?.percentComplete !== undefined) {
       return Math.min(progress.percentComplete, 95);
     }
-    
+
     return 15; // Default progress
   };
 
@@ -158,7 +158,7 @@ export const UnifiedProcessingDashboard: React.FC<UnifiedProcessingDashboardProp
   // Get security insights
   const getSecurityInsights = () => {
     if (!securityBreakdown) return null;
-    
+
     const insights = Object.entries(securityBreakdown)
       .filter(([_, count]) => count > 0)
       .map(([type, count]) => ({
@@ -170,10 +170,10 @@ export const UnifiedProcessingDashboard: React.FC<UnifiedProcessingDashboardProp
         const severityOrder = { high: 3, medium: 2, low: 1 };
         return severityOrder[b.severity as keyof typeof severityOrder] - severityOrder[a.severity as keyof typeof severityOrder];
       });
-    
+
     const totalProtected = Object.values(securityBreakdown).reduce((sum, count) => sum + count, 0);
     const criticalItems = insights.filter(item => item.severity === 'high').reduce((sum, item) => sum + item.count, 0);
-    
+
     return { insights, totalProtected, criticalItems };
   };
 
@@ -182,7 +182,7 @@ export const UnifiedProcessingDashboard: React.FC<UnifiedProcessingDashboardProp
   // Enhanced log formatting
   const formatLog = (log: string): { message: string; type: 'info' | 'success' | 'warning' | 'error'; timestamp: string } => {
     const timestamp = new Date().toLocaleTimeString();
-    
+
     if (log.includes('Successfully') || log.includes('✅') || log.includes('completed')) {
       return { message: log, type: 'success', timestamp };
     }
@@ -192,7 +192,7 @@ export const UnifiedProcessingDashboard: React.FC<UnifiedProcessingDashboardProp
     if (log.includes('Warning') || log.includes('⚠️')) {
       return { message: log, type: 'warning', timestamp };
     }
-    
+
     return { message: log, type: 'info', timestamp };
   };
 
@@ -209,7 +209,7 @@ export const UnifiedProcessingDashboard: React.FC<UnifiedProcessingDashboardProp
   };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -30 }}
@@ -219,19 +219,18 @@ export const UnifiedProcessingDashboard: React.FC<UnifiedProcessingDashboardProp
       {/* Premium Glass Card */}
       <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-purple-500/10 rounded-3xl blur-xl"></div>
       <div className="relative bg-white/95 backdrop-blur-xl rounded-3xl border border-white/50 shadow-2xl overflow-hidden">
-        
+
         {/* Header with Live Status */}
         <div className="relative bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 px-8 py-6">
           <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20"></div>
           <div className="relative flex items-center justify-between">
             <div className="flex items-center space-x-6">
               <motion.div
-                className={`w-20 h-20 rounded-2xl flex items-center justify-center shadow-lg bg-gradient-to-br ${
-                  currentStage.id === 'completed' ? 'from-green-500 to-emerald-600' :
-                  currentStage.id === 'failed' ? 'from-red-500 to-rose-600' :
-                  `from-${currentStage.color}-500 to-${currentStage.color}-600`
-                }`}
-                animate={{ 
+                className={`w-20 h-20 rounded-2xl flex items-center justify-center shadow-lg bg-gradient-to-br ${currentStage.id === 'completed' ? 'from-green-500 to-emerald-600' :
+                    currentStage.id === 'failed' ? 'from-red-500 to-rose-600' :
+                      `from-${currentStage.color}-500 to-${currentStage.color}-600`
+                  }`}
+                animate={{
                   scale: isProcessing ? [1, 1.05, 1] : 1,
                   boxShadow: isProcessing ? [
                     "0 10px 25px rgba(59, 130, 246, 0.5)",
@@ -239,7 +238,7 @@ export const UnifiedProcessingDashboard: React.FC<UnifiedProcessingDashboardProp
                     "0 10px 25px rgba(59, 130, 246, 0.5)"
                   ] : "0 10px 25px rgba(0, 0, 0, 0.1)"
                 }}
-                transition={{ 
+                transition={{
                   repeat: isProcessing ? Infinity : 0,
                   duration: 2.5,
                   ease: "easeInOut"
@@ -247,11 +246,11 @@ export const UnifiedProcessingDashboard: React.FC<UnifiedProcessingDashboardProp
               >
                 <span className="text-3xl text-white">{currentStage.icon}</span>
               </motion.div>
-              
+
               <div className="text-white">
                 <h2 className="text-3xl font-bold mb-2">{currentStage.label}</h2>
                 <p className="text-blue-100 text-lg mb-3">{currentStage.description}</p>
-                
+
                 {/* File Information */}
                 {fileInfo && (
                   <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 mb-3 border border-white/20">
@@ -278,7 +277,7 @@ export const UnifiedProcessingDashboard: React.FC<UnifiedProcessingDashboardProp
                     </div>
                   </div>
                 )}
-                
+
                 {/* Live Metrics */}
                 <div className="flex items-center space-x-6 text-sm">`
                   {isProcessing && (
@@ -305,7 +304,7 @@ export const UnifiedProcessingDashboard: React.FC<UnifiedProcessingDashboardProp
                 </div>
               </div>
             </div>
-            
+
             {/* Progress Ring */}
             <div className="relative">
               <svg className="w-24 h-24 transform -rotate-90" viewBox="0 0 36 36">
@@ -347,11 +346,10 @@ export const UnifiedProcessingDashboard: React.FC<UnifiedProcessingDashboardProp
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`relative py-4 px-2 text-sm font-medium transition-all duration-300 ${
-                  activeTab === tab.id
+                className={`relative py-4 px-2 text-sm font-medium transition-all duration-300 ${activeTab === tab.id
                     ? 'text-blue-600 border-b-2 border-blue-600'
                     : 'text-gray-500 hover:text-gray-700'
-                }`}
+                  }`}
               >
                 <div className="flex items-center space-x-2">
                   <span>{tab.icon}</span>
@@ -382,34 +380,42 @@ export const UnifiedProcessingDashboard: React.FC<UnifiedProcessingDashboardProp
                 {/* Stage Progress */}
                 <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-200/50">
                   <h3 className="text-xl font-bold text-gray-900 mb-4">Processing Pipeline</h3>
-                  <div className="flex justify-between items-center">
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-6 md:space-y-0">
                     {PROCESSING_STAGES.slice(0, -2).map((stage, index) => {
                       const isActive = stage.id === currentStage.id;
                       const isCompleted = PROCESSING_STAGES.findIndex(s => s.id === currentStage.id) > index;
-                      
+
                       return (
-                        <div key={stage.id} className="flex flex-col items-center relative">
+                        <div key={stage.id} className="flex flex-row md:flex-col items-center relative w-full md:w-auto">
+                          {/* Desktop Connector (Horizontal) */}
                           {index < PROCESSING_STAGES.length - 3 && (
-                            <div className={`absolute top-6 left-12 w-24 h-0.5 ${
-                              isCompleted ? 'bg-green-400' : 'bg-gray-300'
-                            }`} />
+                            <div className={`hidden md:block absolute top-6 left-12 w-[calc(100%-3rem)] h-0.5 ${isCompleted ? 'bg-green-400' : 'bg-gray-300'
+                              }`} />
                           )}
-                          <motion.div 
-                            className={`w-12 h-12 rounded-xl flex items-center justify-center text-lg shadow-lg ${
-                              isActive ? `bg-gradient-to-br from-${stage.color}-500 to-${stage.color}-600 text-white` :
-                              isCompleted ? 'bg-green-500 text-white' :
-                              'bg-gray-200 text-gray-400'
-                            }`}
+
+                          {/* Mobile Connector (Vertical) */}
+                          {index < PROCESSING_STAGES.length - 3 && (
+                            <div className={`md:hidden absolute left-6 top-12 h-6 w-0.5 ${isCompleted ? 'bg-green-400' : 'bg-gray-300'
+                              }`} />
+                          )}
+
+                          <motion.div
+                            className={`w-12 h-12 rounded-xl flex items-center justify-center text-lg shadow-lg flex-shrink-0 z-10 ${isActive ? `bg-gradient-to-br from-${stage.color}-500 to-${stage.color}-600 text-white` :
+                                isCompleted ? 'bg-green-500 text-white' :
+                                  'bg-gray-200 text-gray-400'
+                              }`}
                             animate={isActive ? { scale: [1, 1.1, 1] } : {}}
                             transition={{ repeat: isActive ? Infinity : 0, duration: 2 }}
                           >
                             {isCompleted && !isActive ? '✓' : stage.icon}
                           </motion.div>
-                          <span className={`text-sm font-medium mt-2 text-center max-w-20 ${
-                            isActive ? 'text-blue-600' : isCompleted ? 'text-green-600' : 'text-gray-500'
-                          }`}>
-                            {stage.label}
-                          </span>
+
+                          <div className="ml-4 md:ml-0 md:mt-2 flex flex-col md:items-center">
+                            <span className={`text-sm font-medium text-left md:text-center md:max-w-[5rem] ${isActive ? 'text-blue-600' : isCompleted ? 'text-green-600' : 'text-gray-500'
+                              }`}>
+                              {stage.label}
+                            </span>
+                          </div>
                         </div>
                       );
                     })}
@@ -432,7 +438,7 @@ export const UnifiedProcessingDashboard: React.FC<UnifiedProcessingDashboardProp
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
                     <div className="flex items-center space-x-3">
                       <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
@@ -446,7 +452,7 @@ export const UnifiedProcessingDashboard: React.FC<UnifiedProcessingDashboardProp
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
                     <div className="flex items-center space-x-3">
                       <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
@@ -476,7 +482,7 @@ export const UnifiedProcessingDashboard: React.FC<UnifiedProcessingDashboardProp
                     </div>
                   </div>
                 )}
-                
+
                 {currentStage.id === 'completed' && (
                   <div className="bg-green-50 border border-green-200 rounded-xl p-6">
                     <div className="flex items-start space-x-4">
@@ -520,7 +526,7 @@ export const UnifiedProcessingDashboard: React.FC<UnifiedProcessingDashboardProp
                           </p>
                         </div>
                       </div>
-                      
+
                       <div className="grid grid-cols-2 gap-4">
                         <div className="bg-white/80 rounded-lg p-4">
                           <p className="text-sm text-emerald-600 font-medium">Total Protected</p>
@@ -541,19 +547,17 @@ export const UnifiedProcessingDashboard: React.FC<UnifiedProcessingDashboardProp
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: index * 0.1 }}
-                          className={`bg-white rounded-xl p-6 border-l-4 shadow-sm ${
-                            insight.severity === 'high' ? 'border-red-500' :
-                            insight.severity === 'medium' ? 'border-yellow-500' :
-                            'border-green-500'
-                          }`}
+                          className={`bg-white rounded-xl p-6 border-l-4 shadow-sm ${insight.severity === 'high' ? 'border-red-500' :
+                              insight.severity === 'medium' ? 'border-yellow-500' :
+                                'border-green-500'
+                            }`}
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-4">
-                              <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                                insight.severity === 'high' ? 'bg-red-100' :
-                                insight.severity === 'medium' ? 'bg-yellow-100' :
-                                'bg-green-100'
-                              }`}>
+                              <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${insight.severity === 'high' ? 'bg-red-100' :
+                                  insight.severity === 'medium' ? 'bg-yellow-100' :
+                                    'bg-green-100'
+                                }`}>
                                 <span className="text-xl">{insight.icon}</span>
                               </div>
                               <div>
@@ -564,11 +568,10 @@ export const UnifiedProcessingDashboard: React.FC<UnifiedProcessingDashboardProp
                               </div>
                             </div>
                             <div className="flex items-center space-x-3">
-                              <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                insight.severity === 'high' ? 'bg-red-100 text-red-800' :
-                                insight.severity === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                                'bg-green-100 text-green-800'
-                              }`}>
+                              <span className={`px-3 py-1 rounded-full text-xs font-medium ${insight.severity === 'high' ? 'bg-red-100 text-red-800' :
+                                  insight.severity === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                                    'bg-green-100 text-green-800'
+                                }`}>
                                 {insight.severity.toUpperCase()} RISK
                               </span>
                               <span className="text-2xl font-bold text-gray-900">{insight.count}</span>
@@ -610,9 +613,8 @@ export const UnifiedProcessingDashboard: React.FC<UnifiedProcessingDashboardProp
                     >
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center space-x-4">
-                          <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                            page.success ? 'bg-green-100' : 'bg-red-100'
-                          }`}>
+                          <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${page.success ? 'bg-green-100' : 'bg-red-100'
+                            }`}>
                             <span className="text-xl">
                               {page.success ? '✅' : '❌'}
                             </span>
@@ -631,7 +633,7 @@ export const UnifiedProcessingDashboard: React.FC<UnifiedProcessingDashboardProp
                           {expandedSections.has(`page-${index}`) ? 'Hide Details' : 'Show Details'}
                         </button>
                       </div>
-                      
+
                       <AnimatePresence>
                         {expandedSections.has(`page-${index}`) && (
                           <motion.div
@@ -694,17 +696,16 @@ export const UnifiedProcessingDashboard: React.FC<UnifiedProcessingDashboardProp
                     <button
                       onClick={onClearLogs}
                       disabled={isProcessing}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                        isProcessing 
-                          ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
+                      className={`px-4 py-2 rounded-lg text-sm font-medium ${isProcessing
+                          ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                           : 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 shadow-sm'
-                      }`}
+                        }`}
                     >
                       Clear All Logs
                     </button>
                   )}
                 </div>
-                
+
                 {formattedLogs.length > 0 ? (
                   <div className="space-y-3 max-h-96 overflow-y-auto">
                     {formattedLogs.map((log, index) => (
@@ -713,34 +714,31 @@ export const UnifiedProcessingDashboard: React.FC<UnifiedProcessingDashboardProp
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: index * 0.05 }}
-                        className={`rounded-lg p-4 border-l-4 ${
-                          log.type === 'success' ? 'bg-green-50 border-green-500' :
-                          log.type === 'error' ? 'bg-red-50 border-red-500' :
-                          log.type === 'warning' ? 'bg-yellow-50 border-yellow-500' :
-                          'bg-blue-50 border-blue-500'
-                        }`}
+                        className={`rounded-lg p-4 border-l-4 ${log.type === 'success' ? 'bg-green-50 border-green-500' :
+                            log.type === 'error' ? 'bg-red-50 border-red-500' :
+                              log.type === 'warning' ? 'bg-yellow-50 border-yellow-500' :
+                                'bg-blue-50 border-blue-500'
+                          }`}
                       >
                         <div className="flex items-start space-x-3">
                           <span className="text-lg">
                             {log.type === 'success' ? '✅' :
-                             log.type === 'error' ? '❌' :
-                             log.type === 'warning' ? '⚠️' : 'ℹ️'}
+                              log.type === 'error' ? '❌' :
+                                log.type === 'warning' ? '⚠️' : 'ℹ️'}
                           </span>
                           <div className="flex-1">
-                            <p className={`text-sm font-medium ${
-                              log.type === 'success' ? 'text-green-900' :
-                              log.type === 'error' ? 'text-red-900' :
-                              log.type === 'warning' ? 'text-yellow-900' :
-                              'text-blue-900'
-                            }`}>
+                            <p className={`text-sm font-medium ${log.type === 'success' ? 'text-green-900' :
+                                log.type === 'error' ? 'text-red-900' :
+                                  log.type === 'warning' ? 'text-yellow-900' :
+                                    'text-blue-900'
+                              }`}>
                               {log.message}
                             </p>
-                            <p className={`text-xs mt-1 ${
-                              log.type === 'success' ? 'text-green-600' :
-                              log.type === 'error' ? 'text-red-600' :
-                              log.type === 'warning' ? 'text-yellow-600' :
-                              'text-blue-600'
-                            }`}>
+                            <p className={`text-xs mt-1 ${log.type === 'success' ? 'text-green-600' :
+                                log.type === 'error' ? 'text-red-600' :
+                                  log.type === 'warning' ? 'text-yellow-600' :
+                                    'text-blue-600'
+                              }`}>
                               {log.timestamp}
                             </p>
                           </div>

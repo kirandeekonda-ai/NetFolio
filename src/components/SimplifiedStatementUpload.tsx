@@ -298,49 +298,51 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
       {enhancedError && (
         <div className="relative">
           <div className="absolute inset-0 bg-gradient-to-r from-red-400/20 to-pink-500/20 rounded-3xl blur-xl"></div>
-          <div className="relative bg-gradient-to-r from-red-50 to-pink-50 backdrop-blur-xl rounded-3xl p-8 border border-red-200/50 shadow-xl">
-            <div className="flex items-start space-x-6">
-              <div className="w-16 h-16 bg-gradient-to-br from-red-500 to-pink-600 rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0">
+          <div className="relative bg-gradient-to-r from-red-50 to-pink-50 backdrop-blur-xl rounded-3xl p-6 md:p-8 border border-red-200/50 shadow-xl">
+            <div className="flex flex-col md:flex-row items-start gap-6">
+              <div className="w-16 h-16 bg-gradient-to-br from-red-500 to-pink-600 rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0 self-center md:self-start mb-4 md:mb-0">
                 <span className="text-white text-2xl">⚠️</span>
               </div>
-              <div className="flex-1">
-                <h3 className="text-xl font-semibold text-red-900 mb-3">Processing Failed</h3>
-                <p className="text-red-800 mb-6 leading-relaxed">{enhancedError}</p>
+              <div className="flex-1 w-full">
+                <h3 className="text-xl font-semibold text-red-900 mb-3 text-center md:text-left">Processing Failed</h3>
+                <p className="text-red-800 mb-6 leading-relaxed break-words break-all text-center md:text-left">{enhancedError}</p>
 
                 <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 mb-6">
-                  <h4 className="font-semibold text-red-900 mb-3 flex items-center">
+                  <h4 className="font-semibold text-red-900 mb-3 flex items-center justify-center md:justify-start">
                     <span className="mr-2">💡</span>
                     Quick Solutions
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-red-800">
                     <div className="flex items-start space-x-2">
-                      <span className="text-red-500 mt-0.5">•</span>
+                      <span className="text-red-500 mt-0.5 flex-shrink-0">•</span>
                       <span>Verify bank name matches statement exactly</span>
                     </div>
                     <div className="flex items-start space-x-2">
-                      <span className="text-red-500 mt-0.5">•</span>
+                      <span className="text-red-500 mt-0.5 flex-shrink-0">•</span>
                       <span>Check month and year are correct</span>
                     </div>
                     <div className="flex items-start space-x-2">
-                      <span className="text-red-500 mt-0.5">•</span>
+                      <span className="text-red-500 mt-0.5 flex-shrink-0">•</span>
                       <span>Ensure PDF is readable and not protected</span>
                     </div>
                     <div className="flex items-start space-x-2">
-                      <span className="text-red-500 mt-0.5">•</span>
+                      <span className="text-red-500 mt-0.5 flex-shrink-0">•</span>
                       <span>Try a different statement if corrupted</span>
                     </div>
                   </div>
                 </div>
 
-                <Button
-                  onClick={handleRetry}
-                  className="bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white shadow-lg"
-                >
-                  <span className="flex items-center space-x-2">
-                    <span>🔄</span>
-                    <span>Try Again</span>
-                  </span>
-                </Button>
+                <div className="flex justify-center md:justify-start">
+                  <Button
+                    onClick={handleRetry}
+                    className="bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white shadow-lg w-full md:w-auto"
+                  >
+                    <span className="flex items-center justify-center space-x-2">
+                      <span>🔄</span>
+                      <span>Try Again</span>
+                    </span>
+                  </Button>
+                </div>
               </div>
             </div>
           </div>

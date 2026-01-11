@@ -228,32 +228,32 @@ export const IncomeExpenseCategories: React.FC<IncomeExpenseCategoriesProps> = (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
 
         {/* Income Section */}
-        <div className="bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 rounded-3xl p-4 md:p-8 border border-emerald-100 shadow-lg">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0 mb-6 md:mb-8">
-            <div className="flex items-center space-x-4">
+        <div className="bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 rounded-3xl p-5 md:p-8 border border-emerald-100 shadow-lg">
+          <div className="flex flex-row items-center justify-between mb-6 md:mb-8">
+            <div className="flex items-center space-x-3 md:space-x-4">
               <div className="relative">
-                <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl flex items-center justify-center shadow-lg">
-                  <span className="text-white text-2xl font-bold">₹</span>
+                <div className="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl flex items-center justify-center shadow-lg">
+                  <span className="text-white text-xl md:text-2xl font-bold">₹</span>
                 </div>
-                <div className="absolute -top-1 -right-1 w-6 h-6 bg-emerald-400 rounded-full flex items-center justify-center">
-                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="absolute -top-1 -right-1 w-5 h-5 md:w-6 md:h-6 bg-emerald-400 rounded-full flex items-center justify-center">
+                  <svg className="w-2.5 h-2.5 md:w-3 md:h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M7 17l9.2-9.2M17 17V7H7" />
                   </svg>
                 </div>
               </div>
               <div>
-                <h3 className="text-2xl font-bold bg-gradient-to-r from-emerald-700 to-green-700 bg-clip-text text-transparent">
+                <h3 className="text-lg md:text-2xl font-bold bg-gradient-to-r from-emerald-700 to-green-700 bg-clip-text text-transparent">
                   Income
                 </h3>
-                <p className="text-emerald-600 font-medium">Revenue sources</p>
+                <p className="text-xs md:text-base text-emerald-600 font-medium">Revenue sources</p>
               </div>
             </div>
-            <div className="text-left sm:text-right">
-              <div className="text-3xl font-black text-emerald-600">
+            <div className="text-right">
+              <div className="text-xl md:text-3xl font-black text-emerald-600">
                 {formatAmount(totalIncome)}
               </div>
-              <div className="text-sm text-emerald-500 font-medium">
-                {incomeCategories.length} categories
+              <div className="text-xs md:text-sm text-emerald-500 font-medium">
+                {incomeCategories.length} cats
               </div>
             </div>
           </div>
@@ -281,34 +281,34 @@ export const IncomeExpenseCategories: React.FC<IncomeExpenseCategoriesProps> = (
         </div>
 
         {/* Expenses Section */}
-        <div className="bg-gradient-to-br from-rose-50 via-red-50 to-pink-50 rounded-3xl p-4 md:p-8 border border-rose-100 shadow-lg">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0 mb-6 md:mb-8">
-            <div className="flex items-center space-x-4">
+        <div className="bg-gradient-to-br from-rose-50 via-red-50 to-pink-50 rounded-3xl p-5 md:p-8 border border-rose-100 shadow-lg">
+          <div className="flex flex-row items-center justify-between mb-6 md:mb-8">
+            <div className="flex items-center space-x-3 md:space-x-4">
               <div className="relative">
-                <div className="w-16 h-16 bg-gradient-to-br from-rose-500 to-red-600 rounded-2xl flex items-center justify-center shadow-lg">
-                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-rose-500 to-red-600 rounded-2xl flex items-center justify-center shadow-lg">
+                  <svg className="w-6 h-6 md:w-8 md:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                   </svg>
                 </div>
-                <div className="absolute -top-1 -right-1 w-6 h-6 bg-rose-400 rounded-full flex items-center justify-center">
-                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="absolute -top-1 -right-1 w-5 h-5 md:w-6 md:h-6 bg-rose-400 rounded-full flex items-center justify-center">
+                  <svg className="w-2.5 h-2.5 md:w-3 md:h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M17 7l-9.2 9.2M7 7v10h10" />
                   </svg>
                 </div>
               </div>
               <div>
-                <h3 className="text-2xl font-bold bg-gradient-to-r from-rose-700 to-red-700 bg-clip-text text-transparent">
+                <h3 className="text-lg md:text-2xl font-bold bg-gradient-to-r from-rose-700 to-red-700 bg-clip-text text-transparent">
                   Expenses
                 </h3>
-                <p className="text-rose-600 font-medium">Spending breakdown</p>
+                <p className="text-xs md:text-base text-rose-600 font-medium">Spending breakdown</p>
               </div>
             </div>
-            <div className="text-left sm:text-right">
-              <div className="text-3xl font-black text-rose-600">
+            <div className="text-right">
+              <div className="text-xl md:text-3xl font-black text-rose-600">
                 {formatAmount(totalExpenses)}
               </div>
-              <div className="text-sm text-rose-500 font-medium">
-                {expenseCategories.length} categories
+              <div className="text-xs md:text-sm text-rose-500 font-medium">
+                {expenseCategories.length} cats
               </div>
             </div>
           </div>
@@ -371,8 +371,8 @@ export const IncomeExpenseCategories: React.FC<IncomeExpenseCategoriesProps> = (
 
             <div className="text-center group hover:scale-105 transition-transform duration-200">
               <div className={`w-16 h-16 mx-auto mb-3 rounded-2xl flex items-center justify-center shadow-lg ${totalIncome - totalExpenses >= 0
-                  ? 'bg-gradient-to-br from-emerald-500 to-green-600'
-                  : 'bg-gradient-to-br from-rose-500 to-red-600'
+                ? 'bg-gradient-to-br from-emerald-500 to-green-600'
+                : 'bg-gradient-to-br from-rose-500 to-red-600'
                 }`}>
                 <span className="text-white text-2xl font-bold">₹</span>
               </div>

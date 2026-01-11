@@ -256,7 +256,7 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user }) => {
           <div className="absolute bottom-20 left-1/3 w-40 h-40 bg-white/5 rounded-full blur-3xl"></div>
         </div>
 
-        <div className="relative max-w-7xl mx-auto px-6 py-16 md:py-24">
+        <div className="relative max-w-7xl mx-auto px-4 py-12 md:px-6 md:py-24">
           <div className="text-center text-white">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
@@ -279,7 +279,7 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user }) => {
         </div>
       </motion.section>
 
-      <div className="relative -mt-12 md:-mt-20 z-10 max-w-7xl mx-auto px-6">
+      <div className="relative -mt-12 md:-mt-20 z-10 max-w-7xl mx-auto px-4 md:px-6">
 
         {/* Premium Financial Overview */}
         <motion.section
@@ -336,7 +336,7 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user }) => {
               className="relative group"
             >
               <div className="absolute inset-0 bg-white rounded-3xl shadow-lg"></div>
-              <div className="relative bg-white rounded-3xl p-8 shadow-md border border-gray-100 h-full">
+              <div className="relative bg-white rounded-3xl p-5 md:p-8 shadow-md border border-gray-100 h-full">
                 <div className="flex items-center justify-between mb-6">
                   <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-2xl flex items-center justify-center">
                     <span className="text-3xl">📊</span>
@@ -400,7 +400,7 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user }) => {
 
                 <button
                   onClick={() => router.push(action.href)}
-                  className="relative w-full h-full bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-gray-100 group-hover:border-gray-200 flex flex-col"
+                  className="relative w-full h-full bg-white rounded-2xl p-4 md:p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-gray-100 group-hover:border-gray-200 flex flex-col"
                 >
                   {/* Icon Container - Fixed Size */}
                   <div className="flex justify-center mb-4">

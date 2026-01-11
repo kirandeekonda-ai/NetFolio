@@ -67,7 +67,7 @@ export const NetWorthCard: React.FC<NetWorthCardProps> = ({ data, isLoading }) =
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-3xl p-6 md:p-8 shadow-lg border border-gray-100 relative overflow-hidden"
+            className="bg-white rounded-3xl p-5 md:p-8 shadow-lg border border-gray-100 relative overflow-hidden"
         >
             {/* Background Decoration */}
             <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">

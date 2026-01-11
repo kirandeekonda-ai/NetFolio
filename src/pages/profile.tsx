@@ -27,14 +27,14 @@ const ProfilePage: NextPage = () => {
 
     try {
       setStatsData(prev => ({ ...prev, loading: true }));
-      
+
       const response = await fetch('/api/user/stats');
       if (!response.ok) {
         throw new Error('Failed to fetch stats');
       }
-      
+
       const stats = await response.json();
-      
+
       setStatsData({
         statementsCount: stats.statementsCount,
         categoriesCount: stats.categoriesCount,
@@ -68,18 +68,18 @@ const ProfilePage: NextPage = () => {
   return (
     <Layout>
       <div className="min-h-screen bg-gray-50">
-        <div className="max-w-5xl mx-auto px-4 py-8">
-          
+        <div className="max-w-5xl mx-auto px-4 py-6 md:px-4 md:py-8">
+
           {/* Clean Profile Header */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="bg-white rounded-xl shadow-sm border border-gray-200 mb-8"
+            className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6 md:mb-8"
           >
-            <div className="p-8">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-6">
+            <div className="p-4 md:p-8">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-6 md:gap-0">
+                <div className="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-6 text-center md:text-left">
                   {/* Clean Avatar */}
                   <div className="w-16 h-16 bg-blue-600 rounded-xl flex items-center justify-center shadow-sm">
                     <span className="text-white text-xl font-semibold">
@@ -95,7 +95,7 @@ const ProfilePage: NextPage = () => {
                     <p className="text-gray-600 text-sm mb-3">
                       {session.user.email}
                     </p>
-                    <div className="flex items-center space-x-4 text-xs text-gray-500">
+                    <div className="flex items-center justify-center md:justify-start space-x-4 text-xs text-gray-500">
                       <div className="flex items-center space-x-1">
                         <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                         <span>Active</span>
@@ -108,26 +108,26 @@ const ProfilePage: NextPage = () => {
                 </div>
 
                 {/* Clean Stats */}
-                <div className="flex items-center space-x-8">
+                <div className="flex items-center space-x-4 md:space-x-8 w-full md:w-auto justify-between md:justify-end px-4 md:px-0">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">
+                    <div className="text-lg md:text-2xl font-bold text-gray-900">
                       {statsData.loading ? '...' : statsData.accountsCount}
                     </div>
-                    <div className="text-xs text-gray-500 uppercase tracking-wide">Accounts</div>
+                    <div className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wide">Accounts</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">
+                    <div className="text-lg md:text-2xl font-bold text-gray-900">
                       {statsData.loading ? '...' : statsData.statementsCount}
                     </div>
-                    <div className="text-xs text-gray-500 uppercase tracking-wide">Statements</div>
+                    <div className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wide">Statements</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">
+                    <div className="text-lg md:text-2xl font-bold text-gray-900">
                       {statsData.loading ? '...' : statsData.categoriesCount}
                     </div>
-                    <div className="text-xs text-gray-500 uppercase tracking-wide">Categories</div>
+                    <div className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wide">Categories</div>
                   </div>
-                  
+
                   {/* Refresh Button */}
                   <button
                     onClick={fetchUserStats}
@@ -149,18 +149,17 @@ const ProfilePage: NextPage = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="bg-white rounded-xl shadow-sm border border-gray-200 mb-8"
+            className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6 md:mb-8 overflow-x-auto"
           >
-            <div className="flex border-b border-gray-100">
+            <div className="flex border-b border-gray-100 min-w-max">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center space-x-2 px-6 py-4 text-sm font-medium transition-colors duration-200 relative ${
-                    activeTab === tab.id
+                  className={`flex items-center space-x-2 px-6 py-4 text-sm font-medium transition-colors duration-200 relative ${activeTab === tab.id
                       ? 'text-blue-600 border-b-2 border-blue-600'
                       : 'text-gray-600 hover:text-gray-900'
-                  }`}
+                    }`}
                 >
                   <span>{tab.icon}</span>
                   <span>{tab.label}</span>
@@ -177,7 +176,7 @@ const ProfilePage: NextPage = () => {
             transition={{ duration: 0.4 }}
             className="bg-white rounded-xl shadow-sm border border-gray-200"
           >
-            <div className="p-8">
+            <div className="p-4 md:p-8">
               {activeTab === 'general' && <UserSettings />}
               {activeTab === 'categories' && <CategoryManager />}
             </div>

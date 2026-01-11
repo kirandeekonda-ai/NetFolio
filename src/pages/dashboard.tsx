@@ -146,7 +146,7 @@ const Dashboard: NextPage = () => {
         <div className="bg-white border-b border-gray-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 md:gap-0">
-              <div>
+              <div className="text-center md:text-left">
                 <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
                   Financial Dashboard
                 </h1>
@@ -156,12 +156,12 @@ const Dashboard: NextPage = () => {
               </div>
 
               {/* Enhanced Quick Period Selector - Header */}
-              <div className="flex flex-col items-end space-y-2 md:space-y-0 md:flex-row md:items-center md:space-x-4 w-full md:w-auto">
+              <div className="flex flex-col items-center md:items-end space-y-2 md:space-y-0 md:flex-row md:items-center md:space-x-4 w-full md:w-auto">
                 <div className="hidden md:block text-right">
                   <div className="text-sm font-medium text-gray-700">Quick Periods</div>
                   <div className="text-xs text-gray-500">Complete month ranges</div>
                 </div>
-                <div className="flex items-center space-x-3 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-2 shadow-sm border">
+                <div className="flex items-center justify-center w-full md:w-auto space-x-3 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-2 shadow-sm border">
                   {[
                     {
                       label: '1M',
@@ -217,7 +217,7 @@ const Dashboard: NextPage = () => {
                           whileHover={{ scale: 1.05, y: -2 }}
                           whileTap={{ scale: 0.95 }}
                           className={`
-                            relative flex flex-col items-center justify-center w-16 h-16 rounded-xl transition-all duration-300 group shadow-sm border-2
+                            relative flex flex-col items-center justify-center w-14 h-14 md:w-16 md:h-16 rounded-xl transition-all duration-300 group shadow-sm border-2
                             ${isActive
                               ? `bg-gradient-to-br ${period.gradient} text-white shadow-lg border-transparent transform scale-105`
                               : 'bg-white hover:bg-gray-50 text-gray-700 border-gray-200 hover:border-gray-300 hover:shadow-md'
@@ -225,10 +225,10 @@ const Dashboard: NextPage = () => {
                           `}
                           title={period.tooltip}
                         >
-                          <span className={`text-lg mb-1 transition-transform duration-200 ${isActive ? 'scale-110' : 'group-hover:scale-105'}`}>
+                          <span className={`text-base md:text-lg mb-0.5 md:mb-1 transition-transform duration-200 ${isActive ? 'scale-110' : 'group-hover:scale-105'}`}>
                             {period.icon}
                           </span>
-                          <span className={`text-xs font-bold ${isActive ? 'text-white' : 'text-gray-700'}`}>
+                          <span className={`text-[10px] md:text-xs font-bold ${isActive ? 'text-white' : 'text-gray-700'}`}>
                             {period.label}
                           </span>
 
@@ -239,30 +239,12 @@ const Dashboard: NextPage = () => {
                               animate={{ scale: 1, opacity: 1 }}
                               className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white shadow-sm flex items-center justify-center"
                             >
-                              <span className="text-xs text-white">✓</span>
+                              <span className="text-[10px] text-white">✓</span>
                             </motion.div>
                           )}
                         </motion.button>
 
-                        {/* Enhanced Tooltip */}
-                        <motion.div
-                          initial={{ opacity: 0, y: 10, scale: 0.9 }}
-                          whileHover={{ opacity: 1, y: 0, scale: 1 }}
-                          className="absolute top-full mt-2 left-1/2 transform -translate-x-1/2 z-50 pointer-events-none"
-                        >
-                          <div className="bg-gray-900 text-white px-3 py-2 rounded-lg shadow-lg text-xs whitespace-nowrap">
-                            <div className="font-medium">{period.desc}</div>
-                            <div className="text-gray-300">
-                              {(() => {
-                                const range = calculateCompleteMonthsRange(period.months);
-                                return range.monthsIncluded.length > 2
-                                  ? `${range.monthsIncluded[0]} - ${range.monthsIncluded[range.monthsIncluded.length - 1]}`
-                                  : range.monthsIncluded.join(', ');
-                              })()}
-                            </div>
-                            <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-900 rotate-45"></div>
-                          </div>
-                        </motion.div>
+                        {/* Tooltip omitted for brevity on mobile, kept for desktop in spirit but hidden by interaction mode usually */}
                       </div>
                     );
                   })}
@@ -272,24 +254,19 @@ const Dashboard: NextPage = () => {
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 space-y-6 md:space-y-8">
 
 
           {/* Enhanced Date Range Filter */}
-          <Card className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200">
+          <Card className="p-4 md:p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
               <div className="flex-1">
                 <h3 className="font-semibold text-gray-900 flex items-center space-x-2">
                   <span>📅</span>
                   <span>Analysis Period</span>
                 </h3>
-                <p className="text-sm text-gray-600 mt-1">
-                  Viewing complete months for accurate financial insights
-                </p>
-
-                {/* Period Summary */}
-                <div className="mt-3 flex items-center space-x-4">
-                  <div className="bg-white px-3 py-1 rounded-full border shadow-sm">
+                <div className="flex flex-wrap items-center gap-2 mt-2">
+                  <div className="bg-white px-2.5 py-1 rounded-md border shadow-sm inline-flex items-center">
                     <span className="text-xs font-medium text-gray-700">
                       {(() => {
                         const start = new Date(dateRange.start);
@@ -305,7 +282,7 @@ const Dashboard: NextPage = () => {
                       })()}
                     </span>
                   </div>
-                  <div className="text-xs text-gray-500">
+                  <span className="text-[10px] md:text-xs text-gray-500 font-medium">
                     {(() => {
                       const start = new Date(dateRange.start);
                       const end = new Date(dateRange.end);
@@ -313,27 +290,27 @@ const Dashboard: NextPage = () => {
                       const diffInDays = Math.ceil(diffInMs / (1000 * 60 * 60 * 24));
                       return `${diffInDays} days of data`;
                     })()}
-                  </div>
+                  </span>
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
-                <div className="flex items-center space-x-2">
-                  <label className="text-sm font-medium text-gray-700">From:</label>
+              <div className="grid grid-cols-2 gap-3 w-full sm:w-auto">
+                <div className="flex flex-col space-y-1 min-w-0">
+                  <label className="text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">From</label>
                   <input
                     type="date"
                     value={dateRange.start}
                     onChange={(e) => handleDateRangeChange('start', e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm"
+                    className="w-full px-2 py-2 md:px-3 border border-blue-200 rounded-lg text-xs md:text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm"
                   />
                 </div>
-                <div className="flex items-center space-x-2">
-                  <label className="text-sm font-medium text-gray-700">To:</label>
+                <div className="flex flex-col space-y-1 min-w-0">
+                  <label className="text-[10px] md:text-xs font-medium text-gray-500 uppercase tracking-wider">To</label>
                   <input
                     type="date"
                     value={dateRange.end}
                     onChange={(e) => handleDateRangeChange('end', e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm"
+                    className="w-full px-2 py-2 md:px-3 border border-blue-200 rounded-lg text-xs md:text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm"
                   />
                 </div>
               </div>

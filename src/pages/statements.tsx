@@ -501,7 +501,7 @@ File: ${statement.file_name || 'N/A'}`);
 
   return (
     <Layout>
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-0 md:px-4 py-0 md:py-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -538,7 +538,6 @@ File: ${statement.file_name || 'N/A'}`);
           setStatementToDelete('');
         }}
         onConfirm={confirmDeleteStatement}
-        type="danger"
         title="Delete Bank Statement"
         message={`Are you sure you want to delete this statement?
 
@@ -548,8 +547,6 @@ This will permanently delete:
 • ALL categorization work for these transactions
 
 This action cannot be undone.`}
-        confirmButtonText="Delete Statement"
-        cancelButtonText="Cancel"
       />
 
       {/* Toast Provider */}

@@ -164,7 +164,7 @@ export const Layout: FC<LayoutProps> = ({ children }) => {
 
       {/* Main Content */}
       <main className="md:pl-64 min-h-screen">
-        <div className="container mx-auto p-6 pt-20 md:pt-6">
+        <div className="container mx-auto p-0 pt-16 md:p-6 md:pt-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

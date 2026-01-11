@@ -14,7 +14,7 @@ export const UserSettings: FC = () => {
   const user = useUser();
   const router = useRouter();
   const { checkProtectionStatus } = useBalanceProtection();
-  
+
   const [currency, setCurrency] = useState<string>('USD');
   const [isLoading, setIsLoading] = useState(false);
   const [savedMessage, setSavedMessage] = useState('');
@@ -22,7 +22,7 @@ export const UserSettings: FC = () => {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState('');
   const [activeSection, setActiveSection] = useState<'general' | 'security' | 'ai' | 'keepalive' | 'account'>('general');
-  
+
   // Keep alive state
   const [keepAlive, setKeepAlive] = useState({
     enabled: false,
@@ -32,7 +32,7 @@ export const UserSettings: FC = () => {
     testStatus: 'idle' as 'idle' | 'testing' | 'success' | 'error',
     testMessage: '',
   });
-  
+
   // Balance protection state
   const [balanceProtection, setBalanceProtection] = useState({
     enabled: false,
@@ -83,7 +83,7 @@ export const UserSettings: FC = () => {
             </motion.div>
           )}
         </div>
-        
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div>
             <label htmlFor="currency" className="block text-sm font-medium text-gray-700 mb-2">
@@ -111,7 +111,7 @@ export const UserSettings: FC = () => {
               </div>
             </div>
           </div>
-          
+
           <div className="flex items-end">
             <div className="bg-gray-50 rounded-lg p-4 w-full border border-gray-200">
               <h4 className="text-sm font-medium text-gray-700 mb-2">Current Selection</h4>
@@ -175,14 +175,12 @@ export const UserSettings: FC = () => {
               <button
                 onClick={handleToggleBalanceProtection}
                 disabled={balanceProtection.isLoading && !balanceProtection.enabled}
-                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${
-                  balanceProtection.enabled ? 'bg-blue-600' : 'bg-gray-200'
-                }`}
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${balanceProtection.enabled ? 'bg-blue-600' : 'bg-gray-200'
+                  }`}
               >
                 <span
-                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                    balanceProtection.enabled ? 'translate-x-5' : 'translate-x-0'
-                  }`}
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${balanceProtection.enabled ? 'translate-x-5' : 'translate-x-0'
+                    }`}
                 />
               </button>
             </div>
@@ -226,11 +224,10 @@ export const UserSettings: FC = () => {
                       value: '',
                       confirmValue: '',
                     }))}
-                    className={`p-4 border-2 rounded-lg text-left transition-all ${
-                      balanceProtection.type === 'pin'
+                    className={`p-4 border-2 rounded-lg text-left transition-all ${balanceProtection.type === 'pin'
                         ? 'border-blue-500 bg-blue-50 text-blue-900'
                         : 'border-gray-200 hover:border-gray-300'
-                    }`}
+                      }`}
                   >
                     <div className="text-2xl mb-2">📱</div>
                     <div className="font-medium">PIN Code</div>
@@ -244,11 +241,10 @@ export const UserSettings: FC = () => {
                       value: '',
                       confirmValue: '',
                     }))}
-                    className={`p-4 border-2 rounded-lg text-left transition-all ${
-                      balanceProtection.type === 'password'
+                    className={`p-4 border-2 rounded-lg text-left transition-all ${balanceProtection.type === 'password'
                         ? 'border-blue-500 bg-blue-50 text-blue-900'
                         : 'border-gray-200 hover:border-gray-300'
-                    }`}
+                      }`}
                   >
                     <div className="text-2xl mb-2">🔑</div>
                     <div className="font-medium">Password</div>
@@ -294,46 +290,45 @@ export const UserSettings: FC = () => {
               </div>
 
               {/* Validation Messages */}
-              {balanceProtection.value && balanceProtection.confirmValue && 
-               balanceProtection.value !== balanceProtection.confirmValue && (
-                <div className="text-red-600 text-sm bg-red-50 rounded-lg p-3">
-                  {balanceProtection.type === 'pin' ? 'PINs' : 'Passwords'} do not match
-                </div>
-              )}
-              
-              {balanceProtection.type === 'pin' && balanceProtection.value && 
-               !/^\d{4,6}$/.test(balanceProtection.value) && (
-                <div className="text-red-600 text-sm bg-red-50 rounded-lg p-3">
-                  PIN must be 4-6 digits
-                </div>
-              )}
-              
-              {balanceProtection.type === 'password' && balanceProtection.value && 
-               balanceProtection.value.length < 4 && (
-                <div className="text-red-600 text-sm bg-red-50 rounded-lg p-3">
-                  Password must be at least 4 characters
-                </div>
-              )}
+              {balanceProtection.value && balanceProtection.confirmValue &&
+                balanceProtection.value !== balanceProtection.confirmValue && (
+                  <div className="text-red-600 text-sm bg-red-50 rounded-lg p-3">
+                    {balanceProtection.type === 'pin' ? 'PINs' : 'Passwords'} do not match
+                  </div>
+                )}
+
+              {balanceProtection.type === 'pin' && balanceProtection.value &&
+                !/^\d{4,6}$/.test(balanceProtection.value) && (
+                  <div className="text-red-600 text-sm bg-red-50 rounded-lg p-3">
+                    PIN must be 4-6 digits
+                  </div>
+                )}
+
+              {balanceProtection.type === 'password' && balanceProtection.value &&
+                balanceProtection.value.length < 4 && (
+                  <div className="text-red-600 text-sm bg-red-50 rounded-lg p-3">
+                    Password must be at least 4 characters
+                  </div>
+                )}
 
               {/* Save Button */}
               <div className="flex justify-end pt-4 border-t">
                 <Button
                   onClick={handleSaveBalanceProtection}
                   disabled={balanceProtection.isLoading || balanceProtection.saveStatus === 'saving'}
-                  className={`px-6 py-2 ${
-                    balanceProtection.saveStatus === 'success' 
-                      ? 'bg-green-600 hover:bg-green-700' 
+                  className={`px-6 py-2 ${balanceProtection.saveStatus === 'success'
+                      ? 'bg-green-600 hover:bg-green-700'
                       : balanceProtection.saveStatus === 'error'
-                      ? 'bg-red-600 hover:bg-red-700'
-                      : ''
-                  }`}
+                        ? 'bg-red-600 hover:bg-red-700'
+                        : ''
+                    }`}
                 >
                   {balanceProtection.saveStatus === 'saving' && (
                     <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
                   )}
-                  {balanceProtection.saveStatus === 'success' ? '✓ Saved' : 
-                   balanceProtection.saveStatus === 'error' ? '✗ Error' : 
-                   'Save Protection Settings'}
+                  {balanceProtection.saveStatus === 'success' ? '✓ Saved' :
+                    balanceProtection.saveStatus === 'error' ? '✗ Error' :
+                      'Save Protection Settings'}
                 </Button>
               </div>
             </motion.div>
@@ -379,14 +374,12 @@ export const UserSettings: FC = () => {
             <button
               onClick={handleToggleKeepAlive}
               disabled={keepAlive.isLoading}
-              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${
-                keepAlive.enabled ? 'bg-blue-600' : 'bg-gray-200'
-              }`}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${keepAlive.enabled ? 'bg-blue-600' : 'bg-gray-200'
+                }`}
             >
               <span
-                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                  keepAlive.enabled ? 'translate-x-5' : 'translate-x-0'
-                }`}
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${keepAlive.enabled ? 'translate-x-5' : 'translate-x-0'
+                  }`}
               />
             </button>
           </div>
@@ -425,7 +418,7 @@ export const UserSettings: FC = () => {
                   <div>
                     <h4 className="text-sm font-medium text-blue-900">How it works</h4>
                     <p className="text-sm text-blue-800 mt-1">
-                      Every 5 minutes, your website will automatically call the provided URL, which should perform a simple database read operation. 
+                      Every 5 minutes, your website will automatically call the provided URL, which should perform a simple database read operation.
                       This keeps both your hosting service and database active, preventing automatic shutdowns and data deletion.
                     </p>
                   </div>
@@ -435,21 +428,20 @@ export const UserSettings: FC = () => {
               <Button
                 onClick={handleSaveKeepAlive}
                 disabled={keepAlive.isLoading || !keepAlive.url.trim()}
-                className={`px-6 py-2 ${
-                  keepAlive.saveStatus === 'success' 
-                    ? 'bg-green-600 hover:bg-green-700' 
+                className={`px-6 py-2 ${keepAlive.saveStatus === 'success'
+                    ? 'bg-green-600 hover:bg-green-700'
                     : keepAlive.saveStatus === 'error'
-                    ? 'bg-red-600 hover:bg-red-700'
-                    : ''
-                }`}
+                      ? 'bg-red-600 hover:bg-red-700'
+                      : ''
+                  }`}
               >
                 {keepAlive.isLoading && (
                   <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
                 )}
                 {keepAlive.saveStatus === 'saving' ? 'Saving...' :
-                 keepAlive.saveStatus === 'success' ? '✓ Saved' : 
-                 keepAlive.saveStatus === 'error' ? '✗ Error' : 
-                 'Save Keep Alive Settings'}
+                  keepAlive.saveStatus === 'success' ? '✓ Saved' :
+                    keepAlive.saveStatus === 'error' ? '✗ Error' :
+                      'Save Keep Alive Settings'}
               </Button>
             </motion.div>
           )}
@@ -470,7 +462,7 @@ export const UserSettings: FC = () => {
             Permanently delete your account and all associated data
           </p>
         </div>
-        
+
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <div className="flex items-start space-x-4">
             <div className="flex-shrink-0">
@@ -483,8 +475,8 @@ export const UserSettings: FC = () => {
             <div className="flex-1">
               <h4 className="text-sm font-semibold text-gray-900 mb-2">Delete My Profile</h4>
               <p className="text-gray-600 text-sm mb-4">
-                This action cannot be undone. This will permanently delete your account, 
-                all your financial data, categories, LLM provider settings, and remove 
+                This action cannot be undone. This will permanently delete your account,
+                all your financial data, categories, LLM provider settings, and remove
                 your access to the application.
               </p>
               <button
@@ -552,14 +544,12 @@ export const UserSettings: FC = () => {
             <button
               onClick={handleToggleKeepAlive}
               disabled={keepAlive.isLoading}
-              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${
-                keepAlive.enabled ? 'bg-blue-600' : 'bg-gray-200'
-              }`}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${keepAlive.enabled ? 'bg-blue-600' : 'bg-gray-200'
+                }`}
             >
               <span
-                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                  keepAlive.enabled ? 'translate-x-5' : 'translate-x-0'
-                }`}
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${keepAlive.enabled ? 'translate-x-5' : 'translate-x-0'
+                  }`}
               />
             </button>
           </div>
@@ -593,35 +583,33 @@ export const UserSettings: FC = () => {
               <Button
                 onClick={handleSaveKeepAlive}
                 disabled={keepAlive.isLoading || !keepAlive.url}
-                className={`px-6 py-2 ${
-                  keepAlive.saveStatus === 'success' 
-                    ? 'bg-green-600 hover:bg-green-700' 
+                className={`px-6 py-2 ${keepAlive.saveStatus === 'success'
+                    ? 'bg-green-600 hover:bg-green-700'
                     : keepAlive.saveStatus === 'error'
-                    ? 'bg-red-600 hover:bg-red-700'
-                    : ''
-                }`}
+                      ? 'bg-red-600 hover:bg-red-700'
+                      : ''
+                  }`}
               >
                 {keepAlive.saveStatus === 'saving' && (
                   <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
                 )}
-                {keepAlive.saveStatus === 'success' ? '✓ Saved' : 
-                 keepAlive.saveStatus === 'error' ? '✗ Error' : 
-                 'Save Settings'}
+                {keepAlive.saveStatus === 'success' ? '✓ Saved' :
+                  keepAlive.saveStatus === 'error' ? '✗ Error' :
+                    'Save Settings'}
               </Button>
-              
+
               {keepAlive.enabled && keepAlive.url && (
                 <button
                   onClick={handleTestKeepAlive}
                   disabled={keepAlive.testStatus === 'testing'}
-                  className={`px-4 py-2 border rounded-lg transition-colors text-sm font-medium ${
-                    keepAlive.testStatus === 'testing' 
+                  className={`px-4 py-2 border rounded-lg transition-colors text-sm font-medium ${keepAlive.testStatus === 'testing'
                       ? 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'
                       : keepAlive.testStatus === 'success'
-                      ? 'bg-green-50 border-green-500 text-green-700 hover:bg-green-100'
-                      : keepAlive.testStatus === 'error'
-                      ? 'bg-red-50 border-red-500 text-red-700 hover:bg-red-100'
-                      : 'bg-blue-50 border-blue-500 text-blue-700 hover:bg-blue-100'
-                  }`}
+                        ? 'bg-green-50 border-green-500 text-green-700 hover:bg-green-100'
+                        : keepAlive.testStatus === 'error'
+                          ? 'bg-red-50 border-red-500 text-red-700 hover:bg-red-100'
+                          : 'bg-blue-50 border-blue-500 text-blue-700 hover:bg-blue-100'
+                    }`}
                 >
                   {keepAlive.testStatus === 'testing' && (
                     <div className="inline-flex items-center">
@@ -642,11 +630,10 @@ export const UserSettings: FC = () => {
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className={`mt-4 p-4 rounded-lg border ${
-                  keepAlive.testStatus === 'success'
+                className={`mt-4 p-4 rounded-lg border ${keepAlive.testStatus === 'success'
                     ? 'bg-green-50 border-green-200 text-green-800'
                     : 'bg-red-50 border-red-200 text-red-800'
-                }`}
+                  }`}
               >
                 <div className="flex items-start space-x-3">
                   <div className="flex-shrink-0 mt-0.5">
@@ -729,7 +716,7 @@ export const UserSettings: FC = () => {
       await supabase
         .from('user_preferences')
         .upsert({ user_id: user.id, currency: newCurrency });
-      
+
       setSavedMessage('Currency preference saved!');
       setTimeout(() => setSavedMessage(''), 3000);
     }
@@ -738,9 +725,9 @@ export const UserSettings: FC = () => {
 
   const handleToggleBalanceProtection = async () => {
     if (!user) return;
-    
+
     const newEnabledState = !balanceProtection.enabled;
-    
+
     // If enabling, just update the local state to show configuration options
     // Don't save to database until they configure and click save
     if (newEnabledState) {
@@ -753,7 +740,7 @@ export const UserSettings: FC = () => {
       }));
       return;
     }
-    
+
     // If disabling, save immediately to database
     setBalanceProtection(prev => ({
       ...prev,
@@ -780,18 +767,18 @@ export const UserSettings: FC = () => {
         throw new Error('Failed to update balance protection');
       }
 
-      setBalanceProtection(prev => ({ 
-        ...prev, 
+      setBalanceProtection(prev => ({
+        ...prev,
         isLoading: false,
         saveStatus: 'success'
       }));
-      
+
       // Refresh protection status in the hook
       await checkProtectionStatus();
-      
+
       // Clear success status after delay
       setTimeout(() => setBalanceProtection(prev => ({ ...prev, saveStatus: 'idle' })), 2000);
-      
+
     } catch (error) {
       console.error('Failed to toggle balance protection:', error);
       // Revert the local state on error
@@ -854,13 +841,13 @@ export const UserSettings: FC = () => {
         throw new Error('Failed to update balance protection');
       }
 
-      setBalanceProtection(prev => ({ 
-        ...prev, 
+      setBalanceProtection(prev => ({
+        ...prev,
         saveStatus: 'success',
-        value: '', 
-        confirmValue: '' 
+        value: '',
+        confirmValue: ''
       }));
-      
+
       checkProtectionStatus(); // Refresh protection status
       setTimeout(() => setBalanceProtection(prev => ({ ...prev, saveStatus: 'idle' })), 3000);
     } catch (error) {
@@ -874,14 +861,14 @@ export const UserSettings: FC = () => {
 
   const handleDeleteProfile = async () => {
     if (!user) return;
-    
+
     setDeleteLoading(true);
     setDeleteError('');
 
     try {
       // Get the current session to include the access token
       const { data: { session } } = await supabase.auth.getSession();
-      
+
       if (!session) {
         throw new Error('No active session found');
       }
@@ -902,10 +889,10 @@ export const UserSettings: FC = () => {
 
       // Sign out the user locally since their account was deleted
       await supabase.auth.signOut();
-      
+
       // Close the confirmation dialog
       setShowDeleteConfirm(false);
-      
+
       // Redirect to auth page after successful deletion
       router.push('/auth/landing');
     } catch (error) {
@@ -918,9 +905,9 @@ export const UserSettings: FC = () => {
 
   const handleToggleKeepAlive = async () => {
     if (!user) return;
-    
+
     const newEnabledState = !keepAlive.enabled;
-    
+
     setKeepAlive(prev => ({
       ...prev,
       enabled: newEnabledState,
@@ -930,8 +917,8 @@ export const UserSettings: FC = () => {
     try {
       const { error } = await supabase
         .from('user_preferences')
-        .upsert({ 
-          user_id: user.id, 
+        .upsert({
+          user_id: user.id,
           keep_alive_enabled: newEnabledState,
           keep_alive_url: newEnabledState ? keepAlive.url : null
         });
@@ -940,13 +927,13 @@ export const UserSettings: FC = () => {
         throw error;
       }
 
-      setKeepAlive(prev => ({ 
-        ...prev, 
+      setKeepAlive(prev => ({
+        ...prev,
         saveStatus: 'success'
       }));
-      
+
       setTimeout(() => setKeepAlive(prev => ({ ...prev, saveStatus: 'idle' })), 2000);
-      
+
     } catch (error) {
       console.error('Failed to toggle keep alive:', error);
       // Revert the local state on error
@@ -969,8 +956,8 @@ export const UserSettings: FC = () => {
     try {
       const { error } = await supabase
         .from('user_preferences')
-        .upsert({ 
-          user_id: user.id, 
+        .upsert({
+          user_id: user.id,
           keep_alive_url: keepAlive.url.trim(),
           keep_alive_enabled: keepAlive.enabled
         });
@@ -979,11 +966,11 @@ export const UserSettings: FC = () => {
         throw error;
       }
 
-      setKeepAlive(prev => ({ 
-        ...prev, 
+      setKeepAlive(prev => ({
+        ...prev,
         saveStatus: 'success'
       }));
-      
+
       setTimeout(() => setKeepAlive(prev => ({ ...prev, saveStatus: 'idle' })), 3000);
     } catch (error) {
       console.error('Error saving keep alive settings:', error);
@@ -996,10 +983,10 @@ export const UserSettings: FC = () => {
 
   const handleTestKeepAlive = async () => {
     if (!keepAlive.url.trim()) {
-      setKeepAlive(prev => ({ 
-        ...prev, 
-        testStatus: 'error', 
-        testMessage: 'Please enter a URL first' 
+      setKeepAlive(prev => ({
+        ...prev,
+        testStatus: 'error',
+        testMessage: 'Please enter a URL first'
       }));
       setTimeout(() => setKeepAlive(prev => ({ ...prev, testStatus: 'idle' })), 3000);
       return;
@@ -1009,10 +996,10 @@ export const UserSettings: FC = () => {
     try {
       new URL(keepAlive.url);
     } catch {
-      setKeepAlive(prev => ({ 
-        ...prev, 
-        testStatus: 'error', 
-        testMessage: 'Please enter a valid URL (e.g., https://example.com/api/keep-alive)' 
+      setKeepAlive(prev => ({
+        ...prev,
+        testStatus: 'error',
+        testMessage: 'Please enter a valid URL (e.g., https://example.com/api/keep-alive)'
       }));
       setTimeout(() => setKeepAlive(prev => ({ ...prev, testStatus: 'idle' })), 5000);
       return;
@@ -1029,54 +1016,54 @@ export const UserSettings: FC = () => {
           'Accept': 'application/json',
         },
       });
-      
+
       if (response.ok) {
         const contentType = response.headers.get('content-type');
-        
+
         // Check if response is JSON
         if (contentType && contentType.includes('application/json')) {
           try {
             const data = await response.json();
-            setKeepAlive(prev => ({ 
-              ...prev, 
-              testStatus: 'success', 
-              testMessage: `✅ Success! Status: ${data.status || 'OK'} - ${data.message || 'Keep alive endpoint is working properly'}` 
+            setKeepAlive(prev => ({
+              ...prev,
+              testStatus: 'success',
+              testMessage: `✅ Success! Status: ${data.status || 'OK'} - ${data.message || 'Keep alive endpoint is working properly'}`
             }));
           } catch (jsonError) {
-            setKeepAlive(prev => ({ 
-              ...prev, 
-              testStatus: 'error', 
-              testMessage: '❌ Response received but not valid JSON. Make sure your endpoint returns JSON data.' 
+            setKeepAlive(prev => ({
+              ...prev,
+              testStatus: 'error',
+              testMessage: '❌ Response received but not valid JSON. Make sure your endpoint returns JSON data.'
             }));
           }
         } else {
           // Response is not JSON (probably HTML)
-          setKeepAlive(prev => ({ 
-            ...prev, 
-            testStatus: 'error', 
-            testMessage: '❌ Endpoint returned HTML instead of JSON. Make sure you\'re using the correct API endpoint URL.' 
+          setKeepAlive(prev => ({
+            ...prev,
+            testStatus: 'error',
+            testMessage: '❌ Endpoint returned HTML instead of JSON. Make sure you\'re using the correct API endpoint URL.'
           }));
         }
       } else {
-        setKeepAlive(prev => ({ 
-          ...prev, 
-          testStatus: 'error', 
-          testMessage: `❌ HTTP ${response.status}: ${response.statusText}. Please check your URL and try again.` 
+        setKeepAlive(prev => ({
+          ...prev,
+          testStatus: 'error',
+          testMessage: `❌ HTTP ${response.status}: ${response.statusText}. Please check your URL and try again.`
         }));
       }
     } catch (error) {
       console.error('Test failed:', error);
       if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-        setKeepAlive(prev => ({ 
-          ...prev, 
-          testStatus: 'error', 
-          testMessage: '❌ Network error: Unable to reach the URL. Check if the URL is correct and accessible.' 
+        setKeepAlive(prev => ({
+          ...prev,
+          testStatus: 'error',
+          testMessage: '❌ Network error: Unable to reach the URL. Check if the URL is correct and accessible.'
         }));
       } else {
-        setKeepAlive(prev => ({ 
-          ...prev, 
-          testStatus: 'error', 
-          testMessage: `❌ Test failed: ${error instanceof Error ? error.message : 'Unknown error'}` 
+        setKeepAlive(prev => ({
+          ...prev,
+          testStatus: 'error',
+          testMessage: `❌ Test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
         }));
       }
     }
@@ -1096,33 +1083,37 @@ export const UserSettings: FC = () => {
   ];
 
   return (
-    <div className="flex gap-8">
+    <div className="flex flex-col md:flex-row gap-6 md:gap-8">
       {/* Sidebar Navigation */}
-      <div className="w-72 flex-shrink-0">
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 sticky top-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-6">Settings</h2>
-          <nav className="space-y-1">
+      <div className="w-full md:w-72 flex-shrink-0">
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 md:p-6 sticky top-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4 md:mb-6 hidden md:block">Settings</h2>
+
+          {/* Mobile: Horizontal Scrollable List | Desktop: Vertical Stack */}
+          <nav className="flex md:flex-col overflow-x-auto md:overflow-visible gap-2 md:gap-1 pb-2 md:pb-0 -mx-4 px-4 md:mx-0 md:px-0 no-scrollbar">
             {sections.map((section) => (
               <button
                 key={section.id}
                 onClick={() => setActiveSection(section.id as 'general' | 'security' | 'ai' | 'account')}
-                className={`w-full flex items-start space-x-4 p-4 rounded-lg text-left transition-all duration-200 ${
-                  activeSection === section.id
-                    ? 'bg-blue-50 border border-blue-200 text-blue-900'
-                    : 'hover:bg-gray-50 border border-transparent text-gray-700 hover:text-gray-900'
-                }`}
+                className={`flex-shrink-0 md:w-full flex items-center md:items-start space-x-2 md:space-x-4 px-4 py-2 md:p-4 rounded-full md:rounded-lg text-left transition-all duration-200 whitespace-nowrap md:whitespace-normal border ${activeSection === section.id
+                    ? 'bg-blue-600 md:bg-blue-50 text-white md:text-blue-900 border-blue-600 md:border-blue-200 shadow-md md:shadow-none'
+                    : 'bg-white hover:bg-gray-50 text-gray-700 hover:text-gray-900 border-gray-200 md:border-transparent'
+                  }`}
               >
-                <div className="flex-shrink-0 text-xl mt-0.5">
+                <div className={`text-lg md:text-xl md:mt-0.5 ${activeSection === section.id ? 'text-white md:text-blue-600' : ''}`}>
                   {section.icon}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-sm">{section.title}</div>
-                  <div className="text-xs text-gray-500 mt-1 leading-relaxed">
+                <div className="flex-1 min-w-0 flex flex-col">
+                  <span className={`font-medium text-sm ${activeSection === section.id ? 'text-white md:text-blue-900' : ''}`}>
+                    {section.title}
+                  </span>
+                  <span className={`text-xs mt-1 leading-relaxed hidden md:block ${activeSection === section.id ? 'text-blue-700' : 'text-gray-500'
+                    }`}>
                     {section.description}
-                  </div>
+                  </span>
                 </div>
                 {activeSection === section.id && (
-                  <div className="flex-shrink-0">
+                  <div className="hidden md:block flex-shrink-0 mt-1">
                     <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
                   </div>
                 )}
@@ -1165,7 +1156,7 @@ export const UserSettings: FC = () => {
                   <p className="text-gray-600 text-sm">This action cannot be undone</p>
                 </div>
               </div>
-              
+
               <div className="mb-6">
                 <p className="text-gray-700 mb-3 text-sm">
                   Are you sure you want to delete your profile? This will permanently remove:
@@ -1198,7 +1189,7 @@ export const UserSettings: FC = () => {
                   </p>
                 </div>
               </div>
-              
+
               <div className="flex space-x-3">
                 <button
                   onClick={() => {

@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { Layout } from '@/components/layout/Layout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Badge } from '../../components/ui/badge';
 import { Plus, CheckCircle2, Circle, AlertCircle, Clock, Trash2, Edit2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { paymentService } from '@/services/PaymentService';
 import { PaymentDashboardItem, RecurringItem } from '@/types/payments';
 import { UpsertPaymentModal } from '@/components/payments/UpsertPaymentModal';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../../components/ui/dialog';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
 
 export default function PaymentsPage() {
     const { user } = useAuth();
@@ -99,7 +99,7 @@ export default function PaymentsPage() {
             <Head><title>Monthly Payments | Portfoliio</title></Head>
 
             {/* Main Content Container - Matches Portfolio Grid */}
-            <div className="max-w-7xl mx-auto px-4 py-8 pb-24 space-y-8">
+            <div className="max-w-7xl mx-auto px-4 py-6 md:px-4 md:py-8 pb-24 space-y-6 md:space-y-8">
 
                 {/* Header Section - Matches Portfolio Header Style */}
                 <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-700 rounded-2xl md:rounded-3xl shadow-xl">
@@ -283,7 +283,7 @@ export default function PaymentsPage() {
             />
 
             {/* Confirm Payment Modal - Clean Light Theme */}
-            <Dialog open={!!confirmPaymentItem} onOpenChange={(o) => !o && setConfirmPaymentItem(null)}>
+            <Dialog open={!!confirmPaymentItem} onOpenChange={(o: boolean) => !o && setConfirmPaymentItem(null)}>
                 <DialogContent className="bg-white sm:max-w-md shadow-2xl border-0">
                     <DialogHeader>
                         <DialogTitle className="text-xl font-bold text-slate-800">Confirm Value</DialogTitle>
@@ -298,7 +298,7 @@ export default function PaymentsPage() {
                             <Input
                                 type="number"
                                 value={confirmAmount}
-                                onChange={e => setConfirmAmount(e.target.value)}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmAmount(e.target.value)}
                                 autoFocus
                                 className="pl-7 text-lg font-medium border-slate-200 focus:border-emerald-500 focus:ring-emerald-500 bg-slate-50 text-slate-900"
                                 placeholder="0.00"

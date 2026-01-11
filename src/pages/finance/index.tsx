@@ -235,7 +235,7 @@ export default function FinanceDashboard() {
 
     return (
         <Layout>
-            <div className="max-w-7xl mx-auto px-4 py-8">
+            <div className="max-w-7xl mx-auto px-4 py-6 md:px-4 md:py-8">
                 <Head>
                     <title>Portfolio | NetFolio</title>
                 </Head>
@@ -243,12 +243,12 @@ export default function FinanceDashboard() {
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="space-y-8"
+                    className="space-y-6 md:space-y-8"
                 >
                     {/* Premium Header */}
                     <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-700 rounded-3xl">
                         <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent"></div>
-                        <div className="relative px-8 py-12">
+                        <div className="relative px-4 py-6 md:px-8 md:py-12">
                             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 md:gap-0">
                                 <motion.div
                                     initial={{ opacity: 0, x: -20 }}
@@ -344,12 +344,12 @@ export default function FinanceDashboard() {
 
 
                     {/* Scorecards */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.1 }}
-                            className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 p-6 shadow-xl"
+                            className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 p-4 md:p-6 shadow-xl"
                         >
                             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
                             <div className="relative">
@@ -370,7 +370,7 @@ export default function FinanceDashboard() {
                                         </button>
                                     )}
                                 </div>
-                                <p className="text-4xl font-bold text-white mb-1">
+                                <p className="text-3xl md:text-4xl font-bold text-white mb-1">
                                     {isProtected && !isUnlocked ? '••••••••' : formatMoney(metrics.current_value)}
                                 </p>
                                 <p className="text-white/70 text-sm">Total Portfolio Value</p>
@@ -381,7 +381,7 @@ export default function FinanceDashboard() {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.2 }}
-                            className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-500 to-pink-600 p-6 shadow-xl"
+                            className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-500 to-pink-600 p-4 md:p-6 shadow-xl"
                         >
                             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
                             <div className="relative">
@@ -402,7 +402,7 @@ export default function FinanceDashboard() {
                                         </button>
                                     )}
                                 </div>
-                                <p className="text-4xl font-bold text-white mb-1">
+                                <p className="text-3xl md:text-4xl font-bold text-white mb-1">
                                     {isProtected && !isUnlocked ? '••••••••' : formatMoney(metrics.total_invested)}
                                 </p>
                                 <p className="text-white/70 text-sm">Total Capital Deployed</p>
@@ -416,7 +416,7 @@ export default function FinanceDashboard() {
                             className={`relative overflow-hidden rounded-2xl ${metrics.day_change_amount >= 0
                                 ? 'bg-gradient-to-br from-emerald-400 to-teal-600'
                                 : 'bg-gradient-to-br from-rose-400 to-red-600'
-                                } p-6 shadow-xl`}
+                                } p-4 md:p-6 shadow-xl`}
                         >
                             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
                             <div className="relative">
@@ -427,7 +427,7 @@ export default function FinanceDashboard() {
                                     <p className="text-white/90 text-sm font-medium uppercase tracking-wide">Day's Change</p>
                                 </div>
                                 <div className="flex items-baseline gap-2 mb-1 flex-wrap">
-                                    <p className="text-3xl font-bold text-white">
+                                    <p className="text-2xl md:text-3xl font-bold text-white">
                                         {metrics.day_change_amount >= 0 ? '+' : ''}{formatMoney(metrics.day_change_amount)}
                                     </p>
                                     <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-white/20 text-white whitespace-nowrap">
@@ -445,7 +445,7 @@ export default function FinanceDashboard() {
                             className={`relative overflow-hidden rounded-2xl ${metrics.total_pnl >= 0
                                 ? 'bg-gradient-to-br from-green-500 to-emerald-700'
                                 : 'bg-gradient-to-br from-red-500 to-rose-700'
-                                } p-6 shadow-xl`}
+                                } p-4 md:p-6 shadow-xl`}
                         >
                             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
                             <div className="relative">

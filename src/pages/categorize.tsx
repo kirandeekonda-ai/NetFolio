@@ -431,7 +431,7 @@ const Categorize: NextPage = () => {
       <ToastProvider toasts={toasts} onRemove={removeToast} />
 
       <motion.div
-        className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-2 md:p-6"
+        className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4 md:p-6"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.6 }}

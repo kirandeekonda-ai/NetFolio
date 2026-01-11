@@ -240,7 +240,7 @@ export const StatementDashboard = forwardRef<StatementDashboardRef, StatementDas
         {/* Premium Hero Section */}
         <div className="relative overflow-hidden bg-gradient-to-r from-slate-900 via-purple-900 to-slate-900 mb-8">
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iZ3JpZCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cGF0aCBkPSJNIDQwIDAgTCAwIDAgMCA0MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMDUpIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-20"></div>
-          <div className="relative px-6 py-12 sm:py-16">
+          <div className="relative px-4 py-8 md:px-6 md:py-16">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -296,7 +296,7 @@ export const StatementDashboard = forwardRef<StatementDashboardRef, StatementDas
       {/* Premium Hero Section */}
       <div className="relative overflow-hidden bg-gradient-to-r from-slate-900 via-purple-900 to-slate-900 mb-8">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iZ3JpZCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cGF0aCBkPSJNIDQwIDAgTCAwIDAgMCA0MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMDUpIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-20"></div>
-        <div className="relative px-6 py-12 sm:py-16">
+        <div className="relative px-4 py-8 md:px-6 md:py-16">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -322,7 +322,7 @@ export const StatementDashboard = forwardRef<StatementDashboardRef, StatementDas
         <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 space-y-8">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 space-y-6 md:space-y-8">
         {/* Pro Tips - Enhanced Design */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -493,7 +493,7 @@ export const StatementDashboard = forwardRef<StatementDashboardRef, StatementDas
             >
               <Card className="bg-white/80 backdrop-blur-sm border-white/50 shadow-xl shadow-slate-900/5 hover:shadow-2xl hover:shadow-slate-900/10 transition-all duration-500 overflow-hidden">
                 {/* Account Header */}
-                <div className="bg-gradient-to-r from-slate-50 to-blue-50/50 border-b border-slate-100 p-6 mb-6">
+                <div className="bg-gradient-to-r from-slate-50 to-blue-50/50 border-b border-slate-100 p-4 md:p-6 mb-4 md:mb-6">
                   <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-0">
                     <div className="flex items-start md:items-center space-x-0 md:space-x-4">
                       {/* Bank Logo */}
@@ -550,7 +550,7 @@ export const StatementDashboard = forwardRef<StatementDashboardRef, StatementDas
                 </div>
 
                 {/* Monthly Statement Grid */}
-                <div className="px-6 pb-6">
+                <div className="px-4 pb-4 md:px-6 md:pb-6">
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-3">
                     {months.map((month, index) => {
                       const monthNumber = index + 1;

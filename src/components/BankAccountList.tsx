@@ -282,24 +282,24 @@ export const BankAccountList: FC<BankAccountListProps> = ({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/20 to-indigo-50/30">
-      <div className="max-w-7xl mx-auto px-6 py-12">
+      <div className="max-w-7xl mx-auto px-4 py-6 md:px-6 md:py-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="space-y-10"
+          className="space-y-6 md:space-y-10"
         >
           {/* Premium Header */}
           <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-700 rounded-3xl">
             <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent"></div>
-            <div className="relative px-6 py-8 md:px-8 md:py-12">
+            <div className="relative px-4 py-6 md:px-8 md:py-12">
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
                 <motion.div
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.2 }}
                 >
-                  <h1 className="text-4xl font-light text-white mb-2">Bank Accounts</h1>
-                  <p className="text-xl text-blue-100 font-light">
+                  <h1 className="text-3xl md:text-4xl font-light text-white mb-2">Bank Accounts</h1>
+                  <p className="text-lg md:text-xl text-blue-100 font-light">
                     Manage your bank accounts and view their balances
                   </p>
                 </motion.div>
@@ -312,7 +312,7 @@ export const BankAccountList: FC<BankAccountListProps> = ({
                   <Button
                     onClick={handleUploadStatement}
                     disabled={isLoading}
-                    className="bg-white/20 hover:bg-white/30 text-white border-white/20 backdrop-blur-sm px-6 py-3 font-medium flex items-center space-x-2"
+                    className="bg-white/20 hover:bg-white/30 text-white border-white/20 backdrop-blur-sm px-4 py-2.5 md:px-6 md:py-3 font-medium flex items-center justify-center space-x-2 w-full md:w-auto"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
@@ -322,7 +322,7 @@ export const BankAccountList: FC<BankAccountListProps> = ({
                   <Button
                     onClick={onAdd}
                     disabled={isLoading}
-                    className="bg-white/20 hover:bg-white/30 text-white border-white/20 backdrop-blur-sm px-6 py-3 font-medium flex items-center space-x-2"
+                    className="bg-white/20 hover:bg-white/30 text-white border-white/20 backdrop-blur-sm px-4 py-2.5 md:px-6 md:py-3 font-medium flex items-center justify-center space-x-2 w-full md:w-auto"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -339,24 +339,24 @@ export const BankAccountList: FC<BankAccountListProps> = ({
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="grid grid-cols-1 md:grid-cols-4 gap-6"
+            className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6"
           >
-            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+            <div className="bg-white rounded-2xl p-4 md:p-6 shadow-lg border border-gray-100">
               <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-xl flex items-center justify-center">
-                  <span className="text-2xl">📊</span>
+                <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-xl flex items-center justify-center">
+                  <span className="text-xl md:text-2xl">📊</span>
                 </div>
               </div>
-              <div className="text-3xl font-light text-blue-600 mb-1">
+              <div className="text-2xl md:text-3xl font-light text-blue-600 mb-1">
                 {activeAccounts.length}
               </div>
-              <div className="text-sm text-gray-600 uppercase tracking-wider">Active Accounts</div>
+              <div className="text-xs md:text-sm text-gray-600 uppercase tracking-wider">Active Accounts</div>
             </div>
 
-            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+            <div className="bg-white rounded-2xl p-4 md:p-6 shadow-lg border border-gray-100">
               <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-emerald-100 to-teal-100 rounded-xl flex items-center justify-center">
-                  <span className="text-2xl">💰</span>
+                <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-emerald-100 to-teal-100 rounded-xl flex items-center justify-center">
+                  <span className="text-xl md:text-2xl">💰</span>
                 </div>
                 {isProtected && (
                   <button
@@ -368,7 +368,7 @@ export const BankAccountList: FC<BankAccountListProps> = ({
                   </button>
                 )}
               </div>
-              <div className="text-3xl font-light text-emerald-600 mb-1">
+              <div className="text-2xl md:text-3xl font-light text-emerald-600 mb-1 truncate">
                 {isTotalBalanceVisible() ? (
                   formatCurrency(
                     activeAccounts
@@ -381,37 +381,37 @@ export const BankAccountList: FC<BankAccountListProps> = ({
                     onClick={handleTotalBalanceUnlock}
                     className="text-emerald-600 hover:text-emerald-700 transition-colors cursor-pointer border-none bg-transparent p-0"
                   >
-                    <span className="text-2xl">••••••••</span>
+                    <span className="text-xl md:text-2xl">••••••</span>
                   </button>
                 )}
               </div>
-              <div className="text-sm text-gray-600 uppercase tracking-wider flex items-center justify-center space-x-1">
-                <span>Total Statement Balance</span>
+              <div className="text-xs md:text-sm text-gray-600 uppercase tracking-wider flex items-center space-x-1">
+                <span>Total Balance</span>
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+            <div className="bg-white rounded-2xl p-4 md:p-6 shadow-lg border border-gray-100">
               <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-pink-100 rounded-xl flex items-center justify-center">
-                  <span className="text-2xl">🏦</span>
+                <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-purple-100 to-pink-100 rounded-xl flex items-center justify-center">
+                  <span className="text-xl md:text-2xl">🏦</span>
                 </div>
               </div>
-              <div className="text-3xl font-light text-purple-600 mb-1">
+              <div className="text-2xl md:text-3xl font-light text-purple-600 mb-1">
                 {new Set(activeAccounts.map(acc => acc.bank_name)).size}
               </div>
-              <div className="text-sm text-gray-600 uppercase tracking-wider">Banks</div>
+              <div className="text-xs md:text-sm text-gray-600 uppercase tracking-wider">Banks</div>
             </div>
 
-            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+            <div className="bg-white rounded-2xl p-4 md:p-6 shadow-lg border border-gray-100">
               <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-amber-100 to-orange-100 rounded-xl flex items-center justify-center">
-                  <span className="text-2xl">🌍</span>
+                <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-amber-100 to-orange-100 rounded-xl flex items-center justify-center">
+                  <span className="text-xl md:text-2xl">🌍</span>
                 </div>
               </div>
-              <div className="text-3xl font-light text-amber-600 mb-1">
+              <div className="text-2xl md:text-3xl font-light text-amber-600 mb-1">
                 {new Set(activeAccounts.map(acc => acc.currency)).size}
               </div>
-              <div className="text-sm text-gray-600 uppercase tracking-wider">Currencies</div>
+              <div className="text-xs md:text-sm text-gray-600 uppercase tracking-wider">Currencies</div>
             </div>
           </motion.div>
 
@@ -423,12 +423,12 @@ export const BankAccountList: FC<BankAccountListProps> = ({
               transition={{ delay: 0.4 }}
               className="space-y-6"
             >
-              <h2 className="text-2xl font-light text-gray-900 flex items-center">
+              <h2 className="text-2xl font-light text-gray-900 flex items-center px-2">
                 <span className="w-2 h-2 bg-emerald-400 rounded-full mr-3"></span>
                 Active Accounts
               </h2>
 
-              <div className="grid gap-6">
+              <div className="grid gap-4 md:gap-6">
                 {activeAccounts.map((account, index) => (
                   <motion.div
                     key={account.id}
@@ -438,7 +438,7 @@ export const BankAccountList: FC<BankAccountListProps> = ({
                     className="group relative"
                   >
                     {/* Account Card */}
-                    <div className="bg-white rounded-2xl p-6 md:p-8 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                    <div className="bg-white rounded-2xl p-4 md:p-8 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
                       <div className="flex flex-col md:flex-row gap-6 md:gap-0 md:items-center justify-between">
                         <div className="flex items-start sm:items-center gap-4 sm:gap-6 w-full md:w-auto">
                           {/* Bank Logo */}
