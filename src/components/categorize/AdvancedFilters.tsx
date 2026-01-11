@@ -94,11 +94,11 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
   ];
 
   return (
-    <div className="backdrop-blur-xl bg-white/70 rounded-3xl shadow-2xl border border-white/20 p-6">
+    <div className="backdrop-blur-xl bg-white/70 rounded-3xl shadow-2xl border border-white/20 p-4 md:p-6">
       {/* Filter Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center space-x-4">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-600 flex items-center justify-center">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4 md:gap-0 mb-6">
+        <div className="flex items-center space-x-4 w-full md:w-auto">
+          <div className="min-w-[40px] w-10 h-10 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-600 flex items-center justify-center">
             <span className="text-xl">🔍</span>
           </div>
           <div>
@@ -108,13 +108,13 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
             </p>
           </div>
         </div>
-        
-        <div className="flex items-center space-x-3">
+
+        <div className="flex items-center space-x-3 w-full md:w-auto justify-end">
           {activeFiltersCount > 0 && (
             <Button
               onClick={clearAllFilters}
               variant="secondary"
-              className="text-sm"
+              className="text-xs sm:text-sm px-3 py-1.5"
             >
               Clear All
             </Button>
@@ -122,7 +122,7 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
           <Button
             onClick={() => setIsExpanded(!isExpanded)}
             variant="secondary"
-            className="text-sm"
+            className="text-xs sm:text-sm px-3 py-1.5"
           >
             {isExpanded ? 'Collapse' : 'Expand'}
             <motion.span
@@ -135,46 +135,43 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
           </Button>
         </div>
       </div>
-      
+
       {/* Quick Filters */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <button
           onClick={() => updateFilters({ categoryStatus: filters.categoryStatus === 'uncategorized' ? 'all' : 'uncategorized' })}
-          className={`p-3 rounded-xl text-sm font-medium transition-all duration-200 ${
-            filters.categoryStatus === 'uncategorized'
+          className={`p-3 rounded-xl text-sm font-medium transition-all duration-200 ${filters.categoryStatus === 'uncategorized'
               ? 'bg-orange-100 text-orange-800 border-2 border-orange-300'
               : 'bg-white/60 text-gray-700 border border-gray-200 hover:bg-white/80'
-          }`}
+            }`}
         >
           🏷️ Uncategorized
         </button>
-        
+
         <button
           onClick={() => updateFilters({ transactionType: filters.transactionType === 'debit' ? 'all' : 'debit' })}
-          className={`p-3 rounded-xl text-sm font-medium transition-all duration-200 ${
-            filters.transactionType === 'debit'
+          className={`p-3 rounded-xl text-sm font-medium transition-all duration-200 ${filters.transactionType === 'debit'
               ? 'bg-red-100 text-red-800 border-2 border-red-300'
               : 'bg-white/60 text-gray-700 border border-gray-200 hover:bg-white/80'
-          }`}
+            }`}
         >
           💸 Expenses
         </button>
-        
+
         <button
           onClick={() => updateFilters({ transactionType: filters.transactionType === 'credit' ? 'all' : 'credit' })}
-          className={`p-3 rounded-xl text-sm font-medium transition-all duration-200 ${
-            filters.transactionType === 'credit'
+          className={`p-3 rounded-xl text-sm font-medium transition-all duration-200 ${filters.transactionType === 'credit'
               ? 'bg-green-100 text-green-800 border-2 border-green-300'
               : 'bg-white/60 text-gray-700 border border-gray-200 hover:bg-white/80'
-          }`}
+            }`}
         >
           💰 Income
         </button>
-        
+
         <button
-          onClick={() => updateFilters({ 
-            sortBy: 'amount', 
-            sortOrder: filters.sortBy === 'amount' && filters.sortOrder === 'desc' ? 'asc' : 'desc' 
+          onClick={() => updateFilters({
+            sortBy: 'amount',
+            sortOrder: filters.sortBy === 'amount' && filters.sortOrder === 'desc' ? 'asc' : 'desc'
           })}
           className="p-3 rounded-xl text-sm font-medium bg-white/60 text-gray-700 border border-gray-200 hover:bg-white/80 transition-all duration-200"
         >
@@ -216,8 +213,8 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                   <input
                     type="date"
                     value={filters.dateRange.start}
-                    onChange={(e) => updateFilters({ 
-                      dateRange: { ...filters.dateRange, start: e.target.value } 
+                    onChange={(e) => updateFilters({
+                      dateRange: { ...filters.dateRange, start: e.target.value }
                     })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500/50 focus:border-purple-300"
                     placeholder="Start Date"
@@ -225,8 +222,8 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                   <input
                     type="date"
                     value={filters.dateRange.end}
-                    onChange={(e) => updateFilters({ 
-                      dateRange: { ...filters.dateRange, end: e.target.value } 
+                    onChange={(e) => updateFilters({
+                      dateRange: { ...filters.dateRange, end: e.target.value }
                     })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500/50 focus:border-purple-300"
                     placeholder="End Date"
@@ -242,11 +239,11 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                     type="number"
                     placeholder="Min Amount"
                     value={filters.amountRange.min || ''}
-                    onChange={(e) => updateFilters({ 
-                      amountRange: { 
-                        ...filters.amountRange, 
-                        min: e.target.value ? Number(e.target.value) : null 
-                      } 
+                    onChange={(e) => updateFilters({
+                      amountRange: {
+                        ...filters.amountRange,
+                        min: e.target.value ? Number(e.target.value) : null
+                      }
                     })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500/50 focus:border-purple-300"
                   />
@@ -254,11 +251,11 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                     type="number"
                     placeholder="Max Amount"
                     value={filters.amountRange.max || ''}
-                    onChange={(e) => updateFilters({ 
-                      amountRange: { 
-                        ...filters.amountRange, 
-                        max: e.target.value ? Number(e.target.value) : null 
-                      } 
+                    onChange={(e) => updateFilters({
+                      amountRange: {
+                        ...filters.amountRange,
+                        max: e.target.value ? Number(e.target.value) : null
+                      }
                     })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500/50 focus:border-purple-300"
                   />
@@ -270,7 +267,7 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                 <label className="block text-sm font-medium text-gray-700">Category Status</label>
                 <select
                   value={filters.categoryStatus}
-                  onChange={(e) => updateFilters({ 
+                  onChange={(e) => updateFilters({
                     categoryStatus: e.target.value as FilterCriteria['categoryStatus'],
                     selectedCategory: e.target.value === 'specific-category' ? filters.selectedCategory : null
                   })}
@@ -282,7 +279,7 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                     </option>
                   ))}
                 </select>
-                
+
                 {filters.categoryStatus === 'specific-category' && (
                   <select
                     value={filters.selectedCategory || ''}
@@ -304,8 +301,8 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                 <label className="block text-sm font-medium text-gray-700">Transaction Type</label>
                 <select
                   value={filters.transactionType}
-                  onChange={(e) => updateFilters({ 
-                    transactionType: e.target.value as FilterCriteria['transactionType'] 
+                  onChange={(e) => updateFilters({
+                    transactionType: e.target.value as FilterCriteria['transactionType']
                   })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500/50 focus:border-purple-300"
                 >
@@ -323,8 +320,8 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                 <div className="flex space-x-2">
                   <select
                     value={filters.sortBy}
-                    onChange={(e) => updateFilters({ 
-                      sortBy: e.target.value as FilterCriteria['sortBy'] 
+                    onChange={(e) => updateFilters({
+                      sortBy: e.target.value as FilterCriteria['sortBy']
                     })}
                     className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500/50 focus:border-purple-300"
                   >
@@ -335,8 +332,8 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                     ))}
                   </select>
                   <button
-                    onClick={() => updateFilters({ 
-                      sortOrder: filters.sortOrder === 'asc' ? 'desc' : 'asc' 
+                    onClick={() => updateFilters({
+                      sortOrder: filters.sortOrder === 'asc' ? 'desc' : 'asc'
                     })}
                     className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                   >

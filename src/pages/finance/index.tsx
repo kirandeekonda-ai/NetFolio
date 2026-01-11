@@ -249,14 +249,15 @@ export default function FinanceDashboard() {
                     <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-700 rounded-3xl">
                         <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent"></div>
                         <div className="relative px-8 py-12">
-                            <div className="flex items-center justify-between">
+                            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 md:gap-0">
                                 <motion.div
                                     initial={{ opacity: 0, x: -20 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     transition={{ delay: 0.2 }}
+                                    className="mb-4 md:mb-0"
                                 >
-                                    <h1 className="text-4xl font-light text-white mb-2">Portfolio Tracker</h1>
-                                    <p className="text-xl text-blue-100 font-light">
+                                    <h1 className="text-3xl md:text-4xl font-light text-white mb-2">Portfolio Tracker</h1>
+                                    <p className="text-lg md:text-xl text-blue-100 font-light">
                                         Track stocks, mutual funds, and assets
                                     </p>
                                 </motion.div>
@@ -264,15 +265,15 @@ export default function FinanceDashboard() {
                                     initial={{ opacity: 0, scale: 0.9 }}
                                     animate={{ opacity: 1, scale: 1 }}
                                     transition={{ delay: 0.4 }}
-                                    className="flex space-x-3 items-center"
+                                    className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-3 items-stretch sm:items-center w-full md:w-auto"
                                 >
                                     {/* Person Filter */}
-                                    <div className="flex bg-white/10 backdrop-blur-sm p-1 rounded-lg border border-white/20 mr-4">
+                                    <div className="flex bg-white/10 backdrop-blur-sm p-1 rounded-lg border border-white/20 sm:mr-4 overflow-x-auto no-scrollbar">
                                         {(['All', 'Kiran', 'Anusha'] as const).map(p => (
                                             <button
                                                 key={p}
                                                 onClick={() => setFilterPerson(p)}
-                                                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${filterPerson === p
+                                                className={`px-3 sm:px-4 py-2 rounded-md text-sm font-medium transition-all flex-1 whitespace-nowrap ${filterPerson === p
                                                     ? 'bg-white text-indigo-900 shadow-sm'
                                                     : 'text-blue-100 hover:bg-white/10'
                                                     }`}
@@ -282,22 +283,22 @@ export default function FinanceDashboard() {
                                         ))}
                                     </div>
 
-                                    <div className="flex items-center gap-4">
+                                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
                                         {/* Analytics Links - Outline Style */}
-                                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/10 backdrop-blur-sm border border-white/20">
+                                        <div className="flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg bg-white/10 backdrop-blur-sm border border-white/20 overflow-x-auto">
                                             <Link
                                                 href="/finance/performance"
-                                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-white text-sm font-medium hover:bg-white/20 transition-all duration-200"
+                                                className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-md text-white text-xs sm:text-sm font-medium hover:bg-white/20 transition-all duration-200 whitespace-nowrap"
                                             >
                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                                                 </svg>
                                                 Performance
                                             </Link>
-                                            <div className="h-6 w-px bg-white/20"></div>
+                                            <div className="h-6 w-px bg-white/20 flex-shrink-0"></div>
                                             <Link
                                                 href="/finance/allocation"
-                                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-white text-sm font-medium hover:bg-white/20 transition-all duration-200"
+                                                className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-md text-white text-xs sm:text-sm font-medium hover:bg-white/20 transition-all duration-200 whitespace-nowrap"
                                             >
                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
@@ -308,37 +309,33 @@ export default function FinanceDashboard() {
                                         </div>
 
                                         {/* Action Buttons - Solid Style */}
-                                        <button
-                                            onClick={() => setIsModalOpen(true)}
-                                            className="flex items-center gap-2 bg-white text-indigo-600 px-5 py-2.5 rounded-lg font-semibold hover:bg-white/90 transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
-                                        >
-                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                            </svg>
-                                            Add Investment
-                                        </button>
-                                        <button
-                                            onClick={handleExport}
-                                            disabled={isExporting || holdings.length === 0}
-                                            className="flex items-center gap-2 bg-emerald-500 text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-emerald-600 transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                                        >
-                                            {isExporting ? (
-                                                <>
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => setIsModalOpen(true)}
+                                                className="flex-1 flex items-center justify-center gap-2 bg-white text-indigo-600 px-3 sm:px-5 py-2.5 rounded-lg font-semibold hover:bg-white/90 transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 text-xs sm:text-sm whitespace-nowrap"
+                                            >
+                                                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                                </svg>
+                                                Add Inv.
+                                            </button>
+                                            <button
+                                                onClick={handleExport}
+                                                disabled={isExporting || holdings.length === 0}
+                                                className="flex items-center justify-center gap-2 bg-emerald-500 text-white px-3 sm:px-5 py-2.5 rounded-lg font-semibold hover:bg-emerald-600 transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 text-xs sm:text-sm"
+                                            >
+                                                {isExporting ? (
                                                     <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
                                                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                                     </svg>
-                                                    Exporting...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                ) : (
+                                                    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                                     </svg>
-                                                    Export Portfolio
-                                                </>
-                                            )}
-                                        </button>
+                                                )}
+                                            </button>
+                                        </div>
                                     </div>
                                 </motion.div>
                             </div>

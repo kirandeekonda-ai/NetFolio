@@ -291,8 +291,8 @@ export const BankAccountList: FC<BankAccountListProps> = ({
           {/* Premium Header */}
           <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-700 rounded-3xl">
             <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent"></div>
-            <div className="relative px-8 py-12">
-              <div className="flex items-center justify-between">
+            <div className="relative px-6 py-8 md:px-8 md:py-12">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
                 <motion.div
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -307,7 +307,7 @@ export const BankAccountList: FC<BankAccountListProps> = ({
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.4 }}
-                  className="flex space-x-3"
+                  className="flex flex-col sm:flex-row gap-3 w-full md:w-auto"
                 >
                   <Button
                     onClick={handleUploadStatement}
@@ -438,9 +438,9 @@ export const BankAccountList: FC<BankAccountListProps> = ({
                     className="group relative"
                   >
                     {/* Account Card */}
-                    <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-6">
+                    <div className="bg-white rounded-2xl p-6 md:p-8 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                      <div className="flex flex-col md:flex-row gap-6 md:gap-0 md:items-center justify-between">
+                        <div className="flex items-start sm:items-center gap-4 sm:gap-6 w-full md:w-auto">
                           {/* Bank Logo */}
                           <div className="relative">
                             <BankLogo
@@ -466,24 +466,26 @@ export const BankAccountList: FC<BankAccountListProps> = ({
                                 </span>
                               )}
                             </div>
-                            <div className="flex items-center space-x-4">
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                               <span className="text-gray-600 font-medium">
                                 {account.bank_name}
                               </span>
-                              <span className="w-1 h-1 bg-gray-400 rounded-full"></span>
+                              <span className="w-1 h-1 bg-gray-400 rounded-full hidden sm:block"></span>
                               <span className="text-gray-600 capitalize">
                                 {account.account_type}
                               </span>
-                              <span className="w-1 h-1 bg-gray-400 rounded-full"></span>
-                              <span className="text-gray-500 text-sm">
-                                Added {new Date(account.created_at).toLocaleDateString()}
-                              </span>
+                              <div className="w-full sm:w-auto flex items-center gap-2">
+                                <span className="w-1 h-1 bg-gray-400 rounded-full hidden sm:block"></span>
+                                <span className="text-gray-500 text-sm">
+                                  Added {new Date(account.created_at).toLocaleDateString()}
+                                </span>
+                              </div>
                             </div>
                           </div>
                         </div>
 
                         {/* Balance & Actions */}
-                        <div className="flex items-center space-x-8">
+                        <div className="flex flex-col md:flex-row items-end md:items-center gap-6 md:gap-8 w-full md:w-auto border-t md:border-t-0 pt-6 md:pt-0 border-gray-100">
                           {/* Balance Display */}
                           <div className="text-right">
                             {account.statement_balance_available ? (
@@ -544,12 +546,12 @@ export const BankAccountList: FC<BankAccountListProps> = ({
                           </div>
 
                           {/* Action Buttons */}
-                          <div className="flex items-center space-x-3">
+                          <div className="flex justify-between items-center gap-2 w-full md:w-auto mt-4 md:mt-0">
                             <Button
                               variant="secondary"
                               onClick={() => onEdit(account)}
                               disabled={isLoading}
-                              className="px-4 py-2 text-blue-600 border-blue-200 hover:bg-blue-50"
+                              className="flex-1 md:flex-none px-1 py-1.5 md:px-4 md:py-2 text-[10px] md:text-sm text-blue-600 border-blue-200 hover:bg-blue-50"
                             >
                               Edit
                             </Button>
@@ -557,7 +559,7 @@ export const BankAccountList: FC<BankAccountListProps> = ({
                               variant="secondary"
                               onClick={() => onDeactivate(account.id)}
                               disabled={isLoading}
-                              className="px-4 py-2 text-amber-600 border-amber-200 hover:bg-amber-50"
+                              className="flex-1 md:flex-none px-1 py-1.5 md:px-4 md:py-2 text-[10px] md:text-sm text-amber-600 border-amber-200 hover:bg-amber-50"
                             >
                               Deactivate
                             </Button>
@@ -565,7 +567,7 @@ export const BankAccountList: FC<BankAccountListProps> = ({
                               variant="secondary"
                               onClick={() => handleDelete(account.id)}
                               disabled={isLoading || deletingId === account.id}
-                              className="px-4 py-2 text-red-600 border-red-200 hover:bg-red-50"
+                              className="flex-1 md:flex-none px-1 py-1.5 md:px-4 md:py-2 text-[10px] md:text-sm text-red-600 border-red-200 hover:bg-red-50"
                             >
                               {deletingId === account.id ? 'Deleting...' : 'Delete'}
                             </Button>
@@ -601,9 +603,9 @@ export const BankAccountList: FC<BankAccountListProps> = ({
                     transition={{ delay: 0.7 + (index * 0.1) }}
                     className="group relative opacity-60"
                   >
-                    <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-200">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-6">
+                    <div className="bg-white rounded-2xl p-6 md:p-8 shadow-lg border border-gray-200">
+                      <div className="flex flex-col md:flex-row gap-6 md:gap-0 md:items-center justify-between">
+                        <div className="flex items-start sm:items-center gap-4 sm:gap-6 w-full md:w-auto">
                           <BankLogo
                             bankName={account.bank_name}
                             accountType={account.account_type}
@@ -633,7 +635,7 @@ export const BankAccountList: FC<BankAccountListProps> = ({
                           </div>
                         </div>
 
-                        <div className="flex items-center space-x-8">
+                        <div className="flex flex-col md:flex-row items-end md:items-center gap-6 md:gap-8 w-full md:w-auto border-t md:border-t-0 pt-6 md:pt-0 border-gray-100">
                           <div className="text-right">
                             <div className="text-3xl font-light text-gray-600 mb-1">
                               {account.statement_balance_available ? (

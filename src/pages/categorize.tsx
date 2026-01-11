@@ -431,7 +431,7 @@ const Categorize: NextPage = () => {
       <ToastProvider toasts={toasts} onRemove={removeToast} />
 
       <motion.div
-        className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-6"
+        className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-2 md:p-6"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.6 }}
@@ -443,8 +443,8 @@ const Categorize: NextPage = () => {
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.1, duration: 0.5 }}
         >
-          <div className="backdrop-blur-xl bg-white/70 rounded-3xl shadow-2xl border border-white/20 p-8">
-            <div className="flex items-center justify-between mb-6">
+          <div className="backdrop-blur-xl bg-white/70 rounded-3xl shadow-2xl border border-white/20 p-4 md:p-8">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-0 mb-6">
               <div className="flex items-center space-x-4">
                 <div className="w-12 h-12 rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center">
                   <span className="text-2xl">🏷️</span>
@@ -459,17 +459,17 @@ const Categorize: NextPage = () => {
                 </div>
               </div>
 
-              <div className="flex items-center space-x-3">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
                 {/* View Tabs */}
-                <div className="flex-grow flex justify-center">
-                  <div className="flex space-x-2 bg-slate-100 rounded-full p-1.5 border border-slate-200/80">
+                <div className="flex-grow flex justify-center w-full sm:w-auto">
+                  <div className="flex w-full sm:w-auto overflow-x-auto no-scrollbar space-x-2 bg-slate-100 rounded-full p-1.5 border border-slate-200/80">
                     {viewTabs.map(tab => (
                       <button
                         key={tab.id}
                         onClick={() => setActiveView(tab.id as any)}
-                        className={`relative flex-1 px-5 py-2 rounded-full text-sm font-semibold transition-colors duration-300 focus:outline-none ${activeView === tab.id
-                            ? 'text-slate-800'
-                            : 'text-slate-500 hover:text-slate-800'
+                        className={`relative flex-1 sm:flex-none px-3 sm:px-5 py-2 rounded-full text-xs sm:text-sm font-semibold transition-colors duration-300 focus:outline-none whitespace-nowrap ${activeView === tab.id
+                          ? 'text-slate-800'
+                          : 'text-slate-500 hover:text-slate-800'
                           }`}
                       >
                         {activeView === tab.id && (
@@ -480,55 +480,57 @@ const Categorize: NextPage = () => {
                           />
                         )}
                         <div className="relative z-10 flex items-center justify-center">
-                          <span className="mr-2">{tab.icon}</span>
+                          <span className="mr-1.5 sm:mr-2">{tab.icon}</span>
                           <span>{tab.label}</span>
                         </div>
                       </button>
                     ))}
                   </div>
                 </div>
-                <button
-                  onClick={() => router.push('/statements')}
-                  className="px-4 py-2 bg-white/60 backdrop-blur-sm border border-white/30 rounded-xl 
-                           hover:bg-white/80 text-gray-700 font-medium transition-all duration-200"
-                >
-                  ← Statements
-                </button>
-                <button
-                  onClick={() => router.push('/dashboard')}
-                  className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl 
-                           hover:from-green-600 hover:to-emerald-700 font-medium transition-all duration-200"
-                >
-                  📊 Dashboard
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => router.push('/statements')}
+                    className="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-white/60 backdrop-blur-sm border border-white/30 rounded-xl 
+                             hover:bg-white/80 text-gray-700 font-medium text-xs sm:text-sm transition-all duration-200"
+                  >
+                    ← Statements
+                  </button>
+                  <button
+                    onClick={() => router.push('/dashboard')}
+                    className="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl 
+                             hover:from-green-600 hover:to-emerald-700 font-medium text-xs sm:text-sm transition-all duration-200"
+                  >
+                    📊 Dashboard
+                  </button>
+                </div>
               </div>
             </div>
 
             {/* Enhanced Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-              <div className="bg-white/40 backdrop-blur-sm rounded-2xl p-4 text-center">
-                <div className="text-2xl font-bold text-gray-900">{filteredAndSortedTransactions.length}</div>
-                <div className="text-sm text-gray-600">Filtered</div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4 mb-6">
+              <div className="bg-white/40 backdrop-blur-sm rounded-2xl p-3 sm:p-4 text-center">
+                <div className="text-xl sm:text-2xl font-bold text-gray-900">{filteredAndSortedTransactions.length}</div>
+                <div className="text-xs sm:text-sm text-gray-600">Filtered</div>
               </div>
-              <div className="bg-white/40 backdrop-blur-sm rounded-2xl p-4 text-center">
-                <div className="text-2xl font-bold text-green-600">
+              <div className="bg-white/40 backdrop-blur-sm rounded-2xl p-3 sm:p-4 text-center">
+                <div className="text-xl sm:text-2xl font-bold text-green-600">
                   {filteredAndSortedTransactions.filter(t => t.category_name && t.category_name !== 'Uncategorized').length}
                 </div>
-                <div className="text-sm text-gray-600">Categorized</div>
+                <div className="text-xs sm:text-sm text-gray-600">Categorized</div>
               </div>
-              <div className="bg-white/40 backdrop-blur-sm rounded-2xl p-4 text-center">
-                <div className="text-2xl font-bold text-orange-600">
+              <div className="bg-white/40 backdrop-blur-sm rounded-2xl p-3 sm:p-4 text-center">
+                <div className="text-xl sm:text-2xl font-bold text-orange-600">
                   {filteredAndSortedTransactions.filter(t => !t.category_name || t.category_name === 'Uncategorized').length}
                 </div>
-                <div className="text-sm text-gray-600">🏷️ Pending</div>
+                <div className="text-xs sm:text-sm text-gray-600">🏷️ Pending</div>
               </div>
-              <div className="bg-white/40 backdrop-blur-sm rounded-2xl p-4 text-center">
-                <div className="text-2xl font-bold text-blue-600">{selectedTransactions.size}</div>
-                <div className="text-sm text-gray-600">Selected</div>
+              <div className="bg-white/40 backdrop-blur-sm rounded-2xl p-3 sm:p-4 text-center">
+                <div className="text-xl sm:text-2xl font-bold text-blue-600">{selectedTransactions.size}</div>
+                <div className="text-xs sm:text-sm text-gray-600">Selected</div>
               </div>
-              <div className="bg-white/40 backdrop-blur-sm rounded-2xl p-4 text-center">
-                <div className="text-2xl font-bold text-purple-600">{categories.length}</div>
-                <div className="text-sm text-gray-600">Categories</div>
+              <div className="bg-white/40 backdrop-blur-sm rounded-2xl p-3 sm:p-4 text-center hidden sm:block">
+                <div className="text-xl sm:text-2xl font-bold text-purple-600">{categories.length}</div>
+                <div className="text-xs sm:text-sm text-gray-600">Categories</div>
               </div>
             </div>
 
@@ -661,7 +663,7 @@ const Categorize: NextPage = () => {
           onExportSelected={handleExportSelected}
         />
       </motion.div>
-    </Layout>
+    </Layout >
   );
 };
 

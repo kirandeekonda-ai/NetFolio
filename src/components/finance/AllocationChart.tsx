@@ -39,9 +39,9 @@ export const AllocationChart: React.FC<AllocationChartProps> = ({ holdings, type
     if (holdings.length === 0) return null;
 
     return (
-        <div className="flex gap-6">
+        <div className="flex flex-col md:flex-row gap-6">
             {/* Chart */}
-            <div className="flex-1 h-[350px]">
+            <div className="hidden md:block flex-1 h-[350px]">
                 <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                         <Pie
@@ -65,8 +65,8 @@ export const AllocationChart: React.FC<AllocationChartProps> = ({ holdings, type
             </div>
 
             {/* Breakdown Table */}
-            <div className="flex-1">
-                <div className="bg-gray-50 rounded-lg p-4 h-[350px] overflow-y-auto">
+            <div className="flex-1 w-full">
+                <div className="bg-gray-50 rounded-lg p-4 h-[350px] overflow-y-auto w-full">
                     <h4 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
                         {type === 'sector' ? 'Sector' : 'Asset Class'} Breakdown
                     </h4>

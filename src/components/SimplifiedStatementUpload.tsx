@@ -46,7 +46,7 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
   const [securityBreakdown, setSecurityBreakdown] = useState<any>(null);
   const [showPasswordProtectedDialog, setShowPasswordProtectedDialog] = useState(false);
   const [passwordProtectedFileName, setPasswordProtectedFileName] = useState<string>('');
-  
+
   const user = useUser();
   const supabase = useSupabaseClient();
 
@@ -64,7 +64,7 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
 
   // Get selected account info
   const selectedAccount = accounts.find(acc => acc.id === selectedAccountId);
-  
+
   // Auto-populate bank name and period from props (no duplicates)
   const bankName = selectedAccount?.bank_name || '';
   const monthName = new Date(selectedYear, selectedMonth - 1).toLocaleDateString('en-US', { month: 'long' });
@@ -73,7 +73,7 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
   useEffect(() => {
     const fetchUserCategories = async () => {
       if (!user) return;
-      
+
       try {
         const { data, error } = await supabase
           .from('categories')
@@ -83,7 +83,7 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
 
         if (error) throw error;
         setUserCategories(data || []);
-        
+
       } catch (error) {
         console.error('Error fetching user categories for upload:', error);
       }
@@ -104,7 +104,7 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
       console.log('📂 Using user categories for processing:', userCategories.map(c => c.name));
       console.log('🏦 Bank:', bankName);
       console.log('📅 Period:', monthName, yearString);
-      
+
       const result = await processStatement(
         file,
         bankName,
@@ -112,7 +112,7 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
         yearString,
         userCategories
       );
-      
+
       // Check if validation failed (now returns result instead of throwing)
       if (result.validationResult && !result.validationResult.isValid) {
         // Keep upload area expanded for retry
@@ -121,24 +121,24 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
         // The validation error is already displayed in the UI, no need to throw
         return;
       }
-      
+
       console.log(`✅ Successfully extracted ${result.transactions.length} transactions using Enhanced AI`);
-      
+
       // Set real security breakdown from the processing result
       if (result.securityBreakdown) {
         setSecurityBreakdown(result.securityBreakdown);
         console.log('🔐 Real security breakdown received:', result.securityBreakdown);
       }
-      
+
       // Minimize upload area on success
       setUploadMinimized(true);
-      
+
       onTransactionsExtracted(result.transactions, result.pageResults);
-      
+
     } catch (error) {
       // Keep upload area expanded on error for retry
       setUploadMinimized(false);
-      
+
       // Check if this is a password-protected PDF error
       if (error instanceof Error && error.message === 'PASSWORD_PROTECTED_PDF') {
         console.log('🔐 Password-protected PDF detected, showing info dialog');
@@ -146,7 +146,7 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
         setShowPasswordProtectedDialog(true);
         return;
       }
-      
+
       console.error('❌ Failed to process PDF with Enhanced AI:', error);
     }
   };
@@ -180,24 +180,26 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
       <div className="relative">
         <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-indigo-500/20 rounded-3xl blur-xl"></div>
         <div className="relative bg-white/80 backdrop-blur-xl rounded-3xl p-8 border border-white/30 shadow-2xl">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 md:gap-0">
+            <div className="flex items-start md:items-center gap-4 md:gap-6">
               {/* Bank Logo */}
-              <BankLogo
-                bankName={selectedAccount?.bank_name || ''}
-                accountType={selectedAccount?.account_type || ''}
-                size="lg"
-                className="shadow-lg"
-              />
-              
+              <div className="flex-shrink-0">
+                <BankLogo
+                  bankName={selectedAccount?.bank_name || ''}
+                  accountType={selectedAccount?.account_type || ''}
+                  size="lg"
+                  className="shadow-lg"
+                />
+              </div>
+
               <div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-1">
                   {selectedAccount?.bank_name}
                 </h3>
-                <div className="flex items-center space-x-4 text-sm text-gray-600">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-600">
                   <span className="inline-flex items-center space-x-1">
                     <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
-                    <span>{selectedAccount?.account_type}</span>
+                    <span className="capitalize">{selectedAccount?.account_type}</span>
                   </span>
                   <span className="inline-flex items-center space-x-1">
                     <span className="w-2 h-2 bg-emerald-400 rounded-full"></span>
@@ -206,14 +208,14 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
                 </div>
               </div>
             </div>
-            <div className="flex flex-col items-end space-y-2">
-              <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-gradient-to-r from-emerald-100 to-teal-100 text-emerald-800 border border-emerald-200/50">
+            <div className="flex flex-col md:items-end gap-2 w-full md:w-auto">
+              <span className="inline-flex items-center self-start md:self-end px-3 py-1.5 rounded-full text-xs font-medium bg-gradient-to-r from-emerald-100 to-teal-100 text-emerald-800 border border-emerald-200/50">
                 <span className="w-2 h-2 bg-emerald-400 rounded-full mr-2 animate-pulse"></span>
                 AI Processing Ready
               </span>
-              <div className="flex items-center space-x-2 text-xs text-gray-500">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500">
                 <span>🔒 Bank-grade security</span>
-                <span>•</span>
+                <span className="hidden md:inline">•</span>
                 <span>🤖 Smart extraction</span>
               </div>
             </div>
@@ -304,7 +306,7 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
               <div className="flex-1">
                 <h3 className="text-xl font-semibold text-red-900 mb-3">Processing Failed</h3>
                 <p className="text-red-800 mb-6 leading-relaxed">{enhancedError}</p>
-                
+
                 <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 mb-6">
                   <h4 className="font-semibold text-red-900 mb-3 flex items-center">
                     <span className="mr-2">💡</span>
@@ -329,7 +331,7 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
                     </div>
                   </div>
                 </div>
-                
+
                 <Button
                   onClick={handleRetry}
                   className="bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white shadow-lg"
@@ -373,7 +375,7 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
                 Experience next-generation statement processing with advanced AI and enterprise-grade security
               </p>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[
                 { icon: '🔍', title: 'Smart Validation', desc: 'Validates bank, month, and year automatically' },
@@ -398,8 +400,8 @@ export const SimplifiedStatementUpload: React.FC<SimplifiedStatementUploadProps>
 
       {/* Premium Action Footer */}
       <div className="flex justify-end">
-        <Button 
-          onClick={onCancel} 
+        <Button
+          onClick={onCancel}
           variant="secondary"
           className="bg-white/70 hover:bg-white text-gray-700 border-gray-200 shadow-lg backdrop-blur-sm"
         >

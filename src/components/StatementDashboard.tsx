@@ -494,41 +494,54 @@ export const StatementDashboard = forwardRef<StatementDashboardRef, StatementDas
               <Card className="bg-white/80 backdrop-blur-sm border-white/50 shadow-xl shadow-slate-900/5 hover:shadow-2xl hover:shadow-slate-900/10 transition-all duration-500 overflow-hidden">
                 {/* Account Header */}
                 <div className="bg-gradient-to-r from-slate-50 to-blue-50/50 border-b border-slate-100 p-6 mb-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
+                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-0">
+                    <div className="flex items-start md:items-center space-x-0 md:space-x-4">
                       {/* Bank Logo */}
-                      <BankLogo
-                        bankName={account.bank_name}
-                        accountType={account.account_type}
-                        size="lg"
-                        className="shadow-md"
-                      />
+                      <div className="hidden md:block">
+                        <BankLogo
+                          bankName={account.bank_name}
+                          accountType={account.account_type}
+                          size="lg"
+                          className="shadow-md"
+                        />
+                      </div>
+                      <div className="md:hidden mb-3">
+                        <BankLogo
+                          bankName={account.bank_name}
+                          accountType={account.account_type}
+                          size="md"
+                          className="shadow-md"
+                        />
+                      </div>
 
                       {/* Account Details */}
                       <div>
                         <h3 className="text-xl font-bold text-slate-900 mb-1">
                           {account.account_nickname || account.bank_name}
                         </h3>
-                        <div className="flex items-center space-x-3 text-sm text-slate-600">
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-600">
                           <span className="flex items-center">
                             <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                               <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4zM18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" />
                             </svg>
                             {account.bank_name}
                           </span>
-                          <span className="text-slate-400">•</span>
-                          <span>{account.account_type}</span>
+                          <span className="hidden sm:inline text-slate-400">•</span>
+                          <span className="capitalize">{account.account_type}</span>
                           {account.account_number_last4 && (
                             <>
-                              <span className="text-slate-400">•</span>
-                              <span className="font-mono">...{account.account_number_last4}</span>
+                              <span className="hidden sm:inline text-slate-400">•</span>
+                              <span className="font-mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">
+                                ...{account.account_number_last4}
+                              </span>
                             </>
                           )}
                         </div>
                       </div>
                     </div>
 
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                    {/* Decorative Account Icon - Hidden on mobile to save space and prevent overlap */}
+                    <div className="hidden md:flex w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl items-center justify-center shadow-lg">
                       <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4zM18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" />
                       </svg>
@@ -662,8 +675,8 @@ export const StatementDashboard = forwardRef<StatementDashboardRef, StatementDas
                                         }}
                                         disabled={isDeleting === statement.id}
                                         className={`w-full text-left px-4 py-3 text-sm hover:bg-red-50 flex items-center gap-3 transition-colors ${isDeleting === statement.id
-                                            ? 'text-slate-400 cursor-not-allowed'
-                                            : 'text-red-600'
+                                          ? 'text-slate-400 cursor-not-allowed'
+                                          : 'text-red-600'
                                           }`}
                                       >
                                         <span className={`w-6 h-6 ${isDeleting === statement.id ? 'bg-slate-100 text-slate-400' : 'bg-red-100 text-red-600'} rounded-lg flex items-center justify-center text-xs`}>

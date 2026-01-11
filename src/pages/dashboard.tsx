@@ -145,19 +145,19 @@ const Dashboard: NextPage = () => {
         {/* Enhanced Header Section */}
         <div className="bg-white border-b border-gray-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 md:gap-0">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
                   Financial Dashboard
                 </h1>
-                <p className="mt-2 text-gray-600">
+                <p className="mt-1 md:mt-2 text-sm md:text-base text-gray-600">
                   Track your financial health and spending patterns
                 </p>
               </div>
 
               {/* Enhanced Quick Period Selector - Header */}
-              <div className="flex items-center space-x-4">
-                <div className="text-right">
+              <div className="flex flex-col items-end space-y-2 md:space-y-0 md:flex-row md:items-center md:space-x-4 w-full md:w-auto">
+                <div className="hidden md:block text-right">
                   <div className="text-sm font-medium text-gray-700">Quick Periods</div>
                   <div className="text-xs text-gray-500">Complete month ranges</div>
                 </div>
@@ -356,42 +356,42 @@ const Dashboard: NextPage = () => {
           {/* Analytics Hub */}
           <Card className="p-6">
             {/* Header with Tabs */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0 mb-6">
               <h3 className="font-medium text-gray-900">Financial Analytics</h3>
 
-              <div className="flex items-center bg-gray-100 rounded-lg p-1">
+              <div className="flex items-center bg-gray-100 rounded-lg p-1 overflow-x-auto max-w-full no-scrollbar">
                 <button
                   onClick={() => setActiveChartTab('overview')}
-                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${activeChartTab === 'overview'
+                  className={`px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-all duration-200 whitespace-nowrap ${activeChartTab === 'overview'
                     ? 'bg-white text-blue-600 shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
                     }`}
                 >
-                  <span className="flex items-center space-x-2">
+                  <span className="flex items-center space-x-1.5 sm:space-x-2">
                     <span>📂</span>
                     <span>Overview</span>
                   </span>
                 </button>
                 <button
                   onClick={() => setActiveChartTab('insights')}
-                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${activeChartTab === 'insights'
+                  className={`px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-all duration-200 whitespace-nowrap ${activeChartTab === 'insights'
                     ? 'bg-white text-blue-600 shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
                     }`}
                 >
-                  <span className="flex items-center space-x-2">
+                  <span className="flex items-center space-x-1.5 sm:space-x-2">
                     <span>🎯</span>
                     <span>Insights</span>
                   </span>
                 </button>
                 <button
                   onClick={() => setActiveChartTab('analytics')}
-                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${activeChartTab === 'analytics'
+                  className={`px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-all duration-200 whitespace-nowrap ${activeChartTab === 'analytics'
                     ? 'bg-white text-blue-600 shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
                     }`}
                 >
-                  <span className="flex items-center space-x-2">
+                  <span className="flex items-center space-x-1.5 sm:space-x-2">
                     <span>📊</span>
                     <span>Analytics</span>
                   </span>

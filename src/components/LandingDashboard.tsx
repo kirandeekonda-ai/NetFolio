@@ -256,14 +256,14 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user }) => {
           <div className="absolute bottom-20 left-1/3 w-40 h-40 bg-white/5 rounded-full blur-3xl"></div>
         </div>
 
-        <div className="relative max-w-7xl mx-auto px-6 py-24">
+        <div className="relative max-w-7xl mx-auto px-6 py-16 md:py-24">
           <div className="text-center text-white">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3, duration: 0.8 }}
             >
-              <h1 className="text-6xl md:text-7xl font-light mb-4 tracking-tight">
+              <h1 className="text-4xl md:text-7xl font-light mb-4 tracking-tight break-words">
                 Welcome back,
                 <span className="block font-semibold bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent">
                   {displayName}
@@ -279,7 +279,7 @@ export const LandingDashboard: FC<LandingDashboardProps> = ({ user }) => {
         </div>
       </motion.section>
 
-      <div className="relative -mt-20 z-10 max-w-7xl mx-auto px-6">
+      <div className="relative -mt-12 md:-mt-20 z-10 max-w-7xl mx-auto px-6">
 
         {/* Premium Financial Overview */}
         <motion.section

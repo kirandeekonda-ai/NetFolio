@@ -99,46 +99,48 @@ export default function PaymentsPage() {
             <Head><title>Monthly Payments | Portfoliio</title></Head>
 
             {/* Main Content Container - Matches Portfolio Grid */}
-            <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+            <div className="max-w-7xl mx-auto px-4 py-8 pb-24 space-y-8">
 
                 {/* Header Section - Matches Portfolio Header Style */}
-                <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-700 rounded-3xl shadow-xl">
+                <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-700 rounded-2xl md:rounded-3xl shadow-xl">
                     <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent"></div>
-                    <div className="relative px-8 py-10 flex flex-col md:flex-row justify-between items-center gap-6">
+                    <div className="relative p-6 md:px-8 md:py-10 flex flex-col md:flex-row justify-between items-center gap-6">
                         <div className="text-center md:text-left">
-                            <h1 className="text-4xl font-light text-white mb-2">Monthly Payments</h1>
-                            <p className="text-xl text-blue-100 font-light">
+                            <h1 className="text-2xl md:text-4xl font-light text-white mb-2">Monthly Payments</h1>
+                            <p className="text-base md:text-xl text-blue-100 font-light">
                                 Your command center for bills & investments
                             </p>
                         </div>
 
                         {/* Month Selector - Glassmorphism */}
-                        <div className="flex items-center gap-3 bg-white/10 backdrop-blur-sm p-1.5 rounded-xl border border-white/20 shadow-lg">
-                            <Button variant="ghost" size="icon" onClick={() => handleMonthChange(-1)} className="rounded-lg hover:bg-white/20 text-white">
-                                <ChevronLeft className="h-5 w-5" />
-                            </Button>
-                            <span className="font-medium text-lg min-w-[160px] text-center text-white tracking-wide">{monthName}</span>
-                            <Button variant="ghost" size="icon" onClick={() => handleMonthChange(1)} className="rounded-lg hover:bg-white/20 text-white">
-                                <ChevronRight className="h-5 w-5" />
+                        <div className="flex flex-col sm:flex-row items-stretch gap-4 w-full md:w-auto">
+                            <div className="flex items-center justify-between w-full sm:w-auto gap-3 bg-white/10 backdrop-blur-sm p-1.5 rounded-xl border border-white/20 shadow-lg">
+                                <Button variant="ghost" size="icon" onClick={() => handleMonthChange(-1)} className="rounded-lg hover:bg-white/20 text-white h-8 w-8 md:h-10 md:w-10">
+                                    <ChevronLeft className="h-5 w-5" />
+                                </Button>
+                                <span className="font-medium text-base md:text-lg min-w-[120px] md:min-w-[160px] text-center text-white tracking-wide">{monthName}</span>
+                                <Button variant="ghost" size="icon" onClick={() => handleMonthChange(1)} className="rounded-lg hover:bg-white/20 text-white h-8 w-8 md:h-10 md:w-10">
+                                    <ChevronRight className="h-5 w-5" />
+                                </Button>
+                            </div>
+
+                            <Button
+                                onClick={() => { setEditingItem(null); setIsUpsertOpen(true); }}
+                                className="bg-white text-indigo-600 hover:bg-white/90 shadow-lg hover:shadow-xl transition-all duration-200 font-semibold px-6 py-3 md:py-6 h-auto text-sm md:text-base"
+                            >
+                                <Plus className="mr-2 h-5 w-5" /> Add Payment
                             </Button>
                         </div>
-
-                        <Button
-                            onClick={() => { setEditingItem(null); setIsUpsertOpen(true); }}
-                            className="bg-white text-indigo-600 hover:bg-white/90 shadow-lg hover:shadow-xl transition-all duration-200 font-semibold px-6 py-6 h-auto"
-                        >
-                            <Plus className="mr-2 h-5 w-5" /> Add Payment
-                        </Button>
                     </div>
                 </div>
 
                 {/* KPI Cards - Colorful Gradients */}
-                <div className="grid gap-6 md:grid-cols-3">
+                <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
                     <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 p-6 shadow-xl text-white">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
                         <div className="relative">
-                            <p className="text-white/90 text-sm font-medium uppercase tracking-wide mb-3">Total Commitments</p>
-                            <p className="text-4xl font-bold mb-1">₹{totalDue.toLocaleString()}</p>
+                            <p className="text-white/90 text-xs md:text-sm font-medium uppercase tracking-wide mb-3">Total Commitments</p>
+                            <p className="text-3xl md:text-4xl font-bold mb-1">₹{totalDue.toLocaleString()}</p>
                             <p className="text-blue-100 text-sm">Estimated Monthly Fixed</p>
                         </div>
                     </div>
@@ -146,8 +148,8 @@ export default function PaymentsPage() {
                     <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 p-6 shadow-xl text-white">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
                         <div className="relative">
-                            <p className="text-white/90 text-sm font-medium uppercase tracking-wide mb-3">Paid So Far</p>
-                            <p className="text-4xl font-bold mb-1">₹{totalPaid.toLocaleString()}</p>
+                            <p className="text-white/90 text-xs md:text-sm font-medium uppercase tracking-wide mb-3">Paid So Far</p>
+                            <p className="text-3xl md:text-4xl font-bold mb-1">₹{totalPaid.toLocaleString()}</p>
                             <p className="text-emerald-100 text-sm">
                                 {totalDue > 0 ? Math.round((totalPaid / totalDue) * 100) : 0}% completed
                             </p>
@@ -157,15 +159,15 @@ export default function PaymentsPage() {
                     <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 p-6 shadow-xl text-white">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
                         <div className="relative">
-                            <p className="text-white/90 text-sm font-medium uppercase tracking-wide mb-3">Pending Items</p>
-                            <p className="text-4xl font-bold mb-1">{pendingCount}</p>
+                            <p className="text-white/90 text-xs md:text-sm font-medium uppercase tracking-wide mb-3">Pending Items</p>
+                            <p className="text-3xl md:text-4xl font-bold mb-1">{pendingCount}</p>
                             <p className="text-amber-100 text-sm">Action required</p>
                         </div>
                     </div>
                 </div>
 
                 {/* The List - Clean White Card */}
-                <Card className="bg-white border-0 shadow-lg rounded-2xl overflow-hidden">
+                <Card className="bg-white border-0 shadow-lg rounded-2xl overflow-hidden overflow-x-auto">
                     <CardHeader className="border-b border-slate-100 bg-slate-50/50 pb-4">
                         <CardTitle className="text-lg text-slate-700 font-semibold flex items-center gap-2">
                             Activity Log
@@ -199,28 +201,28 @@ export default function PaymentsPage() {
 
                                     return (
                                         <div key={item.id}
-                                            className={`group flex items-center justify-between p-5 transition-all duration-200 hover:bg-slate-50 
+                                            className={`group flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 sm:p-5 transition-all duration-200 hover:bg-slate-50 gap-4 sm:gap-0
                                                 ${isPaid ? 'bg-slate-50/30' : ''}
                                             `}
                                         >
-                                            <div className="flex items-center gap-5">
+                                            <div className="flex items-start gap-3 sm:gap-5 w-full sm:w-auto">
                                                 {/* Interactive Checkbox/Status */}
                                                 <button
                                                     onClick={() => handleMarkPaid(item)}
                                                     className={`
-                                                        rounded-full p-2 transition-all duration-300 focus:outline-none shadow-sm
+                                                        mt-1 sm:mt-0 rounded-full p-1.5 sm:p-2 transition-all duration-300 focus:outline-none shadow-sm flex-shrink-0
                                                         ${isPaid ? 'bg-emerald-100 text-emerald-600' :
                                                             isOverdue ? 'bg-red-100 text-red-600 animate-pulse' :
                                                                 'bg-white border border-slate-200 text-slate-400 hover:text-emerald-500 hover:border-emerald-300'}
                                                     `}
                                                 >
-                                                    {isPaid ? <CheckCircle2 className="h-6 w-6" /> :
-                                                        isOverdue ? <AlertCircle className="h-6 w-6" /> : <Circle className="h-6 w-6" />}
+                                                    {isPaid ? <CheckCircle2 className="h-5 w-5 sm:h-6 sm:w-6" /> :
+                                                        isOverdue ? <AlertCircle className="h-5 w-5 sm:h-6 sm:w-6" /> : <Circle className="h-5 w-5 sm:h-6 sm:w-6" />}
                                                 </button>
 
-                                                <div className="flex flex-col gap-1">
-                                                    <div className="flex items-center gap-3">
-                                                        <span className={`text-lg font-semibold transition-colors ${isPaid ? 'text-slate-400 line-through' : 'text-slate-800'}`}>
+                                                <div className="flex flex-col gap-1 w-full">
+                                                    <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                                                        <span className={`text-base sm:text-lg font-semibold transition-colors ${isPaid ? 'text-slate-400 line-through' : 'text-slate-800'}`}>
                                                             {item.name}
                                                         </span>
                                                         <Badge variant="outline" className="bg-slate-100 text-slate-600 border-slate-200 text-[10px] tracking-wider uppercase font-semibold px-2 py-0.5">
@@ -230,7 +232,7 @@ export default function PaymentsPage() {
                                                             <Badge className="bg-blue-50 text-blue-600 border-blue-100 border text-[10px] uppercase tracking-wider shadow-none hover:bg-blue-100">SIP</Badge>
                                                         )}
                                                     </div>
-                                                    <div className="flex items-center gap-4 text-sm text-slate-500 font-medium">
+                                                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs sm:text-sm text-slate-500 font-medium">
                                                         <span className={`flex items-center gap-1.5 ${isOverdue ? 'text-red-600 font-semibold' : ''}`}>
                                                             <Clock className="h-3.5 w-3.5" />
                                                             {isOverdue ? 'Overdue - was due ' : 'Due '}
@@ -238,13 +240,13 @@ export default function PaymentsPage() {
                                                         </span>
 
                                                         {item.amount && (
-                                                            <span className="flex items-center gap-1.5 before:content-['•'] before:text-slate-300">
+                                                            <span className="flex items-center gap-1.5 before:hidden sm:before:block sm:before:content-['•'] before:text-slate-300">
                                                                 Est: <span className="text-slate-700">₹{item.amount.toLocaleString()}</span>
                                                             </span>
                                                         )}
 
                                                         {isPaid && item.current_log?.actual_amount && (
-                                                            <span className="flex items-center gap-1.5 text-emerald-600 before:content-['•'] before:text-slate-300">
+                                                            <span className="flex items-center gap-1.5 text-emerald-600 before:hidden sm:before:block sm:before:content-['•'] before:text-slate-300">
                                                                 Paid: <span className="font-bold">₹{item.current_log.actual_amount.toLocaleString()}</span>
                                                             </span>
                                                         )}
@@ -252,14 +254,15 @@ export default function PaymentsPage() {
                                                 </div>
                                             </div>
 
-                                            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                            {/* Actions - Always visible on mobile, hover on desktop */}
+                                            <div className="flex items-center justify-end w-full sm:w-auto gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200 border-t sm:border-t-0 pt-3 sm:pt-0 mt-1 sm:mt-0 border-slate-100">
                                                 <Button variant="ghost" size="sm" onClick={() => { setEditingItem(item); setIsUpsertOpen(true); }}
-                                                    className="hover:bg-blue-50 text-slate-500 hover:text-blue-600 rounded-lg">
-                                                    <Edit2 className="h-4 w-4 mr-1" /> Edit
+                                                    className="hover:bg-blue-50 text-slate-500 hover:text-blue-600 rounded-lg h-8 px-3 text-xs sm:text-sm">
+                                                    <Edit2 className="h-3.5 w-3.5 mr-1" /> Edit
                                                 </Button>
                                                 <Button variant="ghost" size="sm" onClick={() => handleDelete(item.id!)}
-                                                    className="hover:bg-red-50 text-slate-500 hover:text-red-600 rounded-lg">
-                                                    <Trash2 className="h-4 w-4 mr-1" /> Delete
+                                                    className="hover:bg-red-50 text-slate-500 hover:text-red-600 rounded-lg h-8 px-3 text-xs sm:text-sm">
+                                                    <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
                                                 </Button>
                                             </div>
                                         </div>

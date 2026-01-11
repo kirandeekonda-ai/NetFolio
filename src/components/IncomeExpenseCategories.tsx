@@ -123,7 +123,7 @@ export const IncomeExpenseCategories: React.FC<IncomeExpenseCategoriesProps> = (
     // Filter transactions by date range
     const startDate = new Date(dateRange.start);
     const endDate = new Date(dateRange.end);
-    
+
     const filteredTransactions = transactions.filter(transaction => {
       const transactionDate = new Date(transaction.transaction_date || transaction.date);
       const isInDateRange = transactionDate >= startDate && transactionDate <= endDate;
@@ -142,15 +142,15 @@ export const IncomeExpenseCategories: React.FC<IncomeExpenseCategoriesProps> = (
     // Group by categories
     const groupByCategory = (transactionList: Transaction[], total: number) => {
       const categoryMap = new Map<string, { amount: number; count: number; transactions: Transaction[] }>();
-      
+
       transactionList.forEach(transaction => {
         const categoryName = transaction.category_name || 'Uncategorized';
         const amount = Math.abs(transaction.amount || 0);
-        
+
         if (!categoryMap.has(categoryName)) {
           categoryMap.set(categoryName, { amount: 0, count: 0, transactions: [] });
         }
-        
+
         const category = categoryMap.get(categoryName)!;
         category.amount += amount;
         category.count += 1;
@@ -195,14 +195,14 @@ export const IncomeExpenseCategories: React.FC<IncomeExpenseCategoriesProps> = (
             {category.icon}
           </span>
         </div>
-        
+
         {/* Content - Balanced Layout */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-1">
             <h4 className="text-sm font-semibold text-gray-900 truncate pr-2">
               {category.name}
             </h4>
-            <span 
+            <span
               className="text-xs font-bold px-2 py-1 rounded text-white text-center min-w-[36px]"
               style={{ backgroundColor: category.color }}
             >
@@ -226,10 +226,10 @@ export const IncomeExpenseCategories: React.FC<IncomeExpenseCategoriesProps> = (
     <div className="h-full">
       {/* Split Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
-        
+
         {/* Income Section */}
-        <div className="bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 rounded-3xl p-8 border border-emerald-100 shadow-lg">
-          <div className="flex items-center justify-between mb-8">
+        <div className="bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 rounded-3xl p-4 md:p-8 border border-emerald-100 shadow-lg">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0 mb-6 md:mb-8">
             <div className="flex items-center space-x-4">
               <div className="relative">
                 <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl flex items-center justify-center shadow-lg">
@@ -248,7 +248,7 @@ export const IncomeExpenseCategories: React.FC<IncomeExpenseCategoriesProps> = (
                 <p className="text-emerald-600 font-medium">Revenue sources</p>
               </div>
             </div>
-            <div className="text-right">
+            <div className="text-left sm:text-right">
               <div className="text-3xl font-black text-emerald-600">
                 {formatAmount(totalIncome)}
               </div>
@@ -259,7 +259,7 @@ export const IncomeExpenseCategories: React.FC<IncomeExpenseCategoriesProps> = (
           </div>
 
           {/* Income Categories */}
-          <div className="grid grid-cols-2 gap-4 max-h-[400px] overflow-y-auto pr-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 max-h-[400px] overflow-y-auto pr-2">
             {incomeCategories.length === 0 ? (
               <div className="col-span-2 text-center py-12">
                 <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-emerald-200 to-green-300 rounded-3xl flex items-center justify-center">
@@ -281,8 +281,8 @@ export const IncomeExpenseCategories: React.FC<IncomeExpenseCategoriesProps> = (
         </div>
 
         {/* Expenses Section */}
-        <div className="bg-gradient-to-br from-rose-50 via-red-50 to-pink-50 rounded-3xl p-8 border border-rose-100 shadow-lg">
-          <div className="flex items-center justify-between mb-8">
+        <div className="bg-gradient-to-br from-rose-50 via-red-50 to-pink-50 rounded-3xl p-4 md:p-8 border border-rose-100 shadow-lg">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0 mb-6 md:mb-8">
             <div className="flex items-center space-x-4">
               <div className="relative">
                 <div className="w-16 h-16 bg-gradient-to-br from-rose-500 to-red-600 rounded-2xl flex items-center justify-center shadow-lg">
@@ -303,7 +303,7 @@ export const IncomeExpenseCategories: React.FC<IncomeExpenseCategoriesProps> = (
                 <p className="text-rose-600 font-medium">Spending breakdown</p>
               </div>
             </div>
-            <div className="text-right">
+            <div className="text-left sm:text-right">
               <div className="text-3xl font-black text-rose-600">
                 {formatAmount(totalExpenses)}
               </div>
@@ -314,7 +314,7 @@ export const IncomeExpenseCategories: React.FC<IncomeExpenseCategoriesProps> = (
           </div>
 
           {/* Expense Categories */}
-          <div className="grid grid-cols-2 gap-4 max-h-[400px] overflow-y-auto pr-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 max-h-[400px] overflow-y-auto pr-2">
             {expenseCategories.length === 0 ? (
               <div className="col-span-2 text-center py-12">
                 <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-rose-200 to-red-300 rounded-3xl flex items-center justify-center">
@@ -356,7 +356,7 @@ export const IncomeExpenseCategories: React.FC<IncomeExpenseCategoriesProps> = (
                 Total Income
               </div>
             </div>
-            
+
             <div className="text-center group hover:scale-105 transition-transform duration-200">
               <div className="w-16 h-16 mx-auto mb-3 bg-gradient-to-br from-rose-500 to-red-600 rounded-2xl flex items-center justify-center shadow-lg">
                 <span className="text-white text-2xl font-bold">₹</span>
@@ -368,23 +368,20 @@ export const IncomeExpenseCategories: React.FC<IncomeExpenseCategoriesProps> = (
                 Total Expenses
               </div>
             </div>
-            
+
             <div className="text-center group hover:scale-105 transition-transform duration-200">
-              <div className={`w-16 h-16 mx-auto mb-3 rounded-2xl flex items-center justify-center shadow-lg ${
-                totalIncome - totalExpenses >= 0 
-                  ? 'bg-gradient-to-br from-emerald-500 to-green-600' 
+              <div className={`w-16 h-16 mx-auto mb-3 rounded-2xl flex items-center justify-center shadow-lg ${totalIncome - totalExpenses >= 0
+                  ? 'bg-gradient-to-br from-emerald-500 to-green-600'
                   : 'bg-gradient-to-br from-rose-500 to-red-600'
-              }`}>
+                }`}>
                 <span className="text-white text-2xl font-bold">₹</span>
               </div>
-              <div className={`text-2xl font-black mb-1 ${
-                totalIncome - totalExpenses >= 0 ? 'text-emerald-600' : 'text-rose-600'
-              }`}>
+              <div className={`text-2xl font-black mb-1 ${totalIncome - totalExpenses >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                }`}>
                 {formatAmount(totalIncome - totalExpenses)}
               </div>
-              <div className={`text-sm font-semibold uppercase tracking-wide ${
-                totalIncome - totalExpenses >= 0 ? 'text-emerald-600' : 'text-rose-600'
-              }`}>
+              <div className={`text-sm font-semibold uppercase tracking-wide ${totalIncome - totalExpenses >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                }`}>
                 Net Balance
               </div>
             </div>
