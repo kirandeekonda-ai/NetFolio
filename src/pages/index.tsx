@@ -1,6 +1,6 @@
 import { NextPage } from 'next';
 import { useEffect, useState } from 'react';
-import { useSession, useSupabaseClient } from '@supabase/auth-helpers-react';
+import { useSessionContext, useSupabaseClient } from '@supabase/auth-helpers-react';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
 
@@ -12,7 +12,7 @@ interface UserFlowState {
 }
 
 const IndexPage: NextPage = () => {
-  const session = useSession();
+  const { session, isLoading } = useSessionContext(); // Use context to get loading state
   const supabase = useSupabaseClient();
   const router = useRouter();
   const [loadingStage, setLoadingStage] = useState('initializing');
@@ -20,6 +20,9 @@ const IndexPage: NextPage = () => {
 
   // Intelligent routing based on user state
   useEffect(() => {
+    // Wait for Supabase to finish loading the session
+    if (isLoading) return;
+
     const determineUserFlow = async () => {
       if (!session?.user) {
         // Not authenticated - go to marketing landing page
@@ -72,13 +75,14 @@ const IndexPage: NextPage = () => {
       }
     };
 
-    // Execute immediately, no artificial delays
+    // Execute flow determination
     if (session?.user) {
       setLoadingStage('authenticating');
-      determineUserFlow();
     }
 
-  }, [session?.user?.id, router, supabase]); // Use stable user ID
+    determineUserFlow();
+
+  }, [session, isLoading, router, supabase]); // Depend on session and isLoading
 
   const getLoadingMessage = () => {
     switch (loadingStage) {

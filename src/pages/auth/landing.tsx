@@ -100,7 +100,7 @@ const LandingPage: NextPage = () => {
         <meta name="keywords" content="personal finance, budgeting, expense tracking, financial analytics, AI categorization" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      
+
       <style jsx>{`
         @keyframes currencyScroll1 {
           0%, 30% { opacity: 1; transform: translateY(0px); }
@@ -217,41 +217,41 @@ const LandingPage: NextPage = () => {
           animation-delay: 6s;
         }
       `}</style>
-      
+
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
         {/* Navigation */}
         <nav className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100">
           <div className="container mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="flex items-center space-x-2"
-            >
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">N</span>
-              </div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                NetFolio
-              </h1>
-            </motion.div>
-            
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="flex items-center space-x-4"
-            >
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  setAuthMode('signin');
-                  setShowAuth(true);
-                }}
-                className="px-6 text-sm font-medium text-gray-700 hover:text-blue-600 bg-transparent hover:bg-blue-50 border-gray-200"
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="flex items-center space-x-2"
               >
-                Sign In
-              </Button>
-            </motion.div>
+                <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">N</span>
+                </div>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                  NetFolio
+                </h1>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="flex items-center space-x-4"
+              >
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setAuthMode('signin');
+                    setShowAuth(true);
+                  }}
+                  className="px-6 text-sm font-medium text-gray-700 hover:text-blue-600 bg-transparent hover:bg-blue-50 border-gray-200"
+                >
+                  Sign In
+                </Button>
+              </motion.div>
             </div>
           </div>
         </nav>
@@ -273,16 +273,16 @@ const LandingPage: NextPage = () => {
                 transition={{ duration: 0.8 }}
                 className="space-y-8"
               >
-                <div className="inline-flex items-center justify-center p-2 bg-blue-50 rounded-full mb-6">
-                  <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium">
+                <div className="inline-flex flex-wrap items-center justify-center p-2 bg-blue-50 rounded-2xl mb-6 gap-2 text-center">
+                  <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap">
                     ✨ New
                   </span>
-                  <span className="text-blue-700 px-3 py-1 text-sm font-medium">
+                  <span className="text-blue-700 px-2 py-1 text-xs sm:text-sm font-medium leading-tight">
                     AI-Powered Financial Insights
                   </span>
                 </div>
-                
-                <h1 className="text-4xl md:text-6xl font-bold leading-tight">
+
+                <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold leading-tight">
                   <span className="bg-gradient-to-r from-gray-900 via-blue-900 to-gray-900 bg-clip-text text-transparent">
                     Stop Wondering Where
                   </span>
@@ -291,40 +291,40 @@ const LandingPage: NextPage = () => {
                     Your Money Goes
                   </span>
                 </h1>
-                
+
                 <p className="text-xl text-gray-600 leading-relaxed">
-                  See exactly where every penny goes with AI that automatically categorizes your spending. 
+                  See exactly where every penny goes with AI that automatically categorizes your spending.
                   No more spreadsheets, no more guessing—just crystal-clear insights in 2 minutes.
                 </p>
 
                 {/* Trust Badges */}
-                <div className="flex flex-wrap items-center gap-6 py-4">
-                  <div className="flex items-center space-x-2 bg-green-50 px-4 py-2 rounded-full">
-                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                    <span className="text-green-700 font-medium text-sm">Bank-Level Security</span>
+                <div className="flex flex-wrap items-center gap-3 sm:gap-6 py-4">
+                  <div className="flex items-center space-x-2 bg-green-50 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full">
+                    <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-green-500 rounded-full"></div>
+                    <span className="text-green-700 font-medium text-xs sm:text-sm">Bank-Level Security</span>
                   </div>
-                  <div className="flex items-center space-x-2 bg-blue-50 px-4 py-2 rounded-full">
-                    <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                  <div className="flex items-center space-x-2 bg-blue-50 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full">
+                    <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
                     </svg>
-                    <span className="text-blue-700 font-medium text-sm">Privacy First</span>
+                    <span className="text-blue-700 font-medium text-xs sm:text-sm">Privacy First</span>
                   </div>
-                  <div className="flex items-center space-x-2 bg-purple-50 px-4 py-2 rounded-full">
-                    <svg className="w-4 h-4 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                  <div className="flex items-center space-x-2 bg-purple-50 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full">
+                    <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
-                    <span className="text-purple-700 font-medium text-sm">Free Forever</span>
+                    <span className="text-purple-700 font-medium text-xs sm:text-sm">Free Forever</span>
                   </div>
                 </div>
 
                 {/* Primary CTA */}
-                <div className="space-y-4">
+                <div className="space-y-4 pb-12 md:pb-0">
                   <Button
                     onClick={() => {
                       setAuthMode('signup');
                       setShowAuth(true);
                     }}
-                    className="group relative bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-4 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                    className="group relative bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-3.5 sm:px-8 sm:py-4 text-base sm:text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full sm:w-auto"
                   >
                     <span className="flex items-center">
                       Start Free Analysis Now
@@ -333,8 +333,8 @@ const LandingPage: NextPage = () => {
                       </svg>
                     </span>
                   </Button>
-                  
-                  <div className="flex items-center space-x-4 text-sm text-gray-500">
+
+                  <div className="flex flex-col sm:flex-row items-center sm:items-start space-y-2 sm:space-y-0 sm:space-x-4 text-sm text-gray-500">
                     <div className="flex items-center space-x-1">
                       <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -390,7 +390,7 @@ const LandingPage: NextPage = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Category Breakdown */}
                   <div className="space-y-3">
                     <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
@@ -466,7 +466,7 @@ const LandingPage: NextPage = () => {
                 <div className="relative">
                   <div className="text-3xl font-bold text-blue-600 blur-sm select-none">10,000+</div>
                   <div className="text-sm text-gray-600 blur-sm select-none">Statements Analyzed</div>
-                  
+
                   {/* Coming Soon Overlay */}
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
                     <motion.div
@@ -476,11 +476,11 @@ const LandingPage: NextPage = () => {
                       className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-lg"
                     >
                       <motion.span
-                        animate={{ 
+                        animate={{
                           opacity: [1, 0.7, 1],
                           scale: [1, 1.05, 1]
                         }}
-                        transition={{ 
+                        transition={{
                           duration: 2,
                           repeat: Infinity,
                           ease: "easeInOut"
@@ -501,7 +501,7 @@ const LandingPage: NextPage = () => {
                 <div className="text-3xl font-bold text-blue-600">2 min</div>
                 <div className="text-sm text-gray-600">Average Setup Time</div>
               </div>
-              
+
               {/* Finances Organized - Blurred with Coming Soon */}
               <div className="text-center relative">
                 <div className="relative">
@@ -516,7 +516,7 @@ const LandingPage: NextPage = () => {
                     <span>2.5M+</span>
                   </div>
                   <div className="text-sm text-gray-600 blur-sm select-none">Finances Organized</div>
-                  
+
                   {/* Coming Soon Overlay */}
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
                     <motion.div
@@ -526,11 +526,11 @@ const LandingPage: NextPage = () => {
                       className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-lg"
                     >
                       <motion.span
-                        animate={{ 
+                        animate={{
                           opacity: [1, 0.7, 1],
                           scale: [1, 1.05, 1]
                         }}
-                        transition={{ 
+                        transition={{
                           duration: 2,
                           repeat: Infinity,
                           ease: "easeInOut",
@@ -609,7 +609,7 @@ const LandingPage: NextPage = () => {
                   </div>
                 </div>
                 <p className="text-gray-700 mb-6 italic">
-                  "NetFolio transformed how I understand my spending. The AI categorization is spot-on, 
+                  "NetFolio transformed how I understand my spending. The AI categorization is spot-on,
                   and I finally have clarity on where my money goes each month."
                 </p>
                 <div className="flex items-center">
@@ -622,7 +622,7 @@ const LandingPage: NextPage = () => {
                   </div>
                 </div>
               </div>
-              
+
               {/* Coming Soon Overlay */}
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <motion.div
@@ -632,11 +632,11 @@ const LandingPage: NextPage = () => {
                   className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg"
                 >
                   <motion.span
-                    animate={{ 
+                    animate={{
                       opacity: [1, 0.7, 1],
                       scale: [1, 1.05, 1]
                     }}
-                    transition={{ 
+                    transition={{
                       duration: 2.5,
                       repeat: Infinity,
                       ease: "easeInOut"
@@ -666,7 +666,7 @@ const LandingPage: NextPage = () => {
                   </div>
                 </div>
                 <p className="text-gray-700 mb-6 italic">
-                  "Privacy was my biggest concern, but NetFolio's data masking approach gave me confidence. 
+                  "Privacy was my biggest concern, but NetFolio's data masking approach gave me confidence.
                   Setup took literally 2 minutes, and the insights are incredible."
                 </p>
                 <div className="flex items-center">
@@ -679,7 +679,7 @@ const LandingPage: NextPage = () => {
                   </div>
                 </div>
               </div>
-              
+
               {/* Coming Soon Overlay */}
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <motion.div
@@ -689,11 +689,11 @@ const LandingPage: NextPage = () => {
                   className="bg-gradient-to-r from-violet-600 to-purple-600 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg"
                 >
                   <motion.span
-                    animate={{ 
+                    animate={{
                       opacity: [1, 0.7, 1],
                       scale: [1, 1.05, 1]
                     }}
-                    transition={{ 
+                    transition={{
                       duration: 2.5,
                       repeat: Infinity,
                       ease: "easeInOut",
@@ -724,7 +724,7 @@ const LandingPage: NextPage = () => {
                   </div>
                 </div>
                 <p className="text-gray-700 mb-6 italic">
-                  "As a freelancer with irregular income, NetFolio helps me track my finances 
+                  "As a freelancer with irregular income, NetFolio helps me track my finances
                   without the complexity of traditional tools. Game changer!"
                 </p>
                 <div className="flex items-center">
@@ -737,7 +737,7 @@ const LandingPage: NextPage = () => {
                   </div>
                 </div>
               </div>
-              
+
               {/* Coming Soon Overlay */}
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <motion.div
@@ -747,11 +747,11 @@ const LandingPage: NextPage = () => {
                   className="bg-gradient-to-r from-orange-600 to-red-600 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg"
                 >
                   <motion.span
-                    animate={{ 
+                    animate={{
                       opacity: [1, 0.7, 1],
                       scale: [1, 1.05, 1]
                     }}
-                    transition={{ 
+                    transition={{
                       duration: 2.5,
                       repeat: Infinity,
                       ease: "easeInOut",
@@ -780,7 +780,7 @@ const LandingPage: NextPage = () => {
               <div className="absolute bottom-0 right-0 w-96 h-96 bg-white rounded-full translate-x-48 translate-y-48"></div>
               <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-white rounded-full -translate-x-32 -translate-y-32"></div>
             </div>
-            
+
             {/* Content */}
             <div className="relative z-10 p-12 text-center">
               <motion.div
@@ -801,11 +801,11 @@ const LandingPage: NextPage = () => {
                   </span>
                 </h2>
                 <p className="text-xl md:text-2xl text-blue-100 max-w-2xl mx-auto leading-relaxed">
-                  Join thousands who've discovered where their money really goes. 
+                  Join thousands who've discovered where their money really goes.
                   <span className="font-semibold text-white"> Your financial clarity is just 2 minutes away.</span>
                 </p>
               </motion.div>
-              
+
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -827,7 +827,7 @@ const LandingPage: NextPage = () => {
                     </svg>
                   </span>
                 </Button>
-                
+
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-white/90 text-sm">
                   <div className="flex items-center justify-center space-x-2">
                     <svg className="w-4 h-4 text-green-300" fill="currentColor" viewBox="0 0 20 20">
@@ -854,7 +854,7 @@ const LandingPage: NextPage = () => {
                     <span>Self-hosted</span>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center justify-center text-white/70 text-xs">
                   <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
@@ -897,7 +897,7 @@ const LandingPage: NextPage = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
-              
+
               <Auth />
             </motion.div>
           </motion.div>
