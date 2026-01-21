@@ -127,6 +127,7 @@ const StatementsPageContent: React.FC = () => {
     } finally {
       setIsLoading(false);
       setStatementToDelete('');
+      setShowDeleteConfirmation(false);
     }
   };
 

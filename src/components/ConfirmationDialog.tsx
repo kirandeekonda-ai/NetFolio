@@ -51,7 +51,7 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
                 {title}
               </h3>
 
-              <p className="text-sm text-center text-gray-500 mb-6">
+              <p className="text-sm text-gray-500 mb-6 whitespace-pre-wrap text-left">
                 {message}
               </p>
 
