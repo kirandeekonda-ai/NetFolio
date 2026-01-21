@@ -15,7 +15,7 @@ export class GroqService implements LLMProvider {
         api_endpoint?: string;
     }) {
         this.apiKey = config.api_key;
-        this.modelName = config.model_name || 'llama-3.3-70b-versatile';
+        this.modelName = config.model_name || 'openai/gpt-oss-120b';
         this.endpoint = config.api_endpoint || 'https://api.groq.com/openai/v1';
     }
 

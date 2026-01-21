@@ -58,7 +58,8 @@ You are a financial statement parser. Analyze the provided bank statement data a
       "date": "YYYY-MM-DD",
       "description": "Exact original transaction description as it appears in the statement",
       "amount": number (positive for money IN/credits, negative for money OUT/debits),
-      "suggested_category": "{{categoriesDescription}}"
+      "suggested_category": "{{categoriesDescription}}",
+      "verification": "PrevBalance (X) - Amount (Y) = CurrBalance (Z)" // Optional but highly recommended to output this reasoning
     }
     // ...additional transactions...
   ],
@@ -74,14 +75,33 @@ You are a financial statement parser. Analyze the provided bank statement data a
 
 Critical Guidelines:
 
-1. **Amount Signs & Balance Validation (VERY IMPORTANT)**:
-   - **Use Balance Changes as Source of Truth**: Determine each transaction's sign by comparing the balance before and after the transaction. If the balance increases after a transaction, that amount is positive (money came in); if the balance decreases, the amount is negative (money went out). Always apply this validation step to confirm the correctness of the sign.
-   - **Leverage Columns & Indicators**: Pay attention to column headers and notations in the statement. For example, if the statement has separate columns for Withdrawal and Deposits, an amount listed under "Withdrawal" is a debit (negative), and under "Deposits" is a credit (positive). Also use textual cues: "Dr" or "Debit" imply a negative amount, while "Cr" or "Credit" imply a positive amount. Only one of the debit/credit columns will have a value on a given transaction line – use this to identify the money flow direction.
-   - **Do Not Rely Solely on Description**: Never assume a transaction is income or expense just from keywords or the fact that previous transactions were of a certain type. Evaluate each transaction independently. For instance, even if one entry is a deposit, the next entry could be a withdrawal – always use the balance movement or column position to discern the sign. If a description suggests a deposit but the balance drops, treat it as a debit (money out) despite the wording. Conversely, if something looks like a payment but the balance rises, it's actually a credit (money in).
-   - **Example – Ambiguous Case Resolution**: If a transaction line shows an amount of "510.00" but the description contains a long number like "9000000000" as part of a reference, and the balance goes from ₹136,982.64 to ₹136,472.64, the transaction amount is -510.00 (a debit). The large number is part of the reference ID, not the amount. Do NOT concatenate or sum such reference numbers with the actual amount. Always isolate the actual transaction amount and confirm by checking that the previous balance minus the amount equals the new balance.
+1. **Amount Signs & Balance Validations (THE IRON LAW)**:
+   - **MATH IS THE ONLY TRUTH**: You CANNOT rely on valid column alignment because the text is unstructured. You MUST use mathematical logic for every single row:
+     - Check: \`Previous Balance\` + \`X\` = \`Current Balance\`  =>  **X is a CREDIT (Deposit)**
+     - Check: \`Previous Balance\` - \`Y\` = \`Current Balance\`  =>  **Y is a DEBIT (Withdrawal)**
+   - **Step-by-step Execution**:
+     1. Identify the **Current Balance** (It is consistently the **LAST** number in the transaction line).
+     2. Identify the **Transaction Amount** (It is consistently the number **IMMEDIATELY PRECEDING** the Current Balance).
+     3. Compare \`Current Balance\` with the \`Previous Row's Balance\`:
+        - \`Current\` < \`Previous\`  => **DEBIT** (Money Out). Double check: \`Previous - Amount = Current\`.
+        - \`Current\` > \`Previous\`  => **CREDIT** (Money In). Double check: \`Previous + Amount = Current\`.
+   - **Example (Debit)**:
+     - Text: "UPI Payment ... 16,800.00 3,45,553.74"
+     - Prev Bal: 3,62,353.74
+     - Logic: Balance dropped (3.62L -> 3.45L).
+     - Calculation: 362353.74 - 16800.00 = 345553.74.
+     - Result: **DEBIT** (Withdrawal).
+   - **Example (Credit)**:
+     - Text: "Refund ... 119.99 3,25,327.73"
+     - Prev Bal: 3,25,207.74
+     - Logic: Balance rose.
+     - Result: **CREDIT** (Deposit).
+
+   - **Ambiguous Case Resolution**: If a transaction line mentions other numbers (e.g. "Ref: 500023"), ignore them. Only the number that mathematically satisfies the balance change is the Amount.
 
 2. **Description Preservation**: Keep the transaction description exactly as it appears in the statement, without modifications or abbreviations. Include all parts of the description (even if they span multiple lines in the statement) so that users have the full details. Do not infer or append any information that isn't in the original text.
 
+3. **Smart Categorization**:
 {{categorizationGuidelines}}
 
 4. **Balance Detection (for balance_data)**: Identify key balance figures such as Opening Balance and Closing Balance from the statement (often explicitly labeled, or infer from the first and last balance in the transactions list). Also look for Available Balance or Current Balance if provided. Determine a confidence (0-100) for the extracted balances based on clarity: e.g., clearly labeled values = high confidence (90+), inferred or partially unclear values = lower confidence. If the statement explicitly lists opening/closing balances, include them in balance_data. If no clear balance info is found, use null for those fields and set confidence to 0. Provide a brief note in balance_extraction_notes explaining how balances were identified or any uncertainty.
@@ -90,9 +110,7 @@ Critical Guidelines:
 
 6. **Multi-line & OCR Quirk Handling**: Many Indian bank statements format transactions in tables that can break onto multiple lines or have OCR recognition issues. If a single transaction's details span multiple lines, merge them into one entry. For example, if a description or reference number continues on the next line without a new date, it's part of the previous transaction – combine them so the description is complete. Likewise, if an amount appears on a new line or is split (e.g., "9," on one line and "300.00" on the next), join them to reconstruct the correct amount 9,300.00.
 
-7. **Avoid Incorrect Merging of Numbers**: Be very careful not to merge unrelated numbers. Do NOT sum or append separate figures that belong to different fields. For instance, if an OCR error or spacing issue causes a large number to appear adjacent to the actual amount, handle them separately. E.g., a transaction reference "5000" appearing next to an amount "510.00" should not become "5510.00". The amount is 510.00 and the 5000 is part of the reference or account number. Use punctuation cues (commas, periods) and alignment to distinguish the actual amount from any nearby identifiers. When in doubt, refer back to the balance difference to validate the correct amount. Remove any stray line breaks or OCR artefacts like extraneous characters (e.g., O vs 0, misread commas) within a transaction entry. The final output should treat each transaction as one continuous line of text in the description and a correct isolated amount.
-
-8. **Date Formatting**: Normalize all dates to the format YYYY-MM-DD. Bank statements may use DD-MM-YYYY, DD/MM/YYYY or other formats – convert each transaction date consistently to the ISO format. If the statement uses non-standard or textual date formats, interpret them correctly (e.g., "01-Jan-2025" → 2025-01-01).
+7. **Date Formatting**: Normalize all dates to the format YYYY-MM-DD. Bank statements may use DD-MM-YYYY, DD/MM/YYYY or other formats – convert each transaction date consistently to the ISO format. If the statement uses non-standard or textual date formats, interpret them correctly (e.g., "01-Jan-2025" → 2025-01-01).
 
 Remember: Your output should be JSON only, with no explanatory text. Each transaction entry must have the correct sign on the amount (use the balance changes and statement layout rules above to get this right). Aim for accuracy over guesswork – if you're unsure about a category or a balance, use the guidelines (like confidence score or "others" category) to handle it. The goal is a structured JSON that faithfully represents the statement data with correct debit/credit signs and complete descriptions.
 
@@ -184,7 +202,7 @@ Return ONLY the JSON object, no additional text or formatting.
     const missingVariables = template.requiredVariables.filter(
       varName => !(varName in variables)
     );
-    
+
     if (missingVariables.length > 0) {
       throw new Error(
         `Missing required variables for template '${templateId}': ${missingVariables.join(', ')}`
@@ -193,7 +211,7 @@ Return ONLY the JSON object, no additional text or formatting.
 
     // Replace variables in template
     let prompt = template.template;
-    
+
     for (const [key, value] of Object.entries(variables)) {
       const placeholder = `{{${key}}}`;
       const stringValue = this.formatVariableValue(value);
@@ -267,7 +285,7 @@ export class TransactionExtractionPromptBuilder {
   ): string {
     // Build category description based on user categories
     const categoriesDescription = this.buildCategoriesDescription(userCategories);
-    
+
     // Build categorization guidelines based on user categories
     const categorizationGuidelines = this.buildCategorizationGuidelines(userCategories);
 
@@ -283,7 +301,7 @@ export class TransactionExtractionPromptBuilder {
    */
   private buildCategoriesDescription(userCategories: Category[]): string {
     let categoriesDescription = "automatically classified category based on description";
-    
+
     if (userCategories.length > 0) {
       const categoryNames = userCategories.map(cat => cat.name).join(', ');
       categoriesDescription = `one of the user's preferred categories: ${categoryNames}`;
@@ -302,7 +320,7 @@ export class TransactionExtractionPromptBuilder {
       const categoryList = userCategories
         .map(cat => `"${cat.name}"`)
         .join(', ');
-      
+
       return `3. **Smart Categorization – CRUCIAL REQUIREMENT**: You MUST use ONLY the user's preferred categories listed above. The user has specifically defined these categories: ${categoryList}. 
 
 **CATEGORIZATION RULES:**
