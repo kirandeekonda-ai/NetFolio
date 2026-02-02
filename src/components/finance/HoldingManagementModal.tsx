@@ -351,8 +351,11 @@ export const HoldingManagementModal: React.FC<HoldingManagementModalProps> = ({
                                             >
                                                 <option value="Equity">Equity</option>
                                                 <option value="Mutual Fund">Mutual Fund</option>
-                                                <option value="Debt">Debt</option>
-                                                <option value="Commodity">Commodity</option>
+                                                <option value="Debt Mutual Fund">Debt Mutual Fund</option>
+                                                <option value="ETF">ETF</option>
+                                                <option value="Gold">Gold</option>
+                                                <option value="Bonds">Bonds</option>
+                                                <option value="REIT">REIT</option>
                                             </select>
                                         </div>
                                     </div>
