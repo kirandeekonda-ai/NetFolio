@@ -114,7 +114,7 @@ export default function FinanceDashboard() {
 
         setIsExporting(true);
         try {
-            const response = await fetch(`/api/finance/export?userId=${user.id}`);
+            const response = await fetch(`/api/finance/export`);
             const data = await response.json();
 
             if (!response.ok) throw new Error(data.error);

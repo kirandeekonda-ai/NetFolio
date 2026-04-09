@@ -1,30 +1,28 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { createClient } from '@supabase/supabase-js';
-
-// Use Supabase client with service role key — works in both local and production (Vercel)
-// The old raw `pg` connection was failing on Vercel because DATABASE_URL / POSTGRES_URL
-// was not available or blocked by Supabase's serverless connection rules.
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { createServerSupabaseClient } from '@supabase/auth-helpers-nextjs';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'GET') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    try {
-        const userId = req.query.userId as string;
+    // Use the user's own auth session (reads cookies) — works in local + production
+    // without needing any service role key or direct DB URL.
+    const supabase = createServerSupabaseClient({ req, res });
 
-        if (!userId) {
-            return res.status(400).json({ error: 'User ID required' });
+    try {
+        // Verify the session is valid
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+        if (sessionError || !session) {
+            return res.status(401).json({ error: 'Not authenticated' });
         }
 
+        const userId = session.user.id;
         console.log('Exporting for user:', userId);
 
         // Fetch holdings
-        const { data: holdings, error: holdingsError } = await supabaseAdmin
+        const { data: holdings, error: holdingsError } = await supabase
             .from('investments_holdings')
             .select('*')
             .eq('user_id', userId)
@@ -35,10 +33,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             throw new Error(holdingsError.message);
         }
 
-        console.log('Holdings fetched:', holdings?.length || 0);
+        console.log('Holdings fetched:', holdings?.length ?? 0);
 
         // Fetch transactions
-        const { data: transactions, error: txError } = await supabaseAdmin
+        const { data: transactions, error: txError } = await supabase
             .from('investment_transactions')
             .select('*')
             .eq('user_id', userId)
@@ -49,7 +47,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             throw new Error(txError.message);
         }
 
-        console.log('Transactions fetched:', transactions?.length || 0);
+        console.log('Transactions fetched:', transactions?.length ?? 0);
 
         // Generate Holdings CSV
         const holdingsHeaders = [
@@ -58,61 +56,58 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             'Current Value', 'P&L Amount', 'P&L %', 'Investment Date', 'Last Price Update'
         ];
 
-        const holdingsRows = (holdings || []).map(h => {
+        const escapeCell = (val: any) => `"${String(val ?? '').replace(/"/g, '""')}"`;
+
+        const holdingsRows = (holdings ?? []).map(h => {
             const investedAmount = Number(h.quantity) * Number(h.avg_price);
             const currentValue = Number(h.quantity) * (Number(h.current_price) || Number(h.avg_price));
             const pnlAmount = currentValue - investedAmount;
             const pnlPercent = investedAmount > 0 ? (pnlAmount / investedAmount) * 100 : 0;
 
             return [
-                h.holder_name || '',
-                h.name || '',
-                h.ticker_symbol || '',
-                h.asset_class || '',
-                h.sector || '',
-                h.strategy_bucket || '',
-                h.quantity?.toString() || '0',
-                h.avg_price?.toString() || '0',
-                (h.current_price || h.avg_price)?.toString() || '0',
+                h.holder_name,
+                h.name,
+                h.ticker_symbol,
+                h.asset_class,
+                h.sector,
+                h.strategy_bucket,
+                h.quantity,
+                h.avg_price,
+                h.current_price || h.avg_price,
                 investedAmount.toFixed(2),
                 currentValue.toFixed(2),
                 pnlAmount.toFixed(2),
                 pnlPercent.toFixed(2),
-                h.investment_date || h.created_at || '',
-                h.last_price_update || ''
-            ].map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',');
+                h.investment_date || h.created_at,
+                h.last_price_update
+            ].map(escapeCell).join(',');
         });
 
-        const holdingsCsv = [
-            holdingsHeaders.join(','),
-            ...holdingsRows
-        ].join('\n');
+        const holdingsCsv = [holdingsHeaders.join(','), ...holdingsRows].join('\n');
+
+        // Build holding ID → name map for richer transaction export
+        const holdingNameMap: Record<string, string> = {};
+        (holdings ?? []).forEach(h => { holdingNameMap[h.id] = h.name ?? ''; });
 
         // Generate Transactions CSV
         const transactionsHeaders = [
-            'Date', 'Investment Name', 'Holding ID', 'Type', 'Quantity', 'Price Per Unit', 'Total Amount', 'Fees', 'Notes'
+            'Date', 'Investment Name', 'Holding ID', 'Type',
+            'Quantity', 'Price Per Unit', 'Total Amount', 'Fees', 'Notes'
         ];
 
-        // Build a map of holdingId -> name for richer transaction CSV
-        const holdingNameMap: Record<string, string> = {};
-        (holdings || []).forEach(h => { holdingNameMap[h.id] = h.name || ''; });
-
-        const transactionsRows = (transactions || []).map(t => [
-            t.date || '',
-            holdingNameMap[t.holding_id] || '',
-            t.holding_id || '',
-            t.type || '',
-            t.quantity?.toString() || '0',
-            t.price_per_unit?.toString() || '0',
+        const transactionsRows = (transactions ?? []).map(t => [
+            t.date,
+            holdingNameMap[t.holding_id],
+            t.holding_id,
+            t.type,
+            t.quantity,
+            t.price_per_unit,
             (Number(t.quantity) * Number(t.price_per_unit)).toFixed(2),
-            t.fees?.toString() || '0',
-            t.notes || ''
-        ].map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','));
+            t.fees ?? 0,
+            t.notes
+        ].map(escapeCell).join(','));
 
-        const transactionsCsv = [
-            transactionsHeaders.join(','),
-            ...transactionsRows
-        ].join('\n');
+        const transactionsCsv = [transactionsHeaders.join(','), ...transactionsRows].join('\n');
 
         console.log('CSV generated — Holdings:', holdingsRows.length, 'Transactions:', transactionsRows.length);
 
@@ -121,8 +116,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             transactions: transactionsCsv,
             timestamp: new Date().toISOString(),
             stats: {
-                holdingsCount: holdings?.length || 0,
-                transactionsCount: transactions?.length || 0
+                holdingsCount: holdings?.length ?? 0,
+                transactionsCount: transactions?.length ?? 0
             }
         });
 
