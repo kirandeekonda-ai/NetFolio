@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { InvestmentHolding } from '@/types/finance';
+import { InvestmentHolding, InvestmentTransaction } from '@/types/finance';
 
 interface HoldingManagementModalProps {
     isOpen: boolean;
@@ -26,6 +26,11 @@ export const HoldingManagementModal: React.FC<HoldingManagementModalProps> = ({
     const [activeTab, setActiveTab] = useState<TabType>('transactions');
     const [isAddingTransaction, setIsAddingTransaction] = useState(false);
     const [editingTxId, setEditingTxId] = useState<string | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
+
+    // Local transactions state — seeded from prop, updated optimistically
+    const [localTransactions, setLocalTransactions] = useState<InvestmentTransaction[]>([]);
+
     const [txFormData, setTxFormData] = useState({
         type: 'buy',
         date: new Date().toISOString().split('T')[0],
@@ -41,7 +46,18 @@ export const HoldingManagementModal: React.FC<HoldingManagementModalProps> = ({
         holder_name: 'Kiran'
     });
 
-    // Populate forms when holding changes
+    // Sync local transactions whenever the holding prop changes (e.g. after parent fetchData)
+    useEffect(() => {
+        if (holding) {
+            setLocalTransactions(
+                [...(holding.transactions || [])].sort(
+                    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+                )
+            );
+        }
+    }, [holding]);
+
+    // Populate detail form when holding changes
     useEffect(() => {
         if (holding) {
             setDetailsFormData({
@@ -72,15 +88,38 @@ export const HoldingManagementModal: React.FC<HoldingManagementModalProps> = ({
 
     const handleAddTransaction = async (e: React.FormEvent) => {
         e.preventDefault();
-        await onAddTransaction({
-            ...txFormData,
-            ticker_symbol: holding?.ticker_symbol,
-            name: holding?.name,
-            holder_name: holding?.holder_name,
-            asset_class: holding?.asset_class,
-            sector: holding?.sector,
-            strategy_bucket: holding?.strategy_bucket
-        });
+        setIsSaving(true);
+        try {
+            await onAddTransaction({
+                ...txFormData,
+                ticker_symbol: holding?.ticker_symbol,
+                name: holding?.name,
+                holder_name: holding?.holder_name,
+                asset_class: holding?.asset_class,
+                sector: holding?.sector,
+                strategy_bucket: holding?.strategy_bucket
+            });
+
+            // Optimistically add the new transaction to local state so it appears immediately
+            const newTx: InvestmentTransaction = {
+                id: `temp-${Date.now()}`, // temporary id until parent re-fetches
+                holding_id: holding?.id || '',
+                user_id: '',
+                type: txFormData.type as 'buy' | 'sell' | 'dividend',
+                date: txFormData.date,
+                quantity: Number(txFormData.quantity),
+                price_per_unit: Number(txFormData.price),
+                notes: txFormData.notes,
+                created_at: new Date().toISOString(),
+            };
+            setLocalTransactions(prev =>
+                [newTx, ...prev].sort(
+                    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+                )
+            );
+        } finally {
+            setIsSaving(false);
+        }
         setTxFormData({
             type: 'buy',
             date: new Date().toISOString().split('T')[0],
@@ -103,7 +142,7 @@ export const HoldingManagementModal: React.FC<HoldingManagementModalProps> = ({
 
     if (!isOpen || !holding) return null;
 
-    const transactions = holding.transactions || [];
+    // Use local (optimistically updated) list for rendering
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
@@ -255,8 +294,8 @@ export const HoldingManagementModal: React.FC<HoldingManagementModalProps> = ({
 
                                 {/* Transaction History */}
                                 <div className="space-y-2">
-                                    <h4 className="text-sm font-semibold text-gray-700 mb-3">Transaction History ({transactions.length})</h4>
-                                    {transactions.length === 0 ? (
+                                    <h4 className="text-sm font-semibold text-gray-700 mb-3">Transaction History ({localTransactions.length})</h4>
+                                    {localTransactions.length === 0 ? (
                                         <div className="text-center py-8 text-gray-500">
                                             <svg className="w-12 h-12 mx-auto mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -264,7 +303,7 @@ export const HoldingManagementModal: React.FC<HoldingManagementModalProps> = ({
                                             <p>No transactions yet</p>
                                         </div>
                                     ) : (
-                                        transactions.map((tx: any) => (
+                                        localTransactions.map((tx: any) => (
                                             <div
                                                 key={tx.id}
                                                 className="p-3 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
@@ -296,6 +335,8 @@ export const HoldingManagementModal: React.FC<HoldingManagementModalProps> = ({
                                                     <button
                                                         onClick={() => {
                                                             if (confirm('Delete this transaction?')) {
+                                                                // Optimistically remove from local state immediately
+                                                                setLocalTransactions(prev => prev.filter(t => t.id !== tx.id));
                                                                 onDeleteTransaction(tx.id);
                                                             }
                                                         }}
