@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { InvestmentHolding } from '@/types/finance';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FilterDropdown } from './FilterDropdown';
@@ -10,6 +10,23 @@ interface HoldingsTableProps {
     onDelete: (id: string) => void;
     onEditTransaction: (tx: any, holding: InvestmentHolding) => void;
     onDeleteTransaction: (txId: string) => void;
+}
+
+/** Flat transaction with its parent holding metadata */
+interface FlatTransaction {
+    id: string;
+    holdingId: string;
+    holdingName: string;
+    tickerSymbol: string;
+    holderName: string;
+    assetClass: string;
+    type: 'buy' | 'sell' | 'dividend';
+    date: string;
+    quantity: number;
+    price_per_unit: number;
+    amount: number;
+    holding: InvestmentHolding;
+    tx: any;
 }
 
 const formatValue = (value: number) => {
@@ -32,7 +49,10 @@ export const HoldingsTable: React.FC<HoldingsTableProps> = ({ holdings, isLoadin
     const [searchQuery, setSearchQuery] = useState('');
     const [sortColumn, setSortColumn] = useState<keyof InvestmentHolding | 'pnl' | 'currentValue' | 'investedValue' | 'xirr' | 'cagr'>('name');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-    const [pnlView, setPnlView] = useState<'day' | 'total'>('day'); // New state for P&L toggle
+    const [pnlView, setPnlView] = useState<'day' | 'total'>('day'); // State for P&L toggle
+    const [activeView, setActiveView] = useState<'holdings' | 'transactions'>('holdings'); // View toggle
+    const [txSearchQuery, setTxSearchQuery] = useState(''); // Transaction search
+    const [txTypeFilter, setTxTypeFilter] = useState<'all' | 'buy' | 'sell' | 'dividend'>('all'); // Tx type filter
 
     // Multi-select filters
     const [selectedInvestments, setSelectedInvestments] = useState<Set<string>>(new Set());
@@ -129,6 +149,52 @@ export const HoldingsTable: React.FC<HoldingsTableProps> = ({ holdings, isLoadin
         return 0;
     });
 
+    // Build flat transactions list (latest first)
+    const allTransactions = useMemo((): FlatTransaction[] => {
+        const txList: FlatTransaction[] = [];
+        holdings.forEach(h => {
+            (h.transactions || []).forEach(tx => {
+                txList.push({
+                    id: tx.id,
+                    holdingId: h.id,
+                    holdingName: h.name,
+                    tickerSymbol: h.ticker_symbol,
+                    holderName: h.holder_name,
+                    assetClass: h.asset_class,
+                    type: tx.type,
+                    date: tx.date,
+                    quantity: tx.quantity,
+                    price_per_unit: tx.price_per_unit,
+                    amount: tx.quantity * tx.price_per_unit,
+                    holding: h,
+                    tx,
+                });
+            });
+        });
+        // Sort latest first
+        return txList.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }, [holdings]);
+
+    // Compute last entered date
+    const lastEntryDate = useMemo(() => {
+        if (allTransactions.length === 0) return null;
+        return new Date(allTransactions[0].date);
+    }, [allTransactions]);
+
+    // Filter transactions
+    const filteredTransactions = useMemo(() => {
+        return allTransactions.filter(tx => {
+            const q = txSearchQuery.toLowerCase();
+            const matchesSearch = !q ||
+                tx.holdingName?.toLowerCase().includes(q) ||
+                tx.tickerSymbol?.toLowerCase().includes(q) ||
+                tx.holderName?.toLowerCase().includes(q) ||
+                tx.assetClass?.toLowerCase().includes(q);
+            const matchesType = txTypeFilter === 'all' || tx.type === txTypeFilter;
+            return matchesSearch && matchesType;
+        });
+    }, [allTransactions, txSearchQuery, txTypeFilter]);
+
     if (isLoading) {
         return <div className="p-8 text-center text-gray-500 animate-pulse">Loading portfolio data...</div>;
     }
@@ -144,6 +210,51 @@ export const HoldingsTable: React.FC<HoldingsTableProps> = ({ holdings, isLoadin
 
     return (
         <div className="space-y-4">
+            {/* View Toggle + Last Entry Banner */}
+            <div className="flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl">
+                    <button
+                        onClick={() => setActiveView('holdings')}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                            activeView === 'holdings'
+                                ? 'bg-white text-blue-700 shadow-sm'
+                                : 'text-gray-500 hover:text-gray-700'
+                        }`}
+                    >
+                        📊 Holdings
+                    </button>
+                    <button
+                        onClick={() => setActiveView('transactions')}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                            activeView === 'transactions'
+                                ? 'bg-white text-blue-700 shadow-sm'
+                                : 'text-gray-500 hover:text-gray-700'
+                        }`}
+                    >
+                        📋 All Transactions
+                        {allTransactions.length > 0 && (
+                            <span className="ml-1.5 px-1.5 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full">
+                                {allTransactions.length}
+                            </span>
+                        )}
+                    </button>
+                </div>
+                {lastEntryDate && (
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
+                        <svg className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>
+                            <span className="font-medium">Last entry:</span>{' '}
+                            {lastEntryDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </span>
+                    </div>
+                )}
+            </div>
+
+            {/* HOLDINGS VIEW */}
+            {activeView === 'holdings' && (
+            <>
             {/* Filter Dropdowns */}
             <div className="flex items-center gap-3 flex-wrap">
                 {/* Investment Filter */}
@@ -617,6 +728,199 @@ export const HoldingsTable: React.FC<HoldingsTableProps> = ({ holdings, isLoadin
                     </tbody>
                 </table>
             </div>
-        </div >
+            </> /* end holdings view */
+            )}
+
+            {/* TRANSACTIONS VIEW */}
+            {activeView === 'transactions' && (
+                <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="space-y-4"
+                >
+                    {/* Transactions toolbar */}
+                    <div className="flex flex-wrap items-center gap-3">
+                        {/* Search */}
+                        <div className="flex-1 min-w-[200px] flex items-center gap-3 p-3 bg-white rounded-xl border border-gray-200 shadow-sm">
+                            <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            <input
+                                type="text"
+                                placeholder="Search by name, ticker, person…"
+                                value={txSearchQuery}
+                                onChange={(e) => setTxSearchQuery(e.target.value)}
+                                className="flex-1 outline-none text-sm text-gray-700 placeholder-gray-400"
+                            />
+                            {txSearchQuery && (
+                                <button onClick={() => setTxSearchQuery('')} className="text-gray-400 hover:text-gray-600">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Type filter pills */}
+                        <div className="flex items-center gap-1.5 bg-gray-100 p-1 rounded-xl">
+                            {(['all', 'buy', 'sell', 'dividend'] as const).map(type => (
+                                <button
+                                    key={type}
+                                    onClick={() => setTxTypeFilter(type)}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-all ${
+                                        txTypeFilter === type
+                                            ? type === 'buy'
+                                                ? 'bg-emerald-500 text-white shadow-sm'
+                                                : type === 'sell'
+                                                    ? 'bg-red-500 text-white shadow-sm'
+                                                    : type === 'dividend'
+                                                        ? 'bg-blue-500 text-white shadow-sm'
+                                                        : 'bg-white text-gray-700 shadow-sm'
+                                            : 'text-gray-500 hover:text-gray-700'
+                                    }`}
+                                >
+                                    {type === 'all' ? 'All' : type.charAt(0).toUpperCase() + type.slice(1)}
+                                </button>
+                            ))}
+                        </div>
+
+                        <span className="text-sm text-gray-500">
+                            {filteredTransactions.length} transaction{filteredTransactions.length !== 1 ? 's' : ''}
+                        </span>
+                    </div>
+
+                    {/* Transactions table */}
+                    <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm bg-white">
+                        {filteredTransactions.length === 0 ? (
+                            <div className="p-12 text-center">
+                                <p className="text-gray-400 text-sm">No transactions found.</p>
+                            </div>
+                        ) : (
+                            <table className="min-w-full divide-y divide-gray-100 text-sm">
+                                <thead className="bg-gray-50 sticky top-0 z-10">
+                                    <tr>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Type</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Investment</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Person</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Asset Class</th>
+                                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Qty</th>
+                                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Price</th>
+                                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Amount</th>
+                                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider w-20">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-50">
+                                    {filteredTransactions.map((flatTx, idx) => {
+                                        const txDate = new Date(flatTx.date);
+                                        const isFirst = idx === 0;
+                                        const isSecondDay = idx > 0 &&
+                                            new Date(filteredTransactions[idx - 1].date).toDateString() !== txDate.toDateString();
+                                        const showDateDivider = isFirst || isSecondDay;
+
+                                        return (
+                                            <React.Fragment key={flatTx.id}>
+                                                {showDateDivider && (
+                                                    <tr className="bg-gradient-to-r from-indigo-50 to-blue-50">
+                                                        <td colSpan={9} className="px-4 py-1.5">
+                                                            <span className="text-xs font-semibold text-indigo-600">
+                                                                📅 {txDate.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                                <motion.tr
+                                                    initial={{ opacity: 0 }}
+                                                    animate={{ opacity: 1 }}
+                                                    transition={{ delay: idx * 0.01 }}
+                                                    className={`group hover:bg-gray-50 transition-colors ${
+                                                        flatTx.type === 'buy' ? 'border-l-2 border-l-emerald-400' :
+                                                        flatTx.type === 'sell' ? 'border-l-2 border-l-red-400' :
+                                                        'border-l-2 border-l-blue-400'
+                                                    }`}
+                                                >
+                                                    {/* Date */}
+                                                    <td className="px-4 py-3 text-gray-500 text-xs tabular-nums whitespace-nowrap">
+                                                        {txDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                    </td>
+                                                    {/* Type */}
+                                                    <td className="px-4 py-3">
+                                                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${
+                                                            flatTx.type === 'buy' ? 'bg-emerald-100 text-emerald-800' :
+                                                            flatTx.type === 'sell' ? 'bg-red-100 text-red-800' :
+                                                            'bg-blue-100 text-blue-800'
+                                                        }`}>
+                                                            {flatTx.type === 'buy' ? '▲ BUY' : flatTx.type === 'sell' ? '▼ SELL' : '💰 DIV'}
+                                                        </span>
+                                                    </td>
+                                                    {/* Investment name */}
+                                                    <td className="px-4 py-3">
+                                                        <div className="flex flex-col">
+                                                            <span className="font-medium text-gray-900 text-sm">{flatTx.holdingName}</span>
+                                                            {flatTx.tickerSymbol && (
+                                                                <span className="text-xs text-gray-400">{flatTx.tickerSymbol}</span>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    {/* Person */}
+                                                    <td className="px-4 py-3">
+                                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                                                            flatTx.holderName === 'Kiran' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
+                                                        }`}>
+                                                            {flatTx.holderName}
+                                                        </span>
+                                                    </td>
+                                                    {/* Asset Class */}
+                                                    <td className="px-4 py-3 text-xs text-gray-600">{flatTx.assetClass}</td>
+                                                    {/* Qty */}
+                                                    <td className="px-4 py-3 text-right font-mono text-gray-900">
+                                                        {Number(flatTx.quantity).toFixed(2)}
+                                                    </td>
+                                                    {/* Price */}
+                                                    <td className="px-4 py-3 text-right font-mono text-gray-700">
+                                                        {formatDecimal(flatTx.price_per_unit)}
+                                                    </td>
+                                                    {/* Amount */}
+                                                    <td className={`px-4 py-3 text-right font-mono font-semibold whitespace-nowrap ${
+                                                        flatTx.type === 'buy' ? 'text-emerald-700' : 'text-red-700'
+                                                    }`}>
+                                                        {flatTx.type === 'sell' ? '−' : '+'}{formatValue(flatTx.amount)}
+                                                    </td>
+                                                    {/* Actions */}
+                                                    <td className="px-4 py-3 text-right">
+                                                        <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <button
+                                                                onClick={() => onEditTransaction(flatTx.tx, flatTx.holding)}
+                                                                className="p-1.5 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded"
+                                                                title="Edit Transaction"
+                                                            >
+                                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                                </svg>
+                                                            </button>
+                                                            <button
+                                                                onClick={() => {
+                                                                    if (confirm('Delete this transaction?')) onDeleteTransaction(flatTx.id);
+                                                                }}
+                                                                className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded"
+                                                                title="Delete Transaction"
+                                                            >
+                                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                                </svg>
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </motion.tr>
+                                            </React.Fragment>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        )}
+                    </div>
+                </motion.div>
+            )}
+        </div>
     );
 };

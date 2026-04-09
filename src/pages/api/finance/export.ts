@@ -1,20 +1,18 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
 
-// Use direct database connection like the import script
-const { Client } = require('pg');
-
-const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+// Use Supabase client with service role key — works in both local and production (Vercel)
+// The old raw `pg` connection was failing on Vercel because DATABASE_URL / POSTGRES_URL
+// was not available or blocked by Supabase's serverless connection rules.
+const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'GET') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
-
-    const client = new Client({
-        connectionString: DATABASE_URL,
-        ssl: { rejectUnauthorized: false }
-    });
 
     try {
         const userId = req.query.userId as string;
@@ -25,23 +23,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         console.log('Exporting for user:', userId);
 
-        await client.connect();
+        // Fetch holdings
+        const { data: holdings, error: holdingsError } = await supabaseAdmin
+            .from('investments_holdings')
+            .select('*')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false });
 
-        // Fetch holdings using direct SQL
-        const holdingsResult = await client.query(
-            `SELECT * FROM investments_holdings WHERE user_id = $1 ORDER BY created_at DESC`,
-            [userId]
-        );
-        const holdings = holdingsResult.rows;
+        if (holdingsError) {
+            console.error('Holdings fetch error:', holdingsError);
+            throw new Error(holdingsError.message);
+        }
 
         console.log('Holdings fetched:', holdings?.length || 0);
 
-        // Fetch transactions using direct SQL
-        const transactionsResult = await client.query(
-            `SELECT * FROM investment_transactions WHERE user_id = $1 ORDER BY date DESC`,
-            [userId]
-        );
-        const transactions = transactionsResult.rows;
+        // Fetch transactions
+        const { data: transactions, error: txError } = await supabaseAdmin
+            .from('investment_transactions')
+            .select('*')
+            .eq('user_id', userId)
+            .order('date', { ascending: false });
+
+        if (txError) {
+            console.error('Transactions fetch error:', txError);
+            throw new Error(txError.message);
+        }
 
         console.log('Transactions fetched:', transactions?.length || 0);
 
@@ -74,7 +80,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 pnlPercent.toFixed(2),
                 h.investment_date || h.created_at || '',
                 h.last_price_update || ''
-            ].map(cell => `"${cell}"`).join(',');
+            ].map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',');
         });
 
         const holdingsCsv = [
@@ -84,11 +90,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         // Generate Transactions CSV
         const transactionsHeaders = [
-            'Date', 'Holding ID', 'Type', 'Quantity', 'Price Per Unit', 'Total Amount', 'Fees', 'Notes'
+            'Date', 'Investment Name', 'Holding ID', 'Type', 'Quantity', 'Price Per Unit', 'Total Amount', 'Fees', 'Notes'
         ];
+
+        // Build a map of holdingId -> name for richer transaction CSV
+        const holdingNameMap: Record<string, string> = {};
+        (holdings || []).forEach(h => { holdingNameMap[h.id] = h.name || ''; });
 
         const transactionsRows = (transactions || []).map(t => [
             t.date || '',
+            holdingNameMap[t.holding_id] || '',
             t.holding_id || '',
             t.type || '',
             t.quantity?.toString() || '0',
@@ -96,19 +107,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             (Number(t.quantity) * Number(t.price_per_unit)).toFixed(2),
             t.fees?.toString() || '0',
             t.notes || ''
-        ].map(cell => `"${cell}"`).join(','));
+        ].map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','));
 
         const transactionsCsv = [
             transactionsHeaders.join(','),
             ...transactionsRows
         ].join('\n');
 
-        console.log('CSV generated - Holdings rows:', holdingsRows.length, 'Transactions rows:', transactionsRows.length);
+        console.log('CSV generated — Holdings:', holdingsRows.length, 'Transactions:', transactionsRows.length);
 
-        await client.end();
-
-        // Return both CSVs as JSON
-        res.status(200).json({
+        return res.status(200).json({
             holdings: holdingsCsv,
             transactions: transactionsCsv,
             timestamp: new Date().toISOString(),
@@ -120,7 +128,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     } catch (error: any) {
         console.error('Export error:', error);
-        await client.end();
-        res.status(500).json({ error: error.message || 'Export failed' });
+        return res.status(500).json({ error: error.message || 'Export failed' });
     }
 }
