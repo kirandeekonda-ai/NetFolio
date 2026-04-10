@@ -1,9 +1,5 @@
-import React, { useState } from 'react';
-// Simplistic Modal wrapper if HeadlessUI isn't available, but usually it is in Next.js stacks.
+import React, { useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-
-// Simplistic Modal wrapper if HeadlessUI isn't available, but usually it is in Next.js stacks.
-// For safety, I will build a custom one to avoid dependency issues.
 
 import { InvestmentHolding } from '@/types/finance';
 
@@ -30,7 +26,12 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen
     });
 
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isLoadingProfile, setIsLoadingProfile] = useState(false); // Fix for overwrite bug
+    const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+    const [isSearching, setIsSearching] = useState(false);
+
+    // Ref to prevent onBlur from overriding selection
+    const selectionProcessing = useRef(false);
+    const debounceTimer = useRef<NodeJS.Timeout | null>(null);
 
     // Populate form on open/change of initialData
     React.useEffect(() => {
@@ -85,24 +86,36 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen
     const [searchResults, setSearchResults] = useState<any[]>([]);
     const [showResults, setShowResults] = useState(false);
 
-    // Ref to prevent onBlur from overriding selection
-    const selectionProcessing = React.useRef(false);
-
-    const handleSymbolSearch = async (query: string) => {
-        setFormData({ ...formData, ticker_symbol: query.toUpperCase() });
-        if (query.length > 2) {
-            try {
-                // Using the new client service
-                const { clientMarketData } = await import('@/services/ClientMarketDataService');
-                const results = await clientMarketData.search(query);
+    const doSearch = useCallback(async (query: string) => {
+        if (query.length < 2) { setShowResults(false); setSearchResults([]); return; }
+        setIsSearching(true);
+        try {
+            const { clientMarketData } = await import('@/services/ClientMarketDataService');
+            const results = await clientMarketData.search(query);
+            if (Array.isArray(results) && results.length > 0) {
                 setSearchResults(results);
                 setShowResults(true);
-            } catch (e) {
-                console.error(e);
+            } else {
+                setSearchResults([]);
+                setShowResults(false);
             }
-        } else {
-            setShowResults(false);
+        } catch (e) {
+            console.error('Search error:', e);
+        } finally {
+            setIsSearching(false);
         }
+    }, []);
+
+    const handleSymbolSearch = (query: string) => {
+        setFormData(prev => ({ ...prev, ticker_symbol: query.toUpperCase() }));
+        if (debounceTimer.current) clearTimeout(debounceTimer.current);
+        debounceTimer.current = setTimeout(() => doSearch(query), 350);
+    };
+
+    const handleNameSearch = (query: string) => {
+        setFormData(prev => ({ ...prev, name: query }));
+        if (debounceTimer.current) clearTimeout(debounceTimer.current);
+        debounceTimer.current = setTimeout(() => doSearch(query), 350);
     };
 
     const selectSymbol = async (symbolData: any) => {
@@ -193,40 +206,51 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen
                     <div className="grid grid-cols-2 gap-4">
                         <div className="relative">
                             <label className="block text-sm font-medium text-gray-700 mb-1">Symbol (e.g., ITC.NS)</label>
-                            <input
-                                type="text"
-                                required
-                                disabled={!!initialData || !!initialTransaction}
-                                className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none uppercase ${initialData || initialTransaction ? 'bg-gray-100 text-gray-500' : ''}`}
-                                value={formData.ticker_symbol}
-                                onChange={(e) => handleSymbolSearch(e.target.value)}
-                                onBlur={() => {
-                                    // Delay to allow click on dropdown
-                                    setTimeout(() => {
-                                        if (selectionProcessing.current) return;
-
-                                        setShowResults(false);
-                                        // If user typed something but didn't select, try to fetch details for what they typed
-                                        if (formData.ticker_symbol && !formData.name) {
-                                            selectSymbol({ symbol: formData.ticker_symbol, name: '', type: 'EQUITY' });
-                                        }
-                                    }, 200);
-                                }}
-                                placeholder="ITC.NS"
-                            />
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    required
+                                    disabled={!!initialData || !!initialTransaction}
+                                    className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none uppercase ${initialData || initialTransaction ? 'bg-gray-100 text-gray-500' : ''}`}
+                                    value={formData.ticker_symbol}
+                                    onChange={(e) => handleSymbolSearch(e.target.value)}
+                                    onFocus={() => { if (searchResults.length > 0) setShowResults(true); }}
+                                    onBlur={() => {
+                                        setTimeout(() => {
+                                            if (selectionProcessing.current) return;
+                                            setShowResults(false);
+                                            if (formData.ticker_symbol && !formData.name) {
+                                                selectSymbol({ symbol: formData.ticker_symbol, name: '', type: 'EQUITY' });
+                                            }
+                                        }, 200);
+                                    }}
+                                    placeholder="ITC.NS"
+                                />
+                                {isSearching && (
+                                    <div className="absolute right-2 top-2.5">
+                                        <svg className="animate-spin h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                                        </svg>
+                                    </div>
+                                )}
+                            </div>
                             {/* Search Results Dropdown */}
                             {showResults && searchResults.length > 0 && (
-                                <ul className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                                <ul className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-52 overflow-y-auto">
                                     {searchResults.map((result, idx) => (
                                         <li
                                             key={idx}
-                                            className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm"
-                                            onClick={() => selectSymbol(result)}
+                                            className="px-4 py-2.5 hover:bg-blue-50 cursor-pointer text-sm border-b last:border-0 border-gray-50"
+                                            onMouseDown={() => { selectionProcessing.current = true; selectSymbol(result); }}
                                         >
-                                            <div className="font-medium text-gray-900">{result.name}</div>
-                                            <div className="text-gray-500 text-xs flex justify-between">
-                                                <span>{result.symbol}</span>
-                                                <span className="uppercase">{result.type === 'MUTUALFUND' ? 'Mutual Fund' : result.type}</span>
+                                            <div className="font-medium text-gray-900">
+                                                {[result.name, result.longname, result.shortname, result.symbol]
+                                                    .find(v => v && v !== 'null' && v.trim() !== '') || result.symbol}
+                                            </div>
+                                            <div className="text-gray-500 text-xs flex justify-between mt-0.5">
+                                                <span className="font-mono">{result.symbol}</span>
+                                                <span className="capitalize text-blue-600">{result.type === 'MUTUALFUND' ? 'Mutual Fund' : result.type === 'ETF' ? 'ETF' : 'Equity'}</span>
                                             </div>
                                         </li>
                                     ))}
@@ -235,13 +259,25 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
-                            <input
-                                type="text"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                                value={formData.name}
-                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                placeholder="ITC Limited"
-                            />
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                    value={formData.name}
+                                    onChange={(e) => handleNameSearch(e.target.value)}
+                                    onFocus={() => { if (searchResults.length > 0) setShowResults(true); }}
+                                    onBlur={() => setTimeout(() => { if (!selectionProcessing.current) setShowResults(false); }, 200)}
+                                    placeholder="Search by company name..."
+                                />
+                                {isSearching && (
+                                    <div className="absolute right-2 top-2.5">
+                                        <svg className="animate-spin h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                                        </svg>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
 

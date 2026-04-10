@@ -47,7 +47,7 @@
     "react-redux": "^9.2.0",
     "recharts": "^3.0.2",
     "tailwind-merge": "^3.4.0",
-    "yahoo-finance2": "^3.11.2"
+    "yahoo-finance2": "^3.14.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

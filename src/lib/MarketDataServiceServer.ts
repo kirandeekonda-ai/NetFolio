@@ -1,4 +1,8 @@
 import YahooFinance from 'yahoo-finance2';
+
+// yahoo-finance2 v3 requires instantiation via `new YahooFinance()`
+// We pass validateResult: false per-call to avoid schema errors for
+// Indian mutual funds whose quoteType the library hasn't typed yet.
 const yahooFinance = new YahooFinance();
 
 // Types for our internal usage
@@ -35,17 +39,22 @@ class MarketDataService {
 
             const results = await yahooFinance.search(query, {
                 newsCount: 0,
-                quotesCount: 20
-            });
+                quotesCount: 20,
+            }, { validateResult: false });
+
+            // Yahoo Finance sometimes returns longname/shortname as null or the string "null"
+            const safeStr = (v: any): string | null =>
+                v && typeof v === 'string' && v !== 'null' && v.trim() !== '' ? v.trim() : null;
 
             return results.quotes
-                .filter((q: any) => q.isYahooFinance) // Filter out news items
+                .filter((q: any) => q.isYahooFinance)
                 .map((q: any) => ({
                     symbol: q.symbol,
-                    name: q.longname || q.shortname || q.symbol,
+                    name: safeStr(q.longname) || safeStr(q.shortname) || q.symbol,
                     exchange: q.exchange,
                     type: q.quoteType
-                }));
+                }))
+                .filter((r: any) => r.symbol); // drop any with no symbol
         } catch (error) {
             console.error('MarketDataService: Search failed', error);
             return [];
@@ -66,7 +75,7 @@ class MarketDataService {
             // Fetch from Yahoo Finance
             // We fetch 'quote' for price and 'quoteSummary' for sector/profile if possible
             // standard quote() often has what we need for price
-            const quote = await yahooFinance.quote(symbol);
+            const quote = await yahooFinance.quote(symbol, {}, { validateResult: false });
 
             // For Sector, we might need a separate call (quoteSummary) but regular quote often has partial info.
             // Let's try to get sector from quoteSummary if quote doesn't have it.
@@ -99,7 +108,7 @@ class MarketDataService {
      */
     async getCompanyProfile(symbol: string) {
         try {
-            const summary = await yahooFinance.quoteSummary(symbol, { modules: ['assetProfile', 'price'] });
+            const summary = await yahooFinance.quoteSummary(symbol, { modules: ['assetProfile', 'price'] }, { validateResult: false });
             return {
                 sector: summary.assetProfile?.sector,
                 industry: summary.assetProfile?.industry,
@@ -121,7 +130,7 @@ class MarketDataService {
         if (symbols.length === 0) return {};
 
         try {
-            const quotes = await yahooFinance.quote(symbols);
+            const quotes = await yahooFinance.quote(symbols as string[], {}, { validateResult: false });
             const quoteMap: Record<string, MarketQuote> = {};
 
             const processQuote = (q: any) => {

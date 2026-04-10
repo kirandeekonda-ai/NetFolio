@@ -10,6 +10,7 @@ interface HoldingsTableProps {
     onDelete: (id: string) => void;
     onEditTransaction: (tx: any, holding: InvestmentHolding) => void;
     onDeleteTransaction: (txId: string) => void;
+    onAddInvestment: () => void;
 }
 
 /** Flat transaction with its parent holding metadata */
@@ -44,7 +45,7 @@ const formatDecimal = (value: number) => {
     }).format(value);
 };
 
-export const HoldingsTable: React.FC<HoldingsTableProps> = ({ holdings, isLoading, onEdit, onDelete, onEditTransaction, onDeleteTransaction }) => {
+export const HoldingsTable: React.FC<HoldingsTableProps> = ({ holdings, isLoading, onEdit, onDelete, onEditTransaction, onDeleteTransaction, onAddInvestment }) => {
     const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [sortColumn, setSortColumn] = useState<keyof InvestmentHolding | 'pnl' | 'currentValue' | 'investedValue' | 'xirr' | 'cagr'>('name');
@@ -210,35 +211,51 @@ export const HoldingsTable: React.FC<HoldingsTableProps> = ({ holdings, isLoadin
 
     return (
         <div className="space-y-4">
-            {/* View Toggle + Last Entry Banner */}
+            {/* View Toggle + Last Entry Banner + Add Button */}
             <div className="flex items-center justify-between flex-wrap gap-3">
-                <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl">
+                {/* Left: tabs + Add button */}
+                <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl">
+                        <button
+                            onClick={() => setActiveView('holdings')}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                                activeView === 'holdings'
+                                    ? 'bg-white text-blue-700 shadow-sm'
+                                    : 'text-gray-500 hover:text-gray-700'
+                            }`}
+                        >
+                            📊 Holdings
+                        </button>
+                        <button
+                            onClick={() => setActiveView('transactions')}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                                activeView === 'transactions'
+                                    ? 'bg-white text-blue-700 shadow-sm'
+                                    : 'text-gray-500 hover:text-gray-700'
+                            }`}
+                        >
+                            📋 All Transactions
+                            {allTransactions.length > 0 && (
+                                <span className="ml-1.5 px-1.5 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full">
+                                    {allTransactions.length}
+                                </span>
+                            )}
+                        </button>
+                    </div>
+
+                    {/* Add Investment — always visible next to tabs */}
                     <button
-                        onClick={() => setActiveView('holdings')}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                            activeView === 'holdings'
-                                ? 'bg-white text-blue-700 shadow-sm'
-                                : 'text-gray-500 hover:text-gray-700'
-                        }`}
+                        onClick={onAddInvestment}
+                        className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors"
                     >
-                        📊 Holdings
-                    </button>
-                    <button
-                        onClick={() => setActiveView('transactions')}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                            activeView === 'transactions'
-                                ? 'bg-white text-blue-700 shadow-sm'
-                                : 'text-gray-500 hover:text-gray-700'
-                        }`}
-                    >
-                        📋 All Transactions
-                        {allTransactions.length > 0 && (
-                            <span className="ml-1.5 px-1.5 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full">
-                                {allTransactions.length}
-                            </span>
-                        )}
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        Add Investment
                     </button>
                 </div>
+
+                {/* Right: last entry badge */}
                 {lastEntryDate && (
                     <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
                         <svg className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

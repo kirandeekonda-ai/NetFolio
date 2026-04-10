@@ -576,6 +576,7 @@ export default function FinanceDashboard() {
                                 setIsModalOpen(true);
                             }}
                             onDeleteTransaction={handleDeleteTransaction}
+                            onAddInvestment={() => { setEditingHolding(null); setIsModalOpen(true); }}
                         />
                     </div>
                 </motion.div>
